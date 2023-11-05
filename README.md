@@ -1,3 +1,7 @@
 # Avaruuskapakka v2.0
 
-Spaceship for friendly aliens.
+## Prerequisites
+
+- rust 1.72+
+- MySQL 8+
+- libmysqlclient-dev
