@@ -2,3 +2,6 @@
 # will have compiled files and executables
 debug/
 target/
+
+# Environment variables must not be shared
+*.env
