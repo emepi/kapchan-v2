@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS board_attachments;
+DROP TABLE IF EXISTS post_attachments;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS boards;
