@@ -1,6 +1,28 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    archives (id) {
+        id -> Integer,
+        file -> Integer,
+        data -> Longblob,
+    }
+}
+
+diesel::table! {
+    files (id) {
+        id -> Integer,
+        #[sql_name = "type"]
+        type_ -> Integer,
+        file_size -> Bigint,
+        owner -> Integer,
+        #[max_length = 512]
+        location -> Nullable<Varchar>,
+        created_at -> Datetime,
+        modified_at -> Nullable<Datetime>,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         id -> Integer,
         user_id -> Integer,
@@ -28,9 +50,13 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(archives -> files (file));
+diesel::joinable!(files -> sessions (owner));
 diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    archives,
+    files,
     sessions,
     users,
 );
