@@ -17,5 +17,5 @@ CREATE TABLE sessions (
     created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ended_at    DATETIME,
     PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )
