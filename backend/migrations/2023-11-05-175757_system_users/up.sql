@@ -9,13 +9,14 @@ CREATE TABLE users (
 );
 
 CREATE TABLE sessions (
-    id          INTEGER     NOT NULL AUTO_INCREMENT,
-    user_id     INTEGER     NOT NULL,
-    mode        TINYINT     NOT NULL,
-    ip_address  VARCHAR(45),
-    user_agent  VARCHAR(512),
-    created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    ended_at    DATETIME,
+    id           INTEGER     NOT NULL AUTO_INCREMENT,
+    user_id      INTEGER     NOT NULL,
+    access_level TINYINT     NOT NULL, -- session may use lower access level
+    mode         TINYINT     NOT NULL,
+    ip_address   VARCHAR(45),
+    user_agent   VARCHAR(512),
+    created_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ended_at     DATETIME,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )
