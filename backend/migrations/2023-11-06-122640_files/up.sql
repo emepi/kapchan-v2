@@ -3,6 +3,7 @@ CREATE TABLE files (
     type        INTEGER  NOT NULL, -- id for file format
     file_size   BIGINT   NOT NULL, -- in bytes
     owner       INTEGER  NOT NULL,
+    md5_hash    CHAR(32) UNIQUE NOT NULL,
     location    VARCHAR(512), -- omitted if file is archived internally
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
