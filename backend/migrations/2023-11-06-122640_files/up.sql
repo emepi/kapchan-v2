@@ -5,6 +5,7 @@ CREATE TABLE files (
     owner       INTEGER  NOT NULL,
     md5_hash    CHAR(32) UNIQUE NOT NULL,
     location    VARCHAR(512), -- omitted if file is archived internally
+    file_name   VARCHAR(32),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
