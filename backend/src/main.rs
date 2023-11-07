@@ -1,12 +1,12 @@
 use std::env;
 
+use actix_files::Files;
 use actix_web::{HttpServer, App, web};
 use diesel_async::{
     AsyncMysqlConnection,
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
-use log::info;
 
 
 #[actix_web::main]
@@ -18,12 +18,18 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
         .app_data(web::Data::new(mysql_connection_pool()))
+        .service(
+            Files::new("/", "../frontend/dist")
+                .show_files_listing()
+                .index_file("index.html")
+                .use_last_modified(true),
+        )
     })
+    .workers(2)
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
-
 fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
 
     let mysql_url = env::var("DATABASE_URL").expect(r#"
@@ -31,16 +37,12 @@ fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
         see: .env.example
     "#);
 
-    info!("connecting to mysql server");
-
     let mysql_connection_pool = Pool::builder(
         AsyncDieselConnectionManager::<diesel_async::AsyncMysqlConnection>
         ::new(mysql_url)
     )
     .build()
     .expect("failed to establish connection pooling");
-
-    info!("connection pool initialized");
 
     mysql_connection_pool
 }
