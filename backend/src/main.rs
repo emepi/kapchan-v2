@@ -1,8 +1,9 @@
 mod ws_server;
 
 
-use std::env;
+use std::{env, time::Instant};
 
+use actix::{Actor, Addr};
 use actix_files::Files;
 use actix_web::{HttpServer, App, web, HttpResponse, Error, HttpRequest};
 use actix_web_actors::ws;
@@ -11,7 +12,7 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
-use ws_server::WsSession;
+use ws_server::{WsSession, WsServer};
 
 
 #[actix_web::main]
@@ -20,9 +21,12 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
 
-    HttpServer::new(|| {
+    let ws_server = WsServer::new().start();
+
+    HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(mysql_connection_pool()))
+        .app_data(ws_server.clone())
         .service(
             Files::new("/", "../frontend/dist")
                 .show_files_listing()
@@ -31,7 +35,6 @@ async fn main() -> std::io::Result<()> {
         )
         .service(web::resource("/ws").to(websocket_connect))
     })
-    .workers(2)
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
@@ -40,8 +43,17 @@ async fn main() -> std::io::Result<()> {
 async fn websocket_connect(
     req: HttpRequest, 
     stream: web::Payload,
+    ws_server: web::Data<Addr<WsServer>>,
 ) -> Result<HttpResponse, Error> {
-    ws::start(WsSession {}, &req, stream)
+    ws::start(
+        WsSession { 
+            id: 0,
+            heartbeat: Instant::now(),
+            server: ws_server.get_ref().clone(),
+        }, 
+        &req, 
+        stream,
+    )
 }
 
 fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
