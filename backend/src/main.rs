@@ -1,12 +1,17 @@
+mod ws_server;
+
+
 use std::env;
 
 use actix_files::Files;
-use actix_web::{HttpServer, App, web};
+use actix_web::{HttpServer, App, web, HttpResponse, Error, HttpRequest};
+use actix_web_actors::ws;
 use diesel_async::{
     AsyncMysqlConnection,
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
+use ws_server::WsSession;
 
 
 #[actix_web::main]
@@ -24,12 +29,21 @@ async fn main() -> std::io::Result<()> {
                 .index_file("index.html")
                 .use_last_modified(true),
         )
+        .service(web::resource("/ws").to(websocket_connect))
     })
     .workers(2)
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
+
+async fn websocket_connect(
+    req: HttpRequest, 
+    stream: web::Payload,
+) -> Result<HttpResponse, Error> {
+    ws::start(WsSession {}, &req, stream)
+}
+
 fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
 
     let mysql_url = env::var("DATABASE_URL").expect(r#"
