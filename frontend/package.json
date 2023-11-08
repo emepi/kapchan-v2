@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@solidjs/router": "^0.8.4",
     "solid-js": "^1.7.8"
   },
   "devDependencies": {
