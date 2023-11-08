@@ -6,7 +6,7 @@
 
 ### Frontend
 
-#### Install dependecies
+#### Install dependencies
 
 - [Bun](https://bun.sh/) (or [Node.js](https://nodejs.org))
 
