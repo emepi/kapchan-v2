@@ -1,0 +1,89 @@
+/* top level rules */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  color-scheme: light dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 50px;
+  padding: 15px;
+}
+
+/* solid-js root container */
+#root {
+  display: grid;
+  grid-template-columns: minmax(min-content, auto) 4fr;
+  grid-template-rows: min-content 1fr 1fr;
+  height: 100vh;
+}
+  
+.main-header {
+  grid-area: 1 / 2 / 2 / 3;
+}
+
+.logo {
+  display: block;
+  width: 200px;
+  height: auto;
+}
+
+/* Sidebar.tsx component */
+
+.main-sidebar {
+  grid-area: 1 / 1 / 4 / 2;
+
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 10px;
+}
+
+.icon-a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.icon-placeholder {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background-color: crimson;
+  border-radius: 5px;
+}
+  
+.main-content {
+  grid-area: 2 / 2 / 4 / 3;
+  
+  background-color: #1a1a1a;
+  padding: 15px;
+}
+
+/* Pages */
+
+.placeholder-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
+  text-align: center;
+  height: 100%;
+
+  :is(img) {
+    width: 500px;
+    height: auto;
+    border-radius: 5px;
+  }
+}
