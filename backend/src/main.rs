@@ -1,3 +1,4 @@
+pub mod user;
 mod ws_server;
 
 
@@ -12,7 +13,7 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
-use ws_server::{WsSession, WsServer};
+use ws_server::{WsServer, session::WebsocketSession};
 
 
 #[actix_web::main]
@@ -46,10 +47,11 @@ async fn websocket_connect(
     ws_server: web::Data<Addr<WsServer>>,
 ) -> Result<HttpResponse, Error> {
     ws::start(
-        WsSession { 
-            id: 0,
-            heartbeat: Instant::now(),
+        // TODO: create user session
+        WebsocketSession {
+            user: todo!(),
             server: ws_server.get_ref().clone(),
+            last_activity: Instant::now(),
         }, 
         &req, 
         stream,
