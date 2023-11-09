@@ -26,14 +26,14 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(mysql_connection_pool()))
-        .app_data(ws_server.clone())
+        .app_data(web::Data::new(ws_server.clone()))
+        .route("/ws", web::get().to(websocket_connect))
         .service(
             Files::new("/", "../frontend/dist")
                 .show_files_listing()
                 .index_file("index.html")
                 .use_last_modified(true),
         )
-        .service(web::resource("/ws").to(websocket_connect))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
