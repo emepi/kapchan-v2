@@ -28,7 +28,7 @@ pub struct WebsocketSession {
 impl WebsocketSession {
 
     /// Getter for the session id.
-    pub fn id(&self) -> u64 {
+    pub fn id(&self) -> u32 {
         self.user.id
     }
 }

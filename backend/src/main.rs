@@ -7,7 +7,15 @@ use std::{env, time::Instant};
 
 use actix::{Actor, Addr};
 use actix_files::Files;
-use actix_web::{HttpServer, App, web, HttpResponse, Error, HttpRequest};
+use actix_web::{
+    HttpServer, 
+    App, 
+    web, 
+    HttpResponse, 
+    Error, 
+    HttpRequest, 
+    error::InternalError, http::{StatusCode, header},
+};
 use actix_web_actors::ws;
 use diesel_async::{
     AsyncMysqlConnection,
@@ -58,12 +66,21 @@ async fn websocket_connect(
         password_hash: None,
     };
 
-    let user = anon.register_user(&db_pool);
+    let user = anon.register_user(&db_pool).await
+    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    let ip = req.peer_addr()
+    .map(|addr| addr.to_string());
+    let agent = req.headers().get(header::USER_AGENT)
+    .and_then(|header| header.to_str().ok());
+
+    let user_session = user
+    .create_session(None, None, ip.as_deref(), agent, &db_pool).await
+    .ok_or(InternalError::new("Sess err", StatusCode::INTERNAL_SERVER_ERROR))?;
 
     ws::start(
-        // TODO: create user session
         WebsocketSession {
-            user: todo!(),
+            user: user_session,
             server: ws_server.get_ref().clone(),
             last_activity: Instant::now(),
         }, 

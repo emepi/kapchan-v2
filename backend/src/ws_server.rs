@@ -7,7 +7,7 @@ use actix::prelude::*;
 
 
 pub struct WsServer {
-    sessions: HashMap<u64, Recipient<WsTask>>,
+    sessions: HashMap<u32, Recipient<WsTask>>,
 }
 
 impl WsServer {
@@ -59,7 +59,7 @@ pub struct Connect {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
-    pub id: u64,
+    pub id: u32,
 }
 
 #[derive(Message)]
