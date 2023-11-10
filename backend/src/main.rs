@@ -1,3 +1,4 @@
+pub mod schema;
 pub mod user;
 mod ws_server;
 
@@ -13,6 +14,7 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
+use user::UserModel;
 use ws_server::{WsServer, session::WebsocketSession};
 
 
@@ -45,7 +47,19 @@ async fn websocket_connect(
     req: HttpRequest, 
     stream: web::Payload,
     ws_server: web::Data<Addr<WsServer>>,
+    db_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
+
+    // Create an anonymous user.
+    let anon = UserModel {
+        access_level: 1,
+        username: None,
+        email: None,
+        password_hash: None,
+    };
+
+    let user = anon.register_user(&db_pool);
+
     ws::start(
         // TODO: create user session
         WebsocketSession {
