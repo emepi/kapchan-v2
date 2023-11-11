@@ -1,35 +1,58 @@
 pub mod session;
+pub mod service;
 
 
 use std::collections::HashMap;
 
 use actix::dev::{MessageResponse, OneshotSender};
 use actix::prelude::*;
+use diesel_async::AsyncMysqlConnection;
+use diesel_async::pooled_connection::deadpool::Pool;
 
+use self::service::{ServiceRequest, WebsocketService, Service};
 use self::session::WebsocketSession;
 
 
 // TODO: profile mem use
-pub struct WsServer {
+pub struct WebsocketServer {
     pub sessions: HashMap<u32, Addr<WebsocketSession>>,
 
     pub sessions_limit: usize,
+
+    pub services: HashMap<u32, Recipient<ServiceRequest>>,
+
+    pub database: Option<Pool<AsyncMysqlConnection>>,
 }
 
-impl WsServer {
+impl WebsocketServer {
     pub fn new() -> Self {
-        WsServer { 
+        WebsocketServer { 
             sessions: HashMap::with_capacity(100),
             sessions_limit: 100,
+            services: HashMap::new(),
+            database: None,
         }
+    }
+
+    pub fn database(mut self, conn_pool: Pool<AsyncMysqlConnection>) -> Self {
+        self.database = Some(conn_pool);
+        self
+    }
+
+    pub fn service(mut self, service: WebsocketService) -> Self {
+        let id = service.id;
+        let service_addr = service.start();
+        
+        self.services.insert(id, service_addr.recipient());
+        self
     }
 }
 
-impl Actor for WsServer {
+impl Actor for WebsocketServer {
     type Context = Context<Self>;
 }
 
-impl Handler<Disconnect> for WsServer {
+impl Handler<Disconnect> for WebsocketServer {
     type Result = ();
 
     fn handle(
@@ -42,7 +65,7 @@ impl Handler<Disconnect> for WsServer {
     }
 }
 
-impl Handler<Connect> for WsServer {
+impl Handler<Connect> for WebsocketServer {
     type Result = ConnectionResponse;
 
     fn handle(
@@ -106,7 +129,3 @@ pub struct Connect {
 pub struct Disconnect {
     pub id: u32,
 }
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct WsTask(pub String);

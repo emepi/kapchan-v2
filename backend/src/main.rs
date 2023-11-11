@@ -1,6 +1,7 @@
 pub mod schema;
 pub mod user;
-mod ws_server;
+mod server;
+mod user_service;
 
 
 use std::{env, time::Instant};
@@ -23,7 +24,8 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use user::UserModel;
-use ws_server::{WsServer, session::WebsocketSession};
+use server::{WebsocketServer, session::WebsocketSession, service::WebsocketService};
+use user_service::UserService;
 
 
 #[actix_web::main]
@@ -32,12 +34,15 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
 
-    let ws_server = WsServer::new().start();
+    let server = WebsocketServer::new()
+    .database(mysql_connection_pool())
+    .service(WebsocketService { id: 1, service: Box::new(UserService {}) })
+    .start();
 
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(mysql_connection_pool()))
-        .app_data(web::Data::new(ws_server.clone()))
+        .app_data(web::Data::new(server.clone()))
         .route("/ws", web::get().to(websocket_connect))
         .service(
             Files::new("/", "../frontend/dist")
@@ -54,7 +59,7 @@ async fn main() -> std::io::Result<()> {
 async fn websocket_connect(
     req: HttpRequest, 
     stream: web::Payload,
-    ws_server: web::Data<Addr<WsServer>>,
+    server: web::Data<Addr<WebsocketServer>>,
     db_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
 
@@ -83,7 +88,7 @@ async fn websocket_connect(
     ws::start(
         WebsocketSession {
             user: user_session,
-            server: ws_server.get_ref().clone(),
+            server: server.get_ref().clone(),
             last_activity: Instant::now(),
         }, 
         &req, 

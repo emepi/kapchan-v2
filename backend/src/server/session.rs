@@ -6,7 +6,7 @@ use log::info;
 
 use crate::user::UserSession;
 
-use super::{WsServer, Disconnect, WsTask, Connect, ConnectionResponse::*};
+use super::{WebsocketServer, Disconnect, Connect, ConnectionResponse::*};
 
 
 
@@ -17,7 +17,7 @@ pub struct WebsocketSession {
     pub user: UserSession,
 
     /// Parent server connection.
-    pub server: Addr<WsServer>,
+    pub server: Addr<WebsocketServer>,
 
     // TODO: service feeds
     // pub service_feeds: Vec<impl Service>,
@@ -89,15 +89,6 @@ impl Actor for WebsocketSession {
         self.server.do_send(Disconnect { id: self.id() });
 
         Running::Stop
-    }
-}
-
-// Handle outgoing messages
-impl Handler<WsTask> for WebsocketSession {
-    type Result = ();
-
-    fn handle(&mut self, msg: WsTask, ctx: &mut Self::Context) {
-        ctx.text(msg.0);
     }
 }
 
