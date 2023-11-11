@@ -58,6 +58,8 @@ async fn websocket_connect(
     db_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
 
+    // TODO: User from cookies & check how concurrent sessions user is allowed.
+
     // Create an anonymous user.
     let anon = UserModel {
         access_level: 1,
@@ -70,7 +72,7 @@ async fn websocket_connect(
     .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
 
     let ip = req.peer_addr()
-    .map(|addr| addr.to_string());
+    .map(|addr| addr.ip().to_string());
     let agent = req.headers().get(header::USER_AGENT)
     .and_then(|header| header.to_str().ok());
 

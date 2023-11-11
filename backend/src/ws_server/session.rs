@@ -2,10 +2,11 @@ use std::time::Instant;
 
 use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
+use log::info;
 
 use crate::user::UserSession;
 
-use super::{WsServer, Disconnect, WsTask, Connect};
+use super::{WsServer, Disconnect, WsTask, Connect, ConnectionResponse::*};
 
 
 
@@ -36,26 +37,49 @@ impl WebsocketSession {
 impl Actor for WebsocketSession {
     type Context = WebsocketContext<Self>;
 
-    // connection is opened
+    // websocket connection is opened
     fn started(&mut self, context: &mut Self::Context) {
 
-        // Register session to the server
-        let session_actor = context.address();
-
+        // Register session to server.
         self.server
-        .send(Connect { session: session_actor.recipient() })
+        .send(Connect {
+            session_id: self.id(),
+            session_address: context.address(), 
+        })
         .into_actor(self)
-        .then(|res, act, ctx| {
-            
-            //match res {
-            //    Ok(res) => act.id = res,
-            //
-            //    _ => ctx.stop(),
-            //}
+        .then(|conn_res, act, ctx| {
+
+            // TODO: look into actor mailbox errors
+            let mut connection_response = conn_res.ok();
+
+            match connection_response.get_or_insert(Blocked) {
+                Connected => {
+                    info!("User session {} connected.", act.id());
+                },
+
+                Reconnected => {
+                    info!("User session {} reconnected.", act.id());
+                },
+
+                ServerFull => {
+                    info!(
+                        "User session {} blocked. Not enough server capacity", 
+                        act.id()
+                    );
+
+                    ctx.stop();
+                },
+
+                Blocked => {
+                    info!("User session {} blocked.", act.id());
+
+                    ctx.stop();
+                },
+            }
+
             fut::ready(())
         })
         .wait(context);
-
     }
 
     // connection is closed
@@ -85,7 +109,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
         msg: Result<Message, ProtocolError>, 
         ctx: &mut Self::Context,
     ) {
-        msg
+        let _ = msg
         .map_err(|_err| {
             ctx.stop();
         })
