@@ -39,9 +39,14 @@ impl WebsocketServer {
         self
     }
 
-    pub fn service(mut self, service: WebsocketService) -> Self {
-        let id = service.id;
-        let service_addr = service.start();
+    pub fn service(mut self, service: Box<dyn Service>) -> Self {
+
+        let id = service.id();
+        let service_addr = WebsocketService {
+            id,
+            service,
+        }
+        .start();
         
         self.services.insert(id, service_addr.recipient());
         self

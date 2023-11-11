@@ -24,7 +24,7 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use user::UserModel;
-use server::{WebsocketServer, session::WebsocketSession, service::WebsocketService};
+use server::{WebsocketServer, session::WebsocketSession};
 use user_service::UserService;
 
 
@@ -36,7 +36,7 @@ async fn main() -> std::io::Result<()> {
 
     let server = WebsocketServer::new()
     .database(mysql_connection_pool())
-    .service(WebsocketService { id: 1, service: Box::new(UserService {}) })
+    .service(UserService::new())
     .start();
 
     HttpServer::new(move || {

@@ -47,4 +47,6 @@ impl Handler<ServiceRequest> for WebsocketService {
 pub trait Service {
 
     fn data_feed(&self) -> Option<ServiceDataFeed>;
+
+    fn id(&self) -> u32;
 }
