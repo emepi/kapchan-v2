@@ -4,7 +4,7 @@ use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
 use log::info;
 
-use crate::user::UserSession;
+use crate::user_service::user::UserSession;
 
 use super::{WebsocketServer, Disconnect, Connect, ConnectionResponse::*};
 

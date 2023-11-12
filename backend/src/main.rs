@@ -1,5 +1,4 @@
 pub mod schema;
-pub mod user;
 mod server;
 mod user_service;
 
@@ -23,9 +22,8 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
-use user::UserModel;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
-use user_service::UserService;
+use user_service::{UserService, create_anonymous_session};
 
 
 #[actix_web::main]
@@ -34,10 +32,12 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
 
+    let conn_pool = mysql_connection_pool();
+
     let server = WebsocketServer::new(
         ServerSettings {
             max_sessions: 100,
-            database: mysql_connection_pool() 
+            database: conn_pool.clone(),
         }
     )
     .service(UserService::new())
@@ -45,7 +45,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-        .app_data(web::Data::new(mysql_connection_pool()))
+        .app_data(web::Data::new(conn_pool.clone()))
         .app_data(web::Data::new(server.clone()))
         .route("/ws", web::get().to(websocket_connect))
         .service(
@@ -64,30 +64,21 @@ async fn websocket_connect(
     req: HttpRequest, 
     stream: web::Payload,
     server: web::Data<Addr<WebsocketServer>>,
-    db_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
 
     // TODO: User from cookies & check how concurrent sessions user is allowed.
 
-    // Create an anonymous user.
-    let anon = UserModel {
-        access_level: 1,
-        username: None,
-        email: None,
-        password_hash: None,
-    };
-
-    let user = anon.register_user(&db_pool).await
-    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
-
     let ip = req.peer_addr()
     .map(|addr| addr.ip().to_string());
+
     let agent = req.headers().get(header::USER_AGENT)
     .and_then(|header| header.to_str().ok());
 
-    let user_session = user
-    .create_session(None, None, ip.as_deref(), agent, &db_pool).await
-    .ok_or(InternalError::new("Sess err", StatusCode::INTERNAL_SERVER_ERROR))?;
+    let user_session = 
+    create_anonymous_session(ip.as_deref(), agent, &conn_pool)
+    .await
+    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
 
     ws::start(
         WebsocketSession {

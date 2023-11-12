@@ -48,13 +48,13 @@ impl Handler<ServiceRequest> for WebsocketService {
         ctx: &mut Self::Context
     ) -> Self::Result {
 
-        self.service.data_feed(&self.conn_pool)
+        self.service.user_request(&self.conn_pool)
     }
 }
 
 pub trait Service {
 
-    fn data_feed(
+    fn user_request(
         &self, 
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Option<ServiceDataFeed>;
