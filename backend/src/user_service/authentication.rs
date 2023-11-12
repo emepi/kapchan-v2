@@ -1,6 +1,6 @@
 use std::env;
 
-use diesel::{result::Error, QueryDsl};
+use diesel::{result::Error, QueryDsl, ExpressionMethods};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
     AsyncMysqlConnection, 
@@ -58,6 +58,34 @@ pub async fn authenticate(
         .await?;
         
         Ok(user)
+    }.scope_boxed())
+    .await
+    .ok()
+}
+
+// TODO: sanitize user inputs and refactor
+pub async fn register_user(
+    user_id: u32,
+    username: &str,
+    email: &str,
+    password: &str,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> Option<()> {
+    let mut connection = conn_pool.get().await.ok()?;
+
+    connection.transaction::<_, Error, _>(|conn| async move {
+
+        let _ = diesel::update(users::table.find(user_id))
+        .set((
+            users::username.eq(username),
+            users::email.eq(email),
+            users::password_hash.eq(password),
+        ))
+        .execute(conn)
+        .await;
+
+
+        Ok(())
     }.scope_boxed())
     .await
     .ok()

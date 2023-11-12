@@ -16,7 +16,7 @@ use crate::schema::{users, sessions};
 use super::authentication::Claims;
 
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Identifiable, Selectable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
