@@ -62,8 +62,6 @@ impl User {
 
     pub async fn create_session(
         &self,
-        _access_level: Option<u8>,
-        _mode: Option<u8>,
         ip_address: Option<&str>,
         user_agent: Option<&str>,
         db: &Pool<AsyncMysqlConnection>,

@@ -15,8 +15,7 @@ use actix_web::{
     Error, 
     HttpRequest, 
     error::InternalError, 
-    http::{StatusCode, header}, 
-    cookie::Cookie,
+    http::{StatusCode, header},
 };
 use actix_web_actors::ws;
 use diesel_async::{
@@ -25,7 +24,7 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
-use user_service::{UserService, user::UserModel};
+use user_service::{UserService, user::UserModel, authentication::authenticate};
 
 
 #[actix_web::main]
@@ -62,6 +61,7 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
+// NOTE: User & user session could be handled in WebsocketSession in the future.
 async fn websocket_connect(
     req: HttpRequest, 
     stream: web::Payload,
@@ -69,29 +69,46 @@ async fn websocket_connect(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
 
-    let anonymous_user = UserModel::default()
-    .register_user(&conn_pool)
-    .await
-    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
+    let existing_user = match req.cookie("access_token") {
+        Some(access_token) => authenticate(
+            access_token.value(), 
+            &conn_pool
+        ).await,
+        
+        None => None,
+    };
+    
+    let user = match existing_user {
+        Some(existing_user) => existing_user,
 
-    let auth_token = &anonymous_user.create_authentication_token()
-    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
+        // Create an anonymous user for client without a valid access token.
+        None => {
+            UserModel::default()
+            .register_user(&conn_pool)
+            .await
+            .ok_or(InternalError::new(
+                "Error placeholder for failed user creation.", 
+                StatusCode::INTERNAL_SERVER_ERROR)
+            )?
+        },
+    };
 
-    let ip = req.peer_addr()
-    .map(|addr| addr.ip().to_string());
+    // TODO: simplify
+    let ip = req.peer_addr().map(|addr| addr.ip().to_string());
 
-    let agent = req.headers().get(header::USER_AGENT)
+    let user_agent = req.headers().get(header::USER_AGENT)
     .and_then(|header| header.to_str().ok());
 
-    let user_session = anonymous_user.create_session(
-        None, 
-        None, 
-        ip.as_deref(), 
-        agent, 
+    let user_session = user.create_session(
+        ip.as_deref(),
+        user_agent, 
         &conn_pool
     )
     .await
-    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
+    .ok_or(InternalError::new(
+        "Error placeholder for failed user session.", 
+        StatusCode::INTERNAL_SERVER_ERROR)
+    )?;
 
     ws::start(
         WebsocketSession {
@@ -103,7 +120,17 @@ async fn websocket_connect(
         stream,
     )
     .and_then(|mut http_response| {
-        http_response.add_cookie(auth_token)?;
+
+        if req.cookie("access_token").is_none() {
+            let auth_token = &user.create_authentication_token()
+            .ok_or(InternalError::new(
+                "Error placeholder for failing to issue an access token", 
+                StatusCode::INTERNAL_SERVER_ERROR)
+            )?;
+
+            http_response.add_cookie(auth_token)?;
+        }
+
         Ok(http_response)
     })
 }

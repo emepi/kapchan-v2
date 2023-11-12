@@ -1,7 +1,19 @@
 use std::env;
 
+use diesel::{result::Error, QueryDsl};
+use diesel_async::{
+    pooled_connection::deadpool::Pool, 
+    AsyncMysqlConnection, 
+    AsyncConnection, 
+    RunQueryDsl, 
+    scoped_futures::ScopedFutureExt,
+};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Serialize, Deserialize};
+
+use crate::schema::users;
+
+use super::user::User;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -11,48 +23,42 @@ pub struct Claims {
     pub sub: String,         // Subject (whom token refers to)
 }
 
-pub async fn authenticate(token: &str) {
+pub async fn authenticate(
+    token: &str, 
+    conn_pool: &Pool<AsyncMysqlConnection>
+) -> Option<User> {
 
     let jwt_secret = env::var("JWT_SECRET")
     .expect(".env variable `JWT_SECRET` must be set");
-
-    let jwt_expiration = env::var("JWT_EXPIRATION")
-    .expect(".env variable `JWT_EXPIRATION` must be set");
 
     let claims = match decode::<Claims>(
         token, 
         &DecodingKey::from_secret(jwt_secret.as_ref()), 
         &Validation::default(),
     ) {
-        Ok(data) => { data.claims },
+        Ok(data) =>  Some(data.claims),
 
         Err(err) => {
+            // TODO: match specific errors
             match err.kind() {
-                jsonwebtoken::errors::ErrorKind::InvalidToken => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidSignature => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidEcdsaKey => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidRsaKey(_) => todo!(),
-                jsonwebtoken::errors::ErrorKind::RsaFailedSigning => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidAlgorithmName => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidKeyFormat => todo!(),
-                jsonwebtoken::errors::ErrorKind::MissingRequiredClaim(_) => todo!(),
-                jsonwebtoken::errors::ErrorKind::ExpiredSignature => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidIssuer => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidAudience => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidSubject => todo!(),
-                jsonwebtoken::errors::ErrorKind::ImmatureSignature => todo!(),
-                jsonwebtoken::errors::ErrorKind::InvalidAlgorithm => todo!(),
-                jsonwebtoken::errors::ErrorKind::MissingAlgorithm => todo!(),
-                jsonwebtoken::errors::ErrorKind::Base64(_) => todo!(),
-                jsonwebtoken::errors::ErrorKind::Json(_) => todo!(),
-                jsonwebtoken::errors::ErrorKind::Utf8(_) => todo!(),
-                jsonwebtoken::errors::ErrorKind::Crypto(_) => todo!(),
-                _ => todo!(),
+                _ => None,
             }
-            // Unauthorized token
-            todo!()
         },
-    };
+    }?;
 
-    let user_id = claims.sub;
+    let user_id = claims.sub.parse::<u32>().ok()?;
+
+    let mut connection = conn_pool.get().await.ok()?;
+
+    connection.transaction::<_, Error, _>(|conn| async move {
+
+        let user = users::table
+        .find(user_id)
+        .first::<User>(conn)
+        .await?;
+        
+        Ok(user)
+    }.scope_boxed())
+    .await
+    .ok()
 }
