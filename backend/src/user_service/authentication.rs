@@ -1,5 +1,6 @@
 use std::env;
 
+use argon2::{password_hash::{SaltString, rand_core::OsRng}, Argon2, PasswordHasher, PasswordHash, PasswordVerifier};
 use diesel::{result::Error, QueryDsl, ExpressionMethods};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
@@ -73,6 +74,8 @@ pub async fn register_user(
 ) -> Option<()> {
     let mut connection = conn_pool.get().await.ok()?;
 
+    let password = encrypt_password(password)?;
+
     connection.transaction::<_, Error, _>(|conn| async move {
 
         let _ = diesel::update(users::table.find(user_id))
@@ -89,4 +92,27 @@ pub async fn register_user(
     }.scope_boxed())
     .await
     .ok()
+}
+
+// TODO: Test
+
+pub fn encrypt_password(password: &str) -> Option<String> {
+    let salt = SaltString::generate(&mut OsRng);
+
+    // TODO: minimize memory footprint
+    Argon2::default()
+    .hash_password(password.as_bytes(), &salt)
+    .map(|hash| hash.to_string())
+    .ok()
+}
+
+pub fn hashes_to_password(hash: &str, password: &str) -> bool {
+    let parsed_hash = match PasswordHash::new(hash) {
+        Ok(hash) => hash,
+        Err(_) => return false,
+    };
+
+    Argon2::default()
+    .verify_password(password.as_bytes(), &parsed_hash)
+    .is_ok()
 }
