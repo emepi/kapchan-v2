@@ -1,4 +1,6 @@
-use crate::server::service::Service;
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+
+use crate::server::service::{Service, ServiceDataFeed};
 
 const USER_SERVICE_ID: u32 = 1;
 
@@ -16,7 +18,10 @@ impl UserService {
 }
 
 impl Service for UserService {
-    fn data_feed(&self) -> Option<crate::server::service::ServiceDataFeed> {
+    fn data_feed(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Option<ServiceDataFeed> {
         None
     }
 

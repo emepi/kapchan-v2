@@ -24,7 +24,7 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use user::UserModel;
-use server::{WebsocketServer, session::WebsocketSession};
+use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
 use user_service::UserService;
 
 
@@ -34,8 +34,12 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
 
-    let server = WebsocketServer::new()
-    .database(mysql_connection_pool())
+    let server = WebsocketServer::new(
+        ServerSettings {
+            max_sessions: 100,
+            database: mysql_connection_pool() 
+        }
+    )
     .service(UserService::new())
     .start();
 

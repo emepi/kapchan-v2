@@ -1,4 +1,5 @@
 use actix::{Message, Addr, Handler, Actor, Context};
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
 use super::session::WebsocketSession;
 
@@ -6,7 +7,7 @@ use super::session::WebsocketSession;
 #[derive(Message)]
 #[rtype(result = "Option<ServiceDataFeed>")]
 pub struct ServiceRequest {
-    pub subscriber: Addr<WebsocketSession>,
+    pub session: Addr<WebsocketSession>,
 }
 
 pub struct ServiceDataFeed {
@@ -16,13 +17,20 @@ pub struct ServiceDataFeed {
 pub struct WebsocketService {
     pub id: u32,
     pub service: Box<dyn Service>,
+    pub conn_pool: Pool<AsyncMysqlConnection>,
 }
 
 impl WebsocketService {
-    pub fn new(id: u32, service: Box<dyn Service>) -> Self {
+    pub fn new(
+        id: u32, 
+        service: Box<dyn Service>, 
+        conn_pool: Pool<AsyncMysqlConnection>,
+    ) -> Self {
+
         WebsocketService {
             id,
             service,
+            conn_pool,
         }
     }
 }
@@ -40,13 +48,16 @@ impl Handler<ServiceRequest> for WebsocketService {
         ctx: &mut Self::Context
     ) -> Self::Result {
 
-        self.service.data_feed()
+        self.service.data_feed(&self.conn_pool)
     }
 }
 
 pub trait Service {
 
-    fn data_feed(&self) -> Option<ServiceDataFeed>;
+    fn data_feed(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Option<ServiceDataFeed>;
 
     fn id(&self) -> u32;
 }

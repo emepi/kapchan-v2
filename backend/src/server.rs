@@ -21,22 +21,17 @@ pub struct WebsocketServer {
 
     pub services: HashMap<u32, Recipient<ServiceRequest>>,
 
-    pub database: Option<Pool<AsyncMysqlConnection>>,
+    pub database: Pool<AsyncMysqlConnection>,
 }
 
 impl WebsocketServer {
-    pub fn new() -> Self {
+    pub fn new(settings: ServerSettings) -> Self {
         WebsocketServer { 
-            sessions: HashMap::with_capacity(100),
-            sessions_limit: 100,
+            sessions: HashMap::with_capacity(settings.max_sessions),
+            sessions_limit: settings.max_sessions,
             services: HashMap::new(),
-            database: None,
+            database: settings.database,
         }
-    }
-
-    pub fn database(mut self, conn_pool: Pool<AsyncMysqlConnection>) -> Self {
-        self.database = Some(conn_pool);
-        self
     }
 
     pub fn service(mut self, service: Box<dyn Service>) -> Self {
@@ -45,6 +40,7 @@ impl WebsocketServer {
         let service_addr = WebsocketService {
             id,
             service,
+            conn_pool: self.database.clone(),
         }
         .start();
         
@@ -98,6 +94,10 @@ impl Handler<Connect> for WebsocketServer {
     }
 }
 
+pub struct ServerSettings {
+    pub max_sessions: usize,
+    pub database: Pool<AsyncMysqlConnection>,
+}
 
 pub enum ConnectionResponse {
     Connected,
