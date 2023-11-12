@@ -14,7 +14,9 @@ use actix_web::{
     HttpResponse, 
     Error, 
     HttpRequest, 
-    error::InternalError, http::{StatusCode, header::{self, HeaderValue}},
+    error::InternalError, 
+    http::{StatusCode, header}, 
+    cookie::Cookie,
 };
 use actix_web_actors::ws;
 use diesel_async::{
@@ -101,9 +103,7 @@ async fn websocket_connect(
         stream,
     )
     .and_then(|mut http_response| {
-        http_response.headers_mut()
-        .insert(header::AUTHORIZATION, HeaderValue::from_str(&auth_token)?);
-
+        http_response.add_cookie(auth_token)?;
         Ok(http_response)
     })
 }
