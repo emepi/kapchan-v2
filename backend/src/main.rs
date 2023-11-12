@@ -14,7 +14,7 @@ use actix_web::{
     HttpResponse, 
     Error, 
     HttpRequest, 
-    error::InternalError, http::{StatusCode, header},
+    error::InternalError, http::{StatusCode, header::{self, HeaderValue}},
 };
 use actix_web_actors::ws;
 use diesel_async::{
@@ -23,7 +23,7 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
-use user_service::{UserService, create_anonymous_session};
+use user_service::{UserService, user::UserModel};
 
 
 #[actix_web::main]
@@ -67,7 +67,13 @@ async fn websocket_connect(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
 
-    // TODO: User from cookies & check how concurrent sessions user is allowed.
+    let anonymous_user = UserModel::default()
+    .register_user(&conn_pool)
+    .await
+    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
+
+    let auth_token = &anonymous_user.create_authentication_token()
+    .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
 
     let ip = req.peer_addr()
     .map(|addr| addr.ip().to_string());
@@ -75,8 +81,13 @@ async fn websocket_connect(
     let agent = req.headers().get(header::USER_AGENT)
     .and_then(|header| header.to_str().ok());
 
-    let user_session = 
-    create_anonymous_session(ip.as_deref(), agent, &conn_pool)
+    let user_session = anonymous_user.create_session(
+        None, 
+        None, 
+        ip.as_deref(), 
+        agent, 
+        &conn_pool
+    )
     .await
     .ok_or(InternalError::new("User err", StatusCode::INTERNAL_SERVER_ERROR))?;
 
@@ -89,6 +100,12 @@ async fn websocket_connect(
         &req, 
         stream,
     )
+    .and_then(|mut http_response| {
+        http_response.headers_mut()
+        .insert(header::AUTHORIZATION, HeaderValue::from_str(&auth_token)?);
+
+        Ok(http_response)
+    })
 }
 
 fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
