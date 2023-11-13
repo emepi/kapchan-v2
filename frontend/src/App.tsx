@@ -1,18 +1,13 @@
-import Sidebar from './components/Sidebar'
 import { Route, Routes } from '@solidjs/router'
 import Placeholder from './pages/Placeholder'
 import Rules from './pages/Rules'
 import Settings from './pages/Settings'
+import { Header } from './components/Header'
 
 function App() {
-
   return (
     <>
-      <header class="main-header">
-        <h1>kapakka</h1>
-      </header>
-
-      <Sidebar />
+      <Header/>
 
       <div class="main-content">
         <Routes>

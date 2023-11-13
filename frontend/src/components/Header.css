@@ -1,0 +1,55 @@
+h1 {
+  font-size: 40px;
+}
+
+.main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.main-header-nav {
+  display: flex;
+  gap: 15px;
+}
+
+.nav-button {
+  text-align: center;
+  color: whitesmoke;
+}
+
+.nav-icon {
+  font-size: 20px;
+  filter: brightness(0) invert(90%);
+  background: none;
+}
+
+.nav-search {
+    display: flex;
+    border-radius: 3px;
+    background-color: whitesmoke;
+    color: #555;
+    padding: 7px 8px;
+}
+
+.nav-search-field {
+  padding: 6px;
+  border-radius: inherit;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+}
+
+.nav-search-btn {
+  background: none;
+  border: none;
+  overflow: hidden;
+  font-size: 20px;
+  filter: brightness(0) invert(30%);
+}
+
+.nav-search-btn:focus,
+.nav-search-field:focus {
+    outline: none;
+}

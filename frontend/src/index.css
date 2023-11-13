@@ -1,0 +1,30 @@
+/* Kapchan global CSS */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  color-scheme: light dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+#root {
+  display: grid;
+  grid-template-rows: min-content auto;
+  height: 100vh;
+}
+
+.main-header {
+  padding: 15px;;
+}
+
+.main-content {
+  background-color: #1a1a1a;
+  padding: 15px;
+}

@@ -1,5 +1,11 @@
-export const connection = {
+enum ConnectionStatus {
+    Uninitialized = 0,
+    Ready = 1,
+}
+
+export const connection_manager = {
     socket: connect("ws://127.0.0.1:8080/ws"),
+    status: ConnectionStatus.Uninitialized,
 }
 
 function connect(addr: string): WebSocket {
@@ -13,6 +19,8 @@ function connect(addr: string): WebSocket {
 }
 
 function onOpen(e: Event) {
+    connection_manager.status = ConnectionStatus.Ready;
+    
     console.log("Connected to server: ", e);
 }
 
