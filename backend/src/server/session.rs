@@ -129,6 +129,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
                 Message::Text(text) => {
                     let _ = serde_json::from_str(&text)
                     .map(|msg| self.request_service(msg));
+                
                 },
 
                 Message::Binary(bin) => {

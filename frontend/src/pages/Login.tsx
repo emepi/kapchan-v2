@@ -30,7 +30,6 @@ export function Login() {
           name="password" 
           placeholder="Password"
         />
-
         <button class="login-btn" type="submit">Login</button> 
       </form>
     </div>

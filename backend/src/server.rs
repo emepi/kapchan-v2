@@ -77,7 +77,6 @@ impl Handler<Connect> for WebsocketServer {
 
         if self.sessions.len() >= self.sessions_limit {
             // TODO: check if other connections can be purged for this user.
-
             return ConnectionResponse::ServerFull;
         }
 

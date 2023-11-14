@@ -42,6 +42,7 @@ export function serviceRequest(service_id: Number, request: string) {
             s: service_id,
             b: request,
         }
+        
         connection_manager.socket.send(JSON.stringify(message));
     }
 }

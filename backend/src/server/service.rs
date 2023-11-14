@@ -40,7 +40,6 @@ impl Handler<ConnectService> for WebsocketService {
         msg: ConnectService, 
         ctx: &mut Self::Context
     ) -> Self::Result {
-
         self.service.user_request(msg.msg, &self.conn_pool)
     }
 }

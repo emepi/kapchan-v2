@@ -29,7 +29,6 @@ impl Service for UserService {
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Option<ServiceDataFeed> {
         info!("Message received in user services: {}", msg);
-
         None
     }
 
