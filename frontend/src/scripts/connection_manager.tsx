@@ -36,8 +36,12 @@ function onClose(e: CloseEvent) {
     console.log("Connection to server was closed: ", e);
 }
 
-export function serviceRequest(request: string) {
+export function serviceRequest(service_id: Number, request: string) {
     if (connection_manager.status === ConnectionStatus.Ready) {
-        connection_manager.socket.send(request);
+        let message = {
+            s: service_id,
+            b: request,
+        }
+        connection_manager.socket.send(JSON.stringify(message));
     }
 }

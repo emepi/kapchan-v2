@@ -3,10 +3,9 @@ pub mod user;
 
 
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use log::info;
 
 use crate::server::service::{Service, ServiceDataFeed};
-
-use self::user::{UserModel, UserSession};
 
 const USER_SERVICE_ID: u32 = 1;
 
@@ -25,9 +24,12 @@ impl UserService {
 
 impl Service for UserService {
     fn user_request(
-        &self, 
+        &self,
+        msg: String,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Option<ServiceDataFeed> {
+        info!("Message received in user services: {}", msg);
+
         None
     }
 

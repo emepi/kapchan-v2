@@ -1,14 +1,7 @@
-use actix::{Message, Addr, Handler, Actor, Context};
+use actix::{Handler, Actor, Context, Addr, Message};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
 use super::session::WebsocketSession;
-
-
-#[derive(Message)]
-#[rtype(result = "Option<ServiceDataFeed>")]
-pub struct ServiceRequest {
-    pub session: Addr<WebsocketSession>,
-}
 
 pub struct ServiceDataFeed {
 
@@ -39,25 +32,34 @@ impl Actor for WebsocketService {
     type Context = Context<Self>;
 }
 
-impl Handler<ServiceRequest> for WebsocketService {
+impl Handler<ConnectService> for WebsocketService {
     type Result = Option<ServiceDataFeed>;
 
     fn handle(
         &mut self, 
-        msg: ServiceRequest, 
+        msg: ConnectService, 
         ctx: &mut Self::Context
     ) -> Self::Result {
 
-        self.service.user_request(&self.conn_pool)
+        self.service.user_request(msg.msg, &self.conn_pool)
     }
 }
 
 pub trait Service {
 
     fn user_request(
-        &self, 
+        &self,
+        msg: String,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Option<ServiceDataFeed>;
 
     fn id(&self) -> u32;
+}
+
+#[derive(Message)]
+#[rtype(result = "Option<ServiceDataFeed>")]
+pub struct ConnectService {
+    pub session: Addr<WebsocketSession>,
+    pub user_access_level: u8,
+    pub msg: String,
 }

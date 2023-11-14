@@ -9,7 +9,7 @@ use actix::prelude::*;
 use diesel_async::AsyncMysqlConnection;
 use diesel_async::pooled_connection::deadpool::Pool;
 
-use self::service::{ServiceRequest, WebsocketService, Service};
+use self::service::{WebsocketService, Service, ConnectService};
 use self::session::WebsocketSession;
 
 
@@ -19,7 +19,7 @@ pub struct WebsocketServer {
 
     pub sessions_limit: usize,
 
-    pub services: HashMap<u32, Recipient<ServiceRequest>>,
+    pub services: HashMap<u32, Recipient<ConnectService>>,
 
     pub database: Pool<AsyncMysqlConnection>,
 }
@@ -94,6 +94,35 @@ impl Handler<Connect> for WebsocketServer {
     }
 }
 
+impl Handler<ServiceRequest> for WebsocketServer {
+    type Result = ConnectionResponse;
+
+    fn handle(
+        &mut self, 
+        msg: ServiceRequest, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+        let session = match self.sessions.get(&msg.user_id) {
+            Some(session) => session.clone(),
+            None => return ConnectionResponse::Blocked,
+        };
+
+        self.services
+        .get(&msg.service_id)
+        .and_then(|service| {
+            service.try_send(ConnectService {
+                user_access_level: msg.user_access_level,
+                session,
+                msg: msg.msg, 
+            })
+            .ok()
+        })
+        .map(|_| ConnectionResponse::Connected)
+        .unwrap_or(ConnectionResponse::Blocked)
+        
+    }
+}
+
 pub struct ServerSettings {
     pub max_sessions: usize,
     pub database: Pool<AsyncMysqlConnection>,
@@ -133,4 +162,13 @@ pub struct Connect {
 #[rtype(result = "()")]
 pub struct Disconnect {
     pub id: u32,
+}
+
+#[derive(Message)]
+#[rtype(result = "ConnectionResponse")]
+pub struct ServiceRequest {
+    pub service_id: u32,
+    pub user_id: u32,
+    pub user_access_level: u8,
+    pub msg: String,
 }

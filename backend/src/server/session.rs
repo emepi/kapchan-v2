@@ -3,10 +3,11 @@ use std::time::Instant;
 use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
 use log::info;
+use serde::Deserialize;
 
 use crate::user_service::user::UserSession;
 
-use super::{WebsocketServer, Disconnect, Connect, ConnectionResponse::*};
+use super::{WebsocketServer, Disconnect, Connect, ConnectionResponse::*, ServiceRequest};
 
 
 
@@ -31,6 +32,23 @@ impl WebsocketSession {
     /// Getter for the session id.
     pub fn id(&self) -> u32 {
         self.user.id
+    }
+
+    pub fn access(&self) -> u8 {
+        self.user.access_level
+    }
+
+    fn request_service(
+        &self, 
+        msg: MessageFrame,
+    ) {
+        let _ = self.server
+        .try_send(ServiceRequest {
+            service_id: msg.s,
+            user_id: self.id(),
+            user_access_level: self.access(),
+            msg: msg.b,
+        });
     }
 }
 
@@ -109,7 +127,8 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
 
             match msg {
                 Message::Text(text) => {
-                    info!("Text received from the user: {}", text);
+                    let _ = serde_json::from_str(&text)
+                    .map(|msg| self.request_service(msg));
                 },
 
                 Message::Binary(bin) => {
@@ -135,4 +154,10 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
             }
         });
     }
+}
+
+#[derive(Deserialize)]
+pub struct MessageFrame {
+    s: u32,
+    b: String,
 }

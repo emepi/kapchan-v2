@@ -8,7 +8,7 @@ export function Login() {
 
     let data = new FormData(e.target as HTMLFormElement);
 
-    serviceRequest(JSON.stringify(Object.fromEntries(data)));
+    serviceRequest(1, JSON.stringify(Object.fromEntries(data)));
   }
 
   return (
