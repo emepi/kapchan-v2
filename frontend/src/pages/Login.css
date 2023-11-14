@@ -1,0 +1,15 @@
+.login-form {
+    display: grid;
+    width: 500px;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.text-field {
+    padding: 10px;
+    font-size: 15px;
+}
+
+.login-btn {
+    padding: 10px;
+}

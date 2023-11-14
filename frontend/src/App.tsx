@@ -1,8 +1,7 @@
 import { Route, Routes } from '@solidjs/router'
 import Placeholder from './pages/Placeholder'
-import Rules from './pages/Rules'
-import Settings from './pages/Settings'
 import { Header } from './components/Header'
+import { Login } from './pages/Login'
 
 function App() {
   return (
@@ -12,9 +11,7 @@ function App() {
       <div class="main-content">
         <Routes>
           <Route path="/" component={Placeholder} />
-          <Route path="/plc" component={Placeholder} />
-          <Route path="/rules" component={Rules} />
-          <Route path="/settings" component={Settings} />
+          <Route path="/login" component={Login} />
         </Routes>
       </div>
     </>

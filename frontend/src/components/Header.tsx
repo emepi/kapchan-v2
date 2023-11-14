@@ -8,7 +8,9 @@ import './Header.css'
 export function Header() {
   return (
     <header class="main-header">
-      <h1>kapakka</h1>
+      <A href="/">
+        <h1>kapakka</h1>
+      </A>
       <nav class="main-header-nav">
         <A class="nav-button" href="/login">
           <div class="nav-icon">🔒</div>

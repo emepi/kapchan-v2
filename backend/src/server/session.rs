@@ -108,9 +108,13 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
             self.last_activity = Instant::now();
 
             match msg {
-                Message::Text(_) => (),
+                Message::Text(text) => {
+                    info!("Text received from the user: {}", text);
+                },
 
-                Message::Binary(_) => (),
+                Message::Binary(bin) => {
+                    info!("binary with size {} from the user.", bin.len());
+                },
 
                 Message::Continuation(_) => {
                     ctx.stop();

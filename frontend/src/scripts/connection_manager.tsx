@@ -3,7 +3,7 @@ enum ConnectionStatus {
     Ready = 1,
 }
 
-export const connection_manager = {
+const connection_manager = {
     socket: connect("ws://127.0.0.1:8080/ws"),
     status: ConnectionStatus.Uninitialized,
 }
@@ -34,4 +34,10 @@ function onMessage(e: MessageEvent) {
 
 function onClose(e: CloseEvent) {
     console.log("Connection to server was closed: ", e);
+}
+
+export function serviceRequest(request: string) {
+    if (connection_manager.status === ConnectionStatus.Ready) {
+        connection_manager.socket.send(request);
+    }
 }
