@@ -1,4 +1,4 @@
-use std::{time::Instant, fmt::Display, collections::HashMap};
+use std::{time::Instant, collections::HashMap};
 
 use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
@@ -58,7 +58,7 @@ impl WebsocketSession {
     }
 
     fn add_feed(
-        &self,
+        &mut self,
         srvc_id: u32,
         srvc: Addr<WebsocketService>,
     ) {
@@ -182,7 +182,7 @@ impl Handler<ServiceResponse> for WebsocketSession {
         msg: ServiceResponse, 
         ctx: &mut Self::Context
     ) -> Self::Result {
-        serde_json::to_string(
+        let _ = serde_json::to_string(
             &MessageFrame {
                 s: msg.service_id,
                 b: msg.response_message,
