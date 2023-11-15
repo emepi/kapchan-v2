@@ -5,7 +5,7 @@ pub mod user;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use log::info;
 
-use crate::server::service::{Service, ServiceDataFeed};
+use crate::server::service::{Service, FeedControl};
 
 const USER_SERVICE_ID: u32 = 1;
 
@@ -23,13 +23,19 @@ impl UserService {
 }
 
 impl Service for UserService {
-    fn user_request(
+    fn connection_request(
         &self,
         msg: String,
+        session_id: u32,
+        session_access: u8,
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Option<ServiceDataFeed> {
+    ) -> FeedControl {
         info!("Message received in user services: {}", msg);
-        None
+        
+        FeedControl {
+            op_allowed: true,
+            response: Some(String::from("Roundtrip completed!")),
+        }
     }
 
     fn id(&self) -> u32 { USER_SERVICE_ID }

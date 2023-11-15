@@ -1,13 +1,19 @@
-use std::time::Instant;
+use std::{time::Instant, fmt::Display, collections::HashMap};
 
 use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
 use log::info;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::user_service::user::UserSession;
 
-use super::{WebsocketServer, Disconnect, Connect, ConnectionResponse::*, ServiceRequest};
+use super::{
+    WebsocketServer,
+    Disconnect, 
+    Connect, 
+    ConnectionResponse::*, 
+    ServiceRequest, service::WebsocketService
+};
 
 
 
@@ -20,8 +26,8 @@ pub struct WebsocketSession {
     /// Parent server connection.
     pub server: Addr<WebsocketServer>,
 
-    // TODO: service feeds
-    // pub service_feeds: Vec<impl Service>,
+    // Service feed handlers.
+    pub service_feeds: HashMap<u32, Addr<WebsocketService>>,
 
     // Timestamp of the latest message from client socket.
     pub last_activity: Instant,
@@ -29,7 +35,7 @@ pub struct WebsocketSession {
 
 impl WebsocketSession {
 
-    /// Getter for the session id.
+    /// Getter for the session id
     pub fn id(&self) -> u32 {
         self.user.id
     }
@@ -49,6 +55,15 @@ impl WebsocketSession {
             user_access_level: self.access(),
             msg: msg.b,
         });
+    }
+
+    fn add_feed(
+        &self,
+        srvc_id: u32,
+        srvc: Addr<WebsocketService>,
+    ) {
+        //TODO: feed limiter
+        self.service_feeds.insert(srvc_id, srvc);
     }
 }
 
@@ -98,6 +113,8 @@ impl Actor for WebsocketSession {
             fut::ready(())
         })
         .wait(context);
+
+       // TODO: join to user service by default
     }
 
     // connection is closed
@@ -129,7 +146,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
                 Message::Text(text) => {
                     let _ = serde_json::from_str(&text)
                     .map(|msg| self.request_service(msg));
-                
+
                 },
 
                 Message::Binary(bin) => {
@@ -157,8 +174,64 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
     }
 }
 
-#[derive(Deserialize)]
+impl Handler<ServiceResponse> for WebsocketSession {
+    type Result = ();
+
+    fn handle(
+        &mut self, 
+        msg: ServiceResponse, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+        serde_json::to_string(
+            &MessageFrame {
+                s: msg.service_id,
+                b: msg.response_message,
+            }
+        )
+        .map(|resp| ctx.text(resp));
+    }
+}
+
+impl Handler<ServiceFeedResponse> for WebsocketSession {
+    type Result = ();
+
+    fn handle(
+        &mut self, 
+        msg: ServiceFeedResponse, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+        self.add_feed(msg.service_id, msg.service_handler);
+
+        msg.response_message
+        .and_then(|message| {
+            serde_json::to_string(
+                &MessageFrame {
+                    s: msg.service_id,
+                    b: message,
+                }
+            ).ok()
+        })
+        .map(|resp| ctx.text(resp));
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct MessageFrame {
     s: u32,
     b: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct ServiceFeedResponse {
+    pub service_id: u32,
+    pub service_handler: Addr<WebsocketService>,
+    pub response_message: Option<String>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct ServiceResponse {
+    pub service_id: u32,
+    pub response_message: String,
 }

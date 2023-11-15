@@ -40,6 +40,7 @@ impl WebsocketServer {
         let service_addr = WebsocketService {
             id,
             service,
+            subcribers: HashMap::with_capacity(self.sessions_limit),
             conn_pool: self.database.clone(),
         }
         .start();
@@ -111,6 +112,7 @@ impl Handler<ServiceRequest> for WebsocketServer {
         .and_then(|service| {
             service.try_send(ConnectService {
                 user_access_level: msg.user_access_level,
+                session_id: msg.user_id,
                 session,
                 msg: msg.msg, 
             })
