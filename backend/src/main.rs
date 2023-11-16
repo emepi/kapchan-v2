@@ -3,7 +3,7 @@ mod server;
 mod user_service;
 
 
-use std::{env, time::Instant, collections::HashMap};
+use std::{env, time::Instant};
 
 use actix::{Actor, Addr};
 use actix_files::Files;
@@ -41,7 +41,7 @@ async fn main() -> std::io::Result<()> {
             database: conn_pool.clone(),
         }
     )
-    .service(UserService::new())
+    .service::<UserService>()
     .start();
 
     HttpServer::new(move || {
@@ -115,7 +115,7 @@ async fn websocket_connect(
             user: user_session,
             server: server.get_ref().clone(),
             last_activity: Instant::now(),
-            service_feeds: HashMap::new(),
+            //service_feeds: HashMap::new(),
         }, 
         &req, 
         stream,
@@ -123,7 +123,7 @@ async fn websocket_connect(
     .and_then(|mut http_response| {
 
         if req.cookie("access_token").is_none() {
-            let auth_token = &user.create_authentication_token()
+            let auth_token = &user.create_authentication_cookie()
             .ok_or(InternalError::new(
                 "Error placeholder for failing to issue an access token", 
                 StatusCode::INTERNAL_SERVER_ERROR)

@@ -3,13 +3,16 @@ pub mod service;
 
 
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use actix::dev::{MessageResponse, OneshotSender};
 use actix::prelude::*;
 use diesel_async::AsyncMysqlConnection;
 use diesel_async::pooled_connection::deadpool::Pool;
+use log::info;
 
-use self::service::{WebsocketService, Service, ConnectService};
+use self::service::{WebsocketService, ConnectService, ServiceFrame, WebsocketServiceActor, WebsocketServiceManager};
 use self::session::WebsocketSession;
 
 
@@ -34,18 +37,28 @@ impl WebsocketServer {
         }
     }
 
-    pub fn service(mut self, service: Box<dyn Service>) -> Self {
+    pub fn service<S>(mut self) -> Self 
+    where
+        S: WebsocketService + 'static,
+    {
+        let srvc_mgr = Arc::new(
+            Mutex::new(WebsocketServiceManager {
+                subs: HashMap::new(),
+                max_subs: self.sessions_limit,
+            })
+        );
 
-        let id = service.id();
-        let service_addr = WebsocketService {
-            id,
-            service,
-            subcribers: HashMap::with_capacity(self.sessions_limit),
-            conn_pool: self.database.clone(),
+        let srvc = S::new(srvc_mgr.clone(), self.database.clone());
+        let srvc_id = srvc.id();
+
+
+        let service_actor = WebsocketServiceActor {
+            srvc: Arc::new(srvc),
+            srvc_mgr: srvc_mgr.clone(),
         }
         .start();
-        
-        self.services.insert(id, service_addr.recipient());
+
+        self.services.insert(srvc_id, service_actor.recipient());
         self
     }
 }
@@ -102,6 +115,7 @@ impl Handler<ServiceRequest> for WebsocketServer {
         msg: ServiceRequest, 
         ctx: &mut Self::Context
     ) -> Self::Result {
+
         let session = match self.sessions.get(&msg.user_id) {
             Some(session) => session.clone(),
             None => return ConnectionResponse::Blocked,
@@ -114,7 +128,7 @@ impl Handler<ServiceRequest> for WebsocketServer {
                 user_access_level: msg.user_access_level,
                 session_id: msg.user_id,
                 session,
-                msg: msg.msg, 
+                service_request: msg.msg, 
             })
             .ok()
         })
@@ -171,5 +185,5 @@ pub struct ServiceRequest {
     pub service_id: u32,
     pub user_id: u32,
     pub user_access_level: u8,
-    pub msg: String,
+    pub msg: ServiceFrame,
 }

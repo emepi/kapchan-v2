@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use actix::{
     Handler, 
@@ -6,91 +6,92 @@ use actix::{
     Context, 
     Addr, 
     Message, 
-    AsyncContext,
+    ResponseFuture
 };
+use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use log::info;
+use serde::{Serialize, Deserialize};
 
-use super::session::{WebsocketSession, ServiceFeedResponse, ServiceResponse};
+use super::session::{WebsocketSession, ServiceFeedResponse};
 
-pub struct FeedControl {
-    pub op_allowed: bool,
-    pub response: Option<String>,
-}
 
-pub struct WebsocketService {
-    pub id: u32,
-    pub service: Box<dyn Service>,
-    pub subcribers: HashMap<u32, Addr<WebsocketSession>>,
-    pub conn_pool: Pool<AsyncMysqlConnection>,
-}
+#[async_trait]
+pub trait WebsocketService {
+    fn new(
+        srvc_mgr: Arc<Mutex<WebsocketServiceManager>>,
+        conn_pool: Pool<AsyncMysqlConnection>,
+    ) -> Self where Self: Sized;
 
-impl WebsocketService {
-
-}
-
-impl Actor for WebsocketService {
-    type Context = Context<Self>;
-
-    fn started(&mut self, context: &mut Self::Context) {
-        
-    }
-}
-
-impl Handler<ConnectService> for WebsocketService {
-    type Result = ();
-
-    fn handle(
-        &mut self, 
-        msg: ConnectService, 
-        ctx: &mut Self::Context
-    ) -> Self::Result {
-        let feed_ctrl = self.service.connection_request(
-            msg.msg,
-            msg.session_id,
-            msg.user_access_level, 
-            &self.conn_pool
-        );
-
-        match feed_ctrl.op_allowed {
-            true => {
-                let _ = &msg.session.try_send(ServiceFeedResponse {
-                    service_id: self.service.id(),
-                    service_handler: ctx.address(),
-                    response_message: feed_ctrl.response,
-                });
-
-                // TODO: check and handle existing
-                self.subcribers.insert(msg.session_id, msg.session);
-            },
-
-            false => {
-                let _ = &msg.session.try_send(ServiceResponse {
-                    service_id: self.service.id(),
-                    response_message: feed_ctrl.response.unwrap_or_default(),
-                });
-            },
-        };
-    }
-}
-
-pub trait Service {
-
-    fn connection_request(
+    async fn user_request(
         &self,
-        msg: String,
-        session_id: u32,
-        session_access: u8,
-        conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> FeedControl;
+        usr_id: u32, 
+        usr_access: u8,
+        req: ServiceFrame, 
+    ) -> ServiceResponse;
 
     fn id(&self) -> u32;
 }
 
+pub struct WebsocketServiceManager {
+    pub subs: HashMap<u32, Addr<WebsocketSession>>,
+    pub max_subs: usize,
+}
+
+pub struct WebsocketServiceActor {
+    pub srvc: Arc<dyn WebsocketService>,
+    pub srvc_mgr: Arc<Mutex<WebsocketServiceManager>>,
+}
+
+impl Actor for WebsocketServiceActor {
+    type Context = Context<Self>;
+}
+
+impl Handler<ConnectService> for WebsocketServiceActor {
+    type Result = ResponseFuture<Result<(),()>>;
+
+    fn handle(
+        &mut self, 
+        msg: ConnectService, 
+        ctx: &mut Context<Self>,
+    ) -> Self::Result {
+
+        let srvc = self.srvc.clone();
+
+        Box::pin(async move {
+            let resp = srvc.user_request(
+                msg.session_id, 
+                msg.user_access_level, 
+                msg.service_request
+            )
+            .await;
+
+            let _ = msg.session.try_send(ServiceFeedResponse {
+                service_id: srvc.id(),
+                response_message: Some(resp.resp),
+            });
+        
+            Ok(())
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct ServiceFrame {
+    pub t: u32,
+    pub b: String,
+}
+
+pub struct ServiceResponse {
+    pub data_feed: bool,
+    pub resp: ServiceFrame,
+}
+
 #[derive(Message)]
-#[rtype(result = "()")]
+#[rtype(result = "Result<(), ()>")]
 pub struct ConnectService {
     pub session: Addr<WebsocketSession>,
     pub session_id: u32,
     pub user_access_level: u8,
-    pub msg: String,
+    pub service_request: ServiceFrame,
 }

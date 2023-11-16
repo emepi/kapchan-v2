@@ -29,7 +29,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn create_authentication_token(&self) -> Option<Cookie> {
+    pub fn create_authentication_cookie(&self) -> Option<Cookie> {
         let jwt_secret = env::var("JWT_SECRET")
         .expect(".env variable `JWT_SECRET` must be set");
         
@@ -96,6 +96,25 @@ impl User {
         .ok();
 
         result
+    }
+
+    pub async fn by_username(
+        username: &str, 
+        db: &Pool<AsyncMysqlConnection>
+    ) -> Option<User> {
+        let mut connection = db.get().await
+        .ok()?;
+
+        connection.transaction::<_, Error, _>(|conn| async move {
+            let user = users::table
+            .filter(users::username.eq(username))
+            .first::<User>(conn)
+            .await?;
+
+            Ok(user)
+        }.scope_boxed())
+        .await
+        .ok()
     }
 }
 

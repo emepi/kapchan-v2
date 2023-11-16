@@ -386,6 +386,7 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "argon2",
+ "async-trait",
  "chrono",
  "deadpool 0.10.0",
  "diesel",

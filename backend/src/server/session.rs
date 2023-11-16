@@ -12,7 +12,7 @@ use super::{
     Disconnect, 
     Connect, 
     ConnectionResponse::*, 
-    ServiceRequest, service::WebsocketService
+    ServiceRequest, service::{WebsocketService, ServiceFrame}
 };
 
 
@@ -27,7 +27,7 @@ pub struct WebsocketSession {
     pub server: Addr<WebsocketServer>,
 
     // Service feed handlers.
-    pub service_feeds: HashMap<u32, Addr<WebsocketService>>,
+    //pub service_feeds: HashMap<u32, Addr<dyn WebsocketService>>,
 
     // Timestamp of the latest message from client socket.
     pub last_activity: Instant,
@@ -53,17 +53,17 @@ impl WebsocketSession {
             service_id: msg.s,
             user_id: self.id(),
             user_access_level: self.access(),
-            msg: msg.b,
+            msg: msg.r,
         });
     }
 
     fn add_feed(
         &mut self,
         srvc_id: u32,
-        srvc: Addr<WebsocketService>,
+        //srvc: Addr<dyn WebsocketService>,
     ) {
         //TODO: feed limiter
-        self.service_feeds.insert(srvc_id, srvc);
+        //self.service_feeds.insert(srvc_id, srvc);
     }
 }
 
@@ -144,9 +144,9 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
 
             match msg {
                 Message::Text(text) => {
+
                     let _ = serde_json::from_str(&text)
                     .map(|msg| self.request_service(msg));
-
                 },
 
                 Message::Binary(bin) => {
@@ -185,7 +185,7 @@ impl Handler<ServiceResponse> for WebsocketSession {
         let _ = serde_json::to_string(
             &MessageFrame {
                 s: msg.service_id,
-                b: msg.response_message,
+                r: msg.response_message,
             }
         )
         .map(|resp| ctx.text(resp));
@@ -200,14 +200,14 @@ impl Handler<ServiceFeedResponse> for WebsocketSession {
         msg: ServiceFeedResponse, 
         ctx: &mut Self::Context
     ) -> Self::Result {
-        self.add_feed(msg.service_id, msg.service_handler);
+        //self.add_feed(msg.service_id, msg.service_handler);
 
         msg.response_message
         .and_then(|message| {
             serde_json::to_string(
                 &MessageFrame {
                     s: msg.service_id,
-                    b: message,
+                    r: message,
                 }
             ).ok()
         })
@@ -218,20 +218,20 @@ impl Handler<ServiceFeedResponse> for WebsocketSession {
 #[derive(Serialize, Deserialize)]
 pub struct MessageFrame {
     s: u32,
-    b: String,
+    r: ServiceFrame,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ServiceFeedResponse {
     pub service_id: u32,
-    pub service_handler: Addr<WebsocketService>,
-    pub response_message: Option<String>,
+    //pub service_handler: Addr<dyn WebsocketService>,
+    pub response_message: Option<ServiceFrame>,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ServiceResponse {
     pub service_id: u32,
-    pub response_message: String,
+    pub response_message: ServiceFrame,
 }

@@ -1,11 +1,16 @@
+import { ServiceFrame } from "./service";
+
 enum ConnectionStatus {
-    Uninitialized = 0,
-    Ready = 1,
+  Uninitialized = 0,
+  Ready = 1,
 }
 
 const connection_manager = {
-    socket: connect("ws://127.0.0.1:8080/ws"),
-    status: ConnectionStatus.Uninitialized,
+  socket: connect("ws://127.0.0.1:8080/ws"),
+  status: ConnectionStatus.Uninitialized,
+  channels: new Map([
+    [1, 'bar'],
+  ]),
 }
 
 function connect(addr: string): WebSocket {
@@ -29,18 +34,18 @@ function onError(e: Event) {
 }
 
 function onMessage(e: MessageEvent) {
-    console.log("Message was received: ", e);
+    console.log("Message was received: ", e.data);
 }
 
 function onClose(e: CloseEvent) {
     console.log("Connection to server was closed: ", e);
 }
 
-export function serviceRequest(service_id: Number, request: string) {
+export function serviceRequest(service_id: Number, request: ServiceFrame) {
     if (connection_manager.status === ConnectionStatus.Ready) {
         let message = {
             s: service_id,
-            b: request,
+            r: request,
         }
         
         connection_manager.socket.send(JSON.stringify(message));
