@@ -7,13 +7,14 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use log::info;
 use serde::Deserialize;
 
-use crate::{server::service::{
+use crate::server::{service::{
     WebsocketService, 
     ServiceFrame, 
     WebsocketServiceManager, 
-}, schema::users::password_hash};
+}, session::UpgradeSession};
 
 use self::{user::User, session::UserSession, authentication::{hashes_to_password, create_authentication_token}};
 
@@ -41,13 +42,13 @@ impl WebsocketService for UserService {
 
     async fn user_request(
         &self,
-        sess: &Arc<Mutex<UserSession>>,
+        sess: &Arc<UserSession>,
         req: ServiceFrame, 
     ) -> ServiceFrame {
 
         match req.t {
             LOGIN_REQUEST => {
-                login_handler(req, sess, &self.conn_pool)
+                login_handler(req, sess, &self.conn_pool, &self.srvc_mgr)
                 .await
             },
 
@@ -63,9 +64,12 @@ impl WebsocketService for UserService {
 
 async fn login_handler(
     req: ServiceFrame,
-    curr_sess: &Arc<Mutex<UserSession>>,
+    curr_sess: &Arc<UserSession>,
     conn_pool: &Pool<AsyncMysqlConnection>,
+    srvc_mgr: &Arc<Mutex<WebsocketServiceManager>>,
 ) -> ServiceFrame {
+
+    info!("starting login..");
 
     let creds: LoginCredentials = match serde_json::from_str(&req.b) {
         Ok(creds) => creds,
@@ -73,6 +77,8 @@ async fn login_handler(
             return ServiceFrame::default()
         },
     };
+
+    info!("creds ok");
 
     let auth;
 
@@ -94,31 +100,27 @@ async fn login_handler(
         },
     };
 
+    info!("user & auth ok");
+
     match auth {
         true => {
-            let ip_address;
-            let user_agent;
-
-            {
-                let sess = curr_sess.lock().unwrap();
-                ip_address = sess.ip_address.clone();
-                user_agent = sess.user_agent.clone();
-            }
-
             match user.create_session(
-                ip_address.as_deref(), 
-                user_agent.as_deref(), 
+                curr_sess.ip_address.as_deref(), 
+                curr_sess.user_agent.as_deref(), 
                 &conn_pool
             ).await {
                 Some(n_sess) => {
                     let token = create_authentication_token(n_sess.id);
 
-                    let mut c_sess = curr_sess.lock().unwrap();
-                    c_sess.access_level = n_sess.access_level;
-                    c_sess.created_at = n_sess.created_at;
-                    c_sess.id = n_sess.id;
-                    c_sess.mode = n_sess.mode;
-                    c_sess.user_id = n_sess.user_id;
+                    // send session upgrade
+                    {
+                        srvc_mgr.lock().unwrap().get_client(curr_sess.id)
+                        .map(|cli| {
+                            cli.try_send(UpgradeSession {
+                                sess: Arc::new(n_sess),
+                            })
+                        });
+                    }
 
                     // TODO: end current session in db
 

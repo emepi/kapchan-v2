@@ -82,7 +82,7 @@ async fn websocket_connect(
 
             ws::start(
                 WebsocketSession {
-                    user: Arc::new(Mutex::new(sess)),
+                    user: Arc::new(sess),
                     server: server.get_ref().clone(),
                     last_activity: Instant::now(),
                     service_feeds: HashMap::new(),
@@ -122,7 +122,7 @@ async fn websocket_connect(
 
             ws::start(
                 WebsocketSession {
-                    user: Arc::new(Mutex::new(user_session)),
+                    user: Arc::new(user_session),
                     server: server.get_ref().clone(),
                     last_activity: Instant::now(),
                     service_feeds: HashMap::new(),

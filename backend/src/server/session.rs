@@ -12,7 +12,7 @@ use super::{
     Disconnect, 
     Connect, 
     ConnectionResponse::*, 
-    ServiceRequest, service::{ServiceFrame, WebsocketServiceActor}
+    ServiceRequest, service::{ServiceFrame, WebsocketServiceActor}, Reconnect
 };
 
 
@@ -20,7 +20,7 @@ use super::{
 pub struct WebsocketSession {
 
     /// User session of the user connected to this socket.
-    pub user: Arc<Mutex<UserSession>>,
+    pub user: Arc<UserSession>,
 
     /// Parent server connection.
     pub server: Addr<WebsocketServer>,
@@ -34,19 +34,11 @@ pub struct WebsocketSession {
 
 impl WebsocketSession {
 
-    /// Getter for the session id
-    pub fn id(&self) -> u32 {
-        self.user.lock().unwrap().id
-    }
-
-    pub fn access(&self) -> u8 {
-        self.user.lock().unwrap().access_level
-    }
-
     fn request_service(
         &self, 
         msg: MessageFrame,
     ) {
+        info!("Sending a srvc req");
         let _ = self.server
         .try_send(ServiceRequest {
             service_id: msg.s,
@@ -70,6 +62,23 @@ impl WebsocketSession {
     ) {
         self.service_feeds.remove(&srvc_id);
     }
+
+    fn upgrade_session(&mut self, sess: Arc<UserSession>) {
+
+        let _ = self.server.try_send(Reconnect {
+            from_session_id: self.user.id,
+            to_session_id: sess.id,
+        });
+
+        self.service_feeds.values().for_each(|srvc| {
+            srvc.try_send(Reconnect {
+                from_session_id: self.user.id,
+                to_session_id: sess.id,
+            });
+        });
+
+        self.user = sess;
+    }
 }
 
 impl Actor for WebsocketSession {
@@ -81,7 +90,7 @@ impl Actor for WebsocketSession {
         // Register session to server.
         self.server
         .send(Connect {
-            session_id: self.id(),
+            session_id: self.user.id,
             session_address: context.address(), 
         })
         .into_actor(self)
@@ -92,24 +101,19 @@ impl Actor for WebsocketSession {
 
             match connection_response.get_or_insert(Blocked) {
                 Connected => {
-                    info!("User session {} connected.", act.id());
+
                 },
 
                 Reconnected => {
-                    info!("User session {} reconnected.", act.id());
+
                 },
 
                 ServerFull => {
-                    info!(
-                        "User session {} blocked. Not enough server capacity", 
-                        act.id()
-                    );
 
                     ctx.stop();
                 },
 
                 Blocked => {
-                    info!("User session {} blocked.", act.id());
 
                     ctx.stop();
                 },
@@ -126,7 +130,7 @@ impl Actor for WebsocketSession {
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
 
         // Disconnect session from the server and service feeds
-        self.server.do_send(Disconnect { id: self.id() });
+        self.server.do_send(Disconnect { id: self.user.id });
 
         Running::Stop
     }
@@ -222,6 +226,18 @@ impl Handler<ServiceClose> for WebsocketSession {
     }
 }
 
+impl Handler<UpgradeSession> for WebsocketSession {
+    type Result = ();
+
+    fn handle(
+        &mut self, 
+        msg: UpgradeSession, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+        self.upgrade_session(msg.sess);
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct MessageFrame {
     s: u32,
@@ -246,4 +262,10 @@ pub struct ServiceConnection {
 #[rtype(result = "()")]
 pub struct ServiceClose {
     pub srvc_id: u32,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct UpgradeSession {
+    pub sess: Arc<UserSession>,
 }

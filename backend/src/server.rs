@@ -3,7 +3,6 @@ pub mod service;
 
 
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use actix::dev::{MessageResponse, OneshotSender};
@@ -14,7 +13,13 @@ use log::info;
 
 use crate::user_service::session::UserSession;
 
-use self::service::{WebsocketService, ConnectService, ServiceFrame, WebsocketServiceActor, WebsocketServiceManager};
+use self::service::{
+    WebsocketService, 
+    ConnectService, 
+    ServiceFrame, 
+    WebsocketServiceActor, 
+    WebsocketServiceManager
+};
 use self::session::WebsocketSession;
 
 
@@ -103,6 +108,7 @@ impl Handler<Connect> for WebsocketServer {
             },
 
             None => {
+                info!("Session id: {} connected to server.", msg.session_id);
                 ConnectionResponse::Connected
             },
         }
@@ -118,7 +124,7 @@ impl Handler<ServiceRequest> for WebsocketServer {
         ctx: &mut Self::Context
     ) -> Self::Result {
 
-        let session_actor = match self.sessions.get(&msg.sess.lock().unwrap().id) {
+        let session_actor = match self.sessions.get(&msg.sess.id) {
             Some(session) => session.clone(),
             None => return ConnectionResponse::Blocked,
         };
@@ -136,6 +142,28 @@ impl Handler<ServiceRequest> for WebsocketServer {
         .map(|_| ConnectionResponse::Connected)
         .unwrap_or(ConnectionResponse::Blocked)
         
+    }
+}
+
+impl Handler<Reconnect> for WebsocketServer {
+    type Result = ConnectionResponse;
+
+    fn handle(
+        &mut self, 
+        msg: Reconnect, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+        let prev = self.sessions.remove(&msg.from_session_id);
+
+        match prev {
+            Some(sess_addr) => {
+                self.sessions.insert(msg.to_session_id, sess_addr);
+
+                ConnectionResponse::Reconnected
+            },
+
+            None => ConnectionResponse::Blocked,
+        }
     }
 }
 
@@ -175,6 +203,13 @@ pub struct Connect {
 }
 
 #[derive(Message)]
+#[rtype(result = "ConnectionResponse")]
+pub struct Reconnect {
+    pub from_session_id: u32,
+    pub to_session_id: u32,
+}
+
+#[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
     pub id: u32,
@@ -184,6 +219,6 @@ pub struct Disconnect {
 #[rtype(result = "ConnectionResponse")]
 pub struct ServiceRequest {
     pub service_id: u32,
-    pub sess: Arc<Mutex<UserSession>>,
+    pub sess: Arc<UserSession>,
     pub msg: ServiceFrame,
 }

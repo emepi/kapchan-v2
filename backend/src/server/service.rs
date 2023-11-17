@@ -10,16 +10,17 @@ use actix::{
 };
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use log::info;
 use serde::{Serialize, Deserialize};
 
 use crate::user_service::session::UserSession;
 
-use super::session::{
+use super::{session::{
     WebsocketSession, 
     ServiceResponse, 
     ServiceConnection, 
     ServiceClose
-};
+}, Reconnect, ConnectionResponse};
 
 
 #[async_trait]
@@ -31,7 +32,7 @@ pub trait WebsocketService {
 
     async fn user_request(
         &self,
-        sess: &Arc<Mutex<UserSession>>,
+        sess: &Arc<UserSession>,
         req: ServiceFrame,
     ) -> ServiceFrame;
 
@@ -71,7 +72,28 @@ impl WebsocketServiceManager {
         }
     }
 
+    pub fn get_client(&self, sess_id: u32) -> Option<&Addr<WebsocketSession>> {
+        self.subs.get(&sess_id)
+    }
 
+    pub fn reconnect(
+        &mut self, 
+        from_sess_id: u32, 
+        to_sess_id: u32
+    ) -> ConnectionResponse {
+
+        let prev = self.subs.remove(&from_sess_id);
+
+        match prev {
+            Some(sess_addr) => {
+                self.subs.insert(to_sess_id, sess_addr);
+
+                ConnectionResponse::Reconnected
+            },
+
+            None => ConnectionResponse::Blocked,
+        }
+    }
 }
 
 pub struct WebsocketServiceActor {
@@ -91,12 +113,29 @@ impl Handler<ConnectService> for WebsocketServiceActor {
         msg: ConnectService, 
         ctx: &mut Context<Self>,
     ) -> Self::Result {
+        info!("Srvc request received.");
 
         let srvc = self.srvc.clone();
         let srvc_mgr = self.srvc_mgr.clone();
         let srvc_addr = ctx.address().clone();
 
         Box::pin(async move {
+
+            match  srvc_mgr.lock() {
+                Ok(mut mgr) => {
+                    mgr.add_client(
+                        msg.session.id, 
+                        msg.session_actor.clone(),
+                        srvc.id(),
+                        srvc_addr
+                    );
+                },
+
+                Err(_) => {
+                    // TODO
+                },
+            };
+
             let resp = srvc.user_request(
                 &msg.session, 
                 msg.service_request
@@ -107,24 +146,23 @@ impl Handler<ConnectService> for WebsocketServiceActor {
                 srvc_id: srvc.id(),
                 srvc_frame: resp,
             });
-
-            match  srvc_mgr.lock() {
-                Ok(mut mgr) => {
-                    mgr.add_client(
-                        msg.session.lock().unwrap().id, 
-                        msg.session_actor,
-                        srvc.id(),
-                        srvc_addr
-                    );
-                },
-
-                Err(_) => {
-                    // TODO
-                },
-            };
         
             Ok(())
         })
+    }
+}
+
+impl Handler<Reconnect> for WebsocketServiceActor {
+    type Result = ConnectionResponse;
+
+    fn handle(
+        &mut self, 
+        msg: Reconnect, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+
+        self.srvc_mgr.lock().unwrap()
+        .reconnect(msg.from_session_id, msg.to_session_id)
     }
 }
 
@@ -139,7 +177,7 @@ pub struct ServiceFrame {
 #[derive(Message)]
 #[rtype(result = "Result<(), ()>")]
 pub struct ConnectService {
-    pub session: Arc<Mutex<UserSession>>,
+    pub session: Arc<UserSession>,
     pub session_actor: Addr<WebsocketSession>,
     pub service_request: ServiceFrame,
 }
