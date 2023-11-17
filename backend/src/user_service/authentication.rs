@@ -1,6 +1,12 @@
 use std::env;
 
-use argon2::{password_hash::{SaltString, rand_core::OsRng}, Argon2, PasswordHasher, PasswordHash, PasswordVerifier};
+use argon2::{
+    password_hash::{SaltString, rand_core::OsRng}, 
+    Argon2, 
+    PasswordHasher, 
+    PasswordHash, 
+    PasswordVerifier
+};
 use diesel::{result::Error, QueryDsl, ExpressionMethods};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 

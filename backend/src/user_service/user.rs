@@ -30,6 +30,23 @@ pub struct User {
 
 impl User {
     pub fn create_authentication_cookie(&self) -> Option<Cookie> {
+        
+        let jwt_expiration = env::var("JWT_EXPIRATION")
+        .expect(".env variable `JWT_EXPIRATION` must be set")
+        .parse::<i64>()
+        .expect("`JWT_EXPIRATION` must be a valid number");
+
+        self.create_auth_token()
+        .map(|access_token| {
+            Cookie::build("access_token", access_token)
+            .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))
+            .same_site(SameSite::Strict)
+            .http_only(true)
+            .finish()
+        })
+    }
+
+    pub fn create_auth_token(&self) -> Option<String> {
         let jwt_secret = env::var("JWT_SECRET")
         .expect(".env variable `JWT_SECRET` must be set");
         
@@ -50,14 +67,7 @@ impl User {
             &Header::default(), 
             &user_claims, 
             &EncodingKey::from_secret(jwt_secret.as_ref())
-        )
-        .map(|access_token| {
-            Cookie::build("access_token", access_token)
-            .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))
-            .same_site(SameSite::Strict)
-            .http_only(true)
-            .finish()
-        }).ok()
+        ).ok()
     }
 
     pub async fn create_session(

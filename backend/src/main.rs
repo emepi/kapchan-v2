@@ -3,7 +3,7 @@ mod server;
 mod user_service;
 
 
-use std::{env, time::Instant};
+use std::{env, time::Instant, collections::HashMap};
 
 use actix::{Actor, Addr};
 use actix_files::Files;
@@ -115,7 +115,7 @@ async fn websocket_connect(
             user: user_session,
             server: server.get_ref().clone(),
             last_activity: Instant::now(),
-            //service_feeds: HashMap::new(),
+            service_feeds: HashMap::new(),
         }, 
         &req, 
         stream,

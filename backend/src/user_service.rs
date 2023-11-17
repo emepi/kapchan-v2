@@ -6,13 +6,12 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use log::info;
 use serde::Deserialize;
 
 use crate::server::service::{
     WebsocketService, 
     ServiceFrame, 
-    WebsocketServiceManager, ServiceResponse
+    WebsocketServiceManager, 
 };
 
 use self::{user::User, authentication::hashes_to_password};
@@ -44,11 +43,15 @@ impl WebsocketService for UserService {
         usr_id: u32, 
         usr_access: u8,
         req: ServiceFrame, 
-    ) -> ServiceResponse {
-        
-        ServiceResponse {
-            data_feed: true,
-            resp: ServiceFrame::default(),
+    ) -> ServiceFrame {
+
+        match req.t {
+            LOGIN_REQUEST => {
+                login_handler(req, &self.conn_pool)
+                .await
+            },
+
+            _ => unspecified_handler(req),
         }
     }
 
@@ -58,34 +61,46 @@ impl WebsocketService for UserService {
 }
 
 
-async fn handle_login(
-    credentials: LoginCredentials, 
-    connection_pool: &Pool<AsyncMysqlConnection>
+async fn login_handler(
+    req: ServiceFrame, 
+    conn_pool: &Pool<AsyncMysqlConnection>,
 ) -> ServiceFrame {
-    let auth = User::by_username(&credentials.username, connection_pool)
-    .await
-    .and_then(|user_data| {
-        user_data.password_hash
-        .map(|hash| hashes_to_password(&hash, &credentials.password))
-    })
-    .unwrap_or(false);
-
-
-    ServiceFrame {
-        t: LOGIN_REQUEST,
-        b: match auth {
-            true => {
-                String::from("")
-            },
-            false => {
-                String::from("")
-            },
+    let creds: LoginCredentials = match serde_json::from_str(&req.b) {
+        Ok(creds) => creds,
+        Err(_) => {
+            return ServiceFrame::default()
         },
-    }
+    };
+
+    User::by_username(&creds.username, conn_pool)
+    .await
+    .map(|user| {
+        user.password_hash.clone()
+        .is_some_and(|hash| hashes_to_password(&hash, &creds.password))
+        .then(|| user.create_auth_token())
+        .flatten()
+        .unwrap_or(String::from("Authentication failed"))
+    })
+    .map_or(
+        ServiceFrame {
+            t: req.t,
+            b: String::from("User not found"),
+        }, 
+        |token| ServiceFrame {
+            t: req.t,
+            b: token,
+        })
 }
 
 #[derive(Debug, Deserialize, Default)]
 pub struct LoginCredentials {
     pub username: String,
     pub password: String
+}
+
+fn unspecified_handler(req: ServiceFrame) -> ServiceFrame {
+    ServiceFrame {
+        t: req.t,
+        b: String::from("Unknown service type"),
+    }
 }

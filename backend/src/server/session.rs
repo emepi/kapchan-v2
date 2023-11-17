@@ -12,9 +12,8 @@ use super::{
     Disconnect, 
     Connect, 
     ConnectionResponse::*, 
-    ServiceRequest, service::{WebsocketService, ServiceFrame}
+    ServiceRequest, service::{ServiceFrame, WebsocketServiceActor}
 };
-
 
 
 /// Websocket session for client - server communication.
@@ -27,7 +26,7 @@ pub struct WebsocketSession {
     pub server: Addr<WebsocketServer>,
 
     // Service feed handlers.
-    //pub service_feeds: HashMap<u32, Addr<dyn WebsocketService>>,
+    pub service_feeds: HashMap<u32, Addr<WebsocketServiceActor>>,
 
     // Timestamp of the latest message from client socket.
     pub last_activity: Instant,
@@ -60,10 +59,17 @@ impl WebsocketSession {
     fn add_feed(
         &mut self,
         srvc_id: u32,
-        //srvc: Addr<dyn WebsocketService>,
+        srvc: Addr<WebsocketServiceActor>,
     ) {
         //TODO: feed limiter
-        //self.service_feeds.insert(srvc_id, srvc);
+        self.service_feeds.insert(srvc_id, srvc);
+    }
+
+    fn drop_feed(
+        &mut self,
+        srvc_id: u32,
+    ) {
+        self.service_feeds.remove(&srvc_id);
     }
 }
 
@@ -182,36 +188,38 @@ impl Handler<ServiceResponse> for WebsocketSession {
         msg: ServiceResponse, 
         ctx: &mut Self::Context
     ) -> Self::Result {
-        let _ = serde_json::to_string(
-            &MessageFrame {
-                s: msg.service_id,
-                r: msg.response_message,
-            }
-        )
-        .map(|resp| ctx.text(resp));
+
+        match serde_json::to_string(&MessageFrame {
+            s: msg.srvc_id,
+            r: msg.srvc_frame,
+        }) {
+            Ok(msg_frame) => ctx.text(msg_frame),
+            Err(_) => (),
+        };
     }
 }
 
-impl Handler<ServiceFeedResponse> for WebsocketSession {
+impl Handler<ServiceConnection> for WebsocketSession {
     type Result = ();
 
     fn handle(
         &mut self, 
-        msg: ServiceFeedResponse, 
+        msg: ServiceConnection, 
         ctx: &mut Self::Context
     ) -> Self::Result {
-        //self.add_feed(msg.service_id, msg.service_handler);
+        self.add_feed(msg.srvc_id, msg.srvc_addr);
+    }
+}
 
-        msg.response_message
-        .and_then(|message| {
-            serde_json::to_string(
-                &MessageFrame {
-                    s: msg.service_id,
-                    r: message,
-                }
-            ).ok()
-        })
-        .map(|resp| ctx.text(resp));
+impl Handler<ServiceClose> for WebsocketSession {
+    type Result = ();
+
+    fn handle(
+        &mut self, 
+        msg: ServiceClose, 
+        ctx: &mut Self::Context
+    ) -> Self::Result {
+        self.drop_feed(msg.srvc_id);
     }
 }
 
@@ -223,15 +231,20 @@ pub struct MessageFrame {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct ServiceFeedResponse {
-    pub service_id: u32,
-    //pub service_handler: Addr<dyn WebsocketService>,
-    pub response_message: Option<ServiceFrame>,
+pub struct ServiceResponse {
+    pub srvc_id: u32,
+    pub srvc_frame: ServiceFrame,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct ServiceResponse {
-    pub service_id: u32,
-    pub response_message: ServiceFrame,
+pub struct ServiceConnection {
+    pub srvc_id: u32,
+    pub srvc_addr: Addr<WebsocketServiceActor>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct ServiceClose {
+    pub srvc_id: u32,
 }
