@@ -3,7 +3,7 @@ mod server;
 mod user_service;
 
 
-use std::{env, time::Instant, collections::HashMap};
+use std::{env, time::Instant, collections::HashMap, sync::{Arc, Mutex}};
 
 use actix::{Actor, Addr};
 use actix_files::Files;
@@ -15,7 +15,7 @@ use actix_web::{
     Error, 
     HttpRequest, 
     error::InternalError, 
-    http::{StatusCode, header},
+    http::{StatusCode, header}, cookie::{Cookie, self, SameSite},
 };
 use actix_web_actors::ws;
 use diesel_async::{
@@ -24,7 +24,7 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
-use user_service::{UserService, user::UserModel, authentication::authenticate};
+use user_service::{UserService, user::UserModel, authentication::{validate_session_id, create_authentication_token}, session::UserSession};
 
 
 #[actix_web::main]
@@ -61,79 +61,101 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-// NOTE: User & user session could be handled in WebsocketSession in the future.
 async fn websocket_connect(
     req: HttpRequest, 
     stream: web::Payload,
     server: web::Data<Addr<WebsocketServer>>,
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
 ) -> Result<HttpResponse, Error> {
-
-    let existing_user = match req.cookie("access_token") {
-        Some(access_token) => authenticate(
-            access_token.value(), 
-            &conn_pool
-        ).await,
-        
-        None => None,
-    };
     
-    let user = match existing_user {
-        Some(existing_user) => existing_user,
+    let prev_sess = req.cookie("access_token")
+    .and_then(|access_token| validate_session_id(access_token.value()));
 
-        // Create an anonymous user for client without a valid access token.
+    match prev_sess {
+        Some(sess_id) => {
+            let sess = UserSession::by_id(sess_id, &conn_pool)
+            .await
+            .ok_or(InternalError::new(
+                "Error placeholder for failed user creation.", 
+                StatusCode::INTERNAL_SERVER_ERROR
+            ))?;
+
+            ws::start(
+                WebsocketSession {
+                    user: Arc::new(Mutex::new(sess)),
+                    server: server.get_ref().clone(),
+                    last_activity: Instant::now(),
+                    service_feeds: HashMap::new(),
+                }, 
+                &req, 
+                stream,
+            )
+        },
+
         None => {
-            UserModel::default()
+            // Create an anonymous user for client without a valid access token.
+            let user = UserModel::default()
             .register_user(&conn_pool)
             .await
             .ok_or(InternalError::new(
                 "Error placeholder for failed user creation.", 
-                StatusCode::INTERNAL_SERVER_ERROR)
-            )?
-        },
-    };
+                StatusCode::INTERNAL_SERVER_ERROR
+            ))?;
 
-    // TODO: simplify
-    let ip = req.peer_addr().map(|addr| addr.ip().to_string());
+            let ip = req.peer_addr().map(|addr| addr.ip().to_string());
+            
+            let user_agent = req.headers().get(header::USER_AGENT)
+            .and_then(|header| header.to_str().ok());
 
-    let user_agent = req.headers().get(header::USER_AGENT)
-    .and_then(|header| header.to_str().ok());
-
-    let user_session = user.create_session(
-        ip.as_deref(),
-        user_agent, 
-        &conn_pool
-    )
-    .await
-    .ok_or(InternalError::new(
-        "Error placeholder for failed user session.", 
-        StatusCode::INTERNAL_SERVER_ERROR)
-    )?;
-
-    ws::start(
-        WebsocketSession {
-            user: user_session,
-            server: server.get_ref().clone(),
-            last_activity: Instant::now(),
-            service_feeds: HashMap::new(),
-        }, 
-        &req, 
-        stream,
-    )
-    .and_then(|mut http_response| {
-
-        if req.cookie("access_token").is_none() {
-            let auth_token = &user.create_authentication_cookie()
+            let user_session = user.create_session(
+                ip.as_deref(),
+                user_agent, 
+                &conn_pool
+            )
+            .await
             .ok_or(InternalError::new(
-                "Error placeholder for failing to issue an access token", 
+                "Error placeholder for failed user session.", 
                 StatusCode::INTERNAL_SERVER_ERROR)
             )?;
 
-            http_response.add_cookie(auth_token)?;
-        }
+            let sess_id = user_session.id;
 
-        Ok(http_response)
-    })
+            ws::start(
+                WebsocketSession {
+                    user: Arc::new(Mutex::new(user_session)),
+                    server: server.get_ref().clone(),
+                    last_activity: Instant::now(),
+                    service_feeds: HashMap::new(),
+                }, 
+                &req, 
+                stream,
+            )
+            .and_then(|mut http_response| {
+
+                let jwt_expiration = env::var("JWT_EXPIRATION")
+                .expect(".env variable `JWT_EXPIRATION` must be set")
+                .parse::<i64>()
+                .expect("`JWT_EXPIRATION` must be a valid number");
+        
+                let access_token = create_authentication_token(sess_id)
+                .map(|access_token| {
+                    Cookie::build("access_token", access_token)
+                    .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))
+                    .same_site(SameSite::Strict)
+                    .http_only(true)
+                    .finish()
+                })
+                .ok_or(InternalError::new(
+                    "Error placeholder for failing to issue an access token", 
+                    StatusCode::INTERNAL_SERVER_ERROR)
+                )?;
+        
+                http_response.add_cookie(&access_token)?;
+        
+                Ok(http_response)
+            })
+        },
+    }
 }
 
 fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {

@@ -1,5 +1,6 @@
 use std::env;
 
+use actix_web::cookie::{Cookie, SameSite, self};
 use argon2::{
     password_hash::{SaltString, rand_core::OsRng}, 
     Argon2, 
@@ -7,6 +8,7 @@ use argon2::{
     PasswordHash, 
     PasswordVerifier
 };
+use chrono::{Duration, Utc};
 use diesel::{result::Error, QueryDsl, ExpressionMethods};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
@@ -15,7 +17,7 @@ use diesel_async::{
     RunQueryDsl, 
     scoped_futures::ScopedFutureExt,
 };
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use jsonwebtoken::{decode, DecodingKey, Validation, EncodingKey, Header, encode};
 use serde::{Serialize, Deserialize};
 
 use crate::schema::users;
@@ -30,11 +32,9 @@ pub struct Claims {
     pub sub: String,         // Subject (whom token refers to)
 }
 
-pub async fn authenticate(
-    token: &str, 
-    conn_pool: &Pool<AsyncMysqlConnection>
-) -> Option<User> {
 
+pub fn validate_session_id(token: &str) -> Option<u32> {
+    
     let jwt_secret = env::var("JWT_SECRET")
     .expect(".env variable `JWT_SECRET` must be set");
 
@@ -53,22 +53,35 @@ pub async fn authenticate(
         },
     }?;
 
-    let user_id = claims.sub.parse::<u32>().ok()?;
+    claims.sub.parse::<u32>().ok()
+}
 
-    let mut connection = conn_pool.get().await.ok()?;
+pub fn create_authentication_token(sess_id: u32) -> Option<String> {
+    
+    let jwt_secret = env::var("JWT_SECRET")
+    .expect(".env variable `JWT_SECRET` must be set");
 
-    connection.transaction::<_, Error, _>(|conn| async move {
+    let jwt_expiration = env::var("JWT_EXPIRATION")
+    .expect(".env variable `JWT_EXPIRATION` must be set")
+    .parse::<i64>()
+    .expect("`JWT_EXPIRATION` must be a valid number");
 
-        let user = users::table
-        .find(user_id)
-        .first::<User>(conn)
-        .await?;
-        
-        Ok(user)
-    }.scope_boxed())
-    .await
+    let now = Utc::now();
+
+    let user_claims = Claims {
+        exp: (now + Duration::minutes(jwt_expiration)).timestamp() as usize,
+        iat: now.timestamp() as usize,
+        sub: sess_id.to_string(),
+    };
+
+    encode(
+        &Header::default(), 
+        &user_claims, 
+        &EncodingKey::from_secret(jwt_secret.as_ref())
+    )
     .ok()
 }
+
 
 // TODO: sanitize user inputs and refactor
 pub async fn register_user(

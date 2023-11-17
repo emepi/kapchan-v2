@@ -1,11 +1,11 @@
-use std::{time::Instant, collections::HashMap};
+use std::{time::Instant, collections::HashMap, sync::{Arc, Mutex}};
 
 use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use crate::user_service::user::UserSession;
+use crate::user_service::session::UserSession;
 
 use super::{
     WebsocketServer,
@@ -20,7 +20,7 @@ use super::{
 pub struct WebsocketSession {
 
     /// User session of the user connected to this socket.
-    pub user: UserSession,
+    pub user: Arc<Mutex<UserSession>>,
 
     /// Parent server connection.
     pub server: Addr<WebsocketServer>,
@@ -36,11 +36,11 @@ impl WebsocketSession {
 
     /// Getter for the session id
     pub fn id(&self) -> u32 {
-        self.user.id
+        self.user.lock().unwrap().id
     }
 
     pub fn access(&self) -> u8 {
-        self.user.access_level
+        self.user.lock().unwrap().access_level
     }
 
     fn request_service(
@@ -50,8 +50,7 @@ impl WebsocketSession {
         let _ = self.server
         .try_send(ServiceRequest {
             service_id: msg.s,
-            user_id: self.id(),
-            user_access_level: self.access(),
+            sess: self.user.clone(),
             msg: msg.r,
         });
     }

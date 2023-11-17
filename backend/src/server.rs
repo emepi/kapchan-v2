@@ -12,6 +12,8 @@ use diesel_async::AsyncMysqlConnection;
 use diesel_async::pooled_connection::deadpool::Pool;
 use log::info;
 
+use crate::user_service::session::UserSession;
+
 use self::service::{WebsocketService, ConnectService, ServiceFrame, WebsocketServiceActor, WebsocketServiceManager};
 use self::session::WebsocketSession;
 
@@ -116,7 +118,7 @@ impl Handler<ServiceRequest> for WebsocketServer {
         ctx: &mut Self::Context
     ) -> Self::Result {
 
-        let session = match self.sessions.get(&msg.user_id) {
+        let session_actor = match self.sessions.get(&msg.sess.lock().unwrap().id) {
             Some(session) => session.clone(),
             None => return ConnectionResponse::Blocked,
         };
@@ -125,10 +127,9 @@ impl Handler<ServiceRequest> for WebsocketServer {
         .get(&msg.service_id)
         .and_then(|service| {
             service.try_send(ConnectService {
-                user_access_level: msg.user_access_level,
-                session_id: msg.user_id,
-                session,
-                service_request: msg.msg, 
+                service_request: msg.msg,
+                session: msg.sess,
+                session_actor, 
             })
             .ok()
         })
@@ -183,7 +184,6 @@ pub struct Disconnect {
 #[rtype(result = "ConnectionResponse")]
 pub struct ServiceRequest {
     pub service_id: u32,
-    pub user_id: u32,
-    pub user_access_level: u8,
+    pub sess: Arc<Mutex<UserSession>>,
     pub msg: ServiceFrame,
 }

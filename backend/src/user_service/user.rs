@@ -13,7 +13,7 @@ use diesel_async::{
 use jsonwebtoken::{encode, Header, EncodingKey};
 use crate::schema::{users, sessions};
 
-use super::authentication::Claims;
+use super::{authentication::Claims, session::{UserSessionModel, UserSession}};
 
 
 #[derive(Queryable, Identifiable, Selectable)]
@@ -29,46 +29,6 @@ pub struct User {
 }
 
 impl User {
-    pub fn create_authentication_cookie(&self) -> Option<Cookie> {
-        
-        let jwt_expiration = env::var("JWT_EXPIRATION")
-        .expect(".env variable `JWT_EXPIRATION` must be set")
-        .parse::<i64>()
-        .expect("`JWT_EXPIRATION` must be a valid number");
-
-        self.create_auth_token()
-        .map(|access_token| {
-            Cookie::build("access_token", access_token)
-            .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))
-            .same_site(SameSite::Strict)
-            .http_only(true)
-            .finish()
-        })
-    }
-
-    pub fn create_auth_token(&self) -> Option<String> {
-        let jwt_secret = env::var("JWT_SECRET")
-        .expect(".env variable `JWT_SECRET` must be set");
-        
-        let jwt_expiration = env::var("JWT_EXPIRATION")
-        .expect(".env variable `JWT_EXPIRATION` must be set")
-        .parse::<i64>()
-        .expect("`JWT_EXPIRATION` must be a valid number");
-
-        let now = Utc::now();
-
-        let user_claims = Claims {
-            exp: (now + Duration::minutes(jwt_expiration)).timestamp() as usize,
-            iat: now.timestamp() as usize,
-            sub: self.id.to_string(),
-        };
-
-        encode(
-            &Header::default(), 
-            &user_claims, 
-            &EncodingKey::from_secret(jwt_secret.as_ref())
-        ).ok()
-    }
 
     pub async fn create_session(
         &self,
@@ -180,30 +140,5 @@ impl UserModel<'_> {
     }
 }
 
-#[derive(Queryable, Selectable)]
-#[diesel(table_name = sessions)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct UserSession {
-    pub id: u32,
-    pub user_id: u32,
-    pub access_level: u8,
-    pub mode: u8,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub created_at: NaiveDateTime,
-    pub ended_at: Option<NaiveDateTime>,
-}
 
-#[derive(Insertable)]
-#[diesel(table_name = sessions)]
-pub struct UserSessionModel<'a> {
-    pub user_id: u32,
-    pub access_level: u8,
-    pub mode: u8,
-    pub ip_address: Option<&'a str>,
-    pub user_agent: Option<&'a str>,
-    pub ended_at: Option<&'a NaiveDateTime>,
-}
-
-// TODO: move to a different module
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);

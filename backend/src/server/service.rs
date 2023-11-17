@@ -12,7 +12,14 @@ use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::{Serialize, Deserialize};
 
-use super::session::{WebsocketSession, ServiceResponse, ServiceConnection, ServiceClose};
+use crate::user_service::session::UserSession;
+
+use super::session::{
+    WebsocketSession, 
+    ServiceResponse, 
+    ServiceConnection, 
+    ServiceClose
+};
 
 
 #[async_trait]
@@ -24,8 +31,7 @@ pub trait WebsocketService {
 
     async fn user_request(
         &self,
-        usr_id: u32, 
-        usr_access: u8,
+        sess: &Arc<Mutex<UserSession>>,
         req: ServiceFrame,
     ) -> ServiceFrame;
 
@@ -92,13 +98,12 @@ impl Handler<ConnectService> for WebsocketServiceActor {
 
         Box::pin(async move {
             let resp = srvc.user_request(
-                msg.session_id, 
-                msg.user_access_level, 
+                &msg.session, 
                 msg.service_request
             )
             .await;
             
-            let _ = &msg.session.try_send(ServiceResponse {
+            let _ = &msg.session_actor.try_send(ServiceResponse {
                 srvc_id: srvc.id(),
                 srvc_frame: resp,
             });
@@ -106,8 +111,8 @@ impl Handler<ConnectService> for WebsocketServiceActor {
             match  srvc_mgr.lock() {
                 Ok(mut mgr) => {
                     mgr.add_client(
-                        msg.session_id, 
-                        msg.session,
+                        msg.session.lock().unwrap().id, 
+                        msg.session_actor,
                         srvc.id(),
                         srvc_addr
                     );
@@ -134,8 +139,7 @@ pub struct ServiceFrame {
 #[derive(Message)]
 #[rtype(result = "Result<(), ()>")]
 pub struct ConnectService {
-    pub session: Addr<WebsocketSession>,
-    pub session_id: u32,
-    pub user_access_level: u8,
+    pub session: Arc<Mutex<UserSession>>,
+    pub session_actor: Addr<WebsocketSession>,
     pub service_request: ServiceFrame,
 }
