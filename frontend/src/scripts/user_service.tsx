@@ -1,3 +1,4 @@
+import { setCookie } from "./cookies";
 import { ServiceFrame } from "./service";
 
 enum ResponseCode {
@@ -10,6 +11,27 @@ enum ResponseCode {
     InvalidServiceType = 7,
 }
 
+enum ServiceType {
+    Login = 1,
+}
+
 export function userServiceReceive(input: ServiceFrame) {
-    console.log("User services received input: ", input);
+
+    let body = JSON.parse(input.b);
+
+    console.log("User services received input: ", body);
+
+    switch (input.t) {
+        case ServiceType.Login:
+            let token = body.m;
+
+            if (token) {
+                setCookie("access_token", token);
+            }
+
+            break;
+        
+        default:
+            break;
+    }
 }

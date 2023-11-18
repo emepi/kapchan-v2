@@ -27,6 +27,7 @@ pub struct Claims {
     pub exp: usize,          // Expiration time (as UTC timestamp)
     pub iat: usize,          // Issued at (as UTC timestamp)
     pub sub: String,         // Subject (whom token refers to)
+    pub role: u8,            // session access level
 }
 
 
@@ -53,7 +54,10 @@ pub fn validate_session_id(token: &str) -> Option<u32> {
     claims.sub.parse::<u32>().ok()
 }
 
-pub fn create_authentication_token(sess_id: u32) -> Option<String> {
+pub fn create_authentication_token(
+    sess_id: u32, 
+    access_level: u8
+) -> Option<String> {
     
     let jwt_secret = env::var("JWT_SECRET")
     .expect(".env variable `JWT_SECRET` must be set");
@@ -69,6 +73,7 @@ pub fn create_authentication_token(sess_id: u32) -> Option<String> {
         exp: (now + Duration::minutes(jwt_expiration)).timestamp() as usize,
         iat: now.timestamp() as usize,
         sub: sess_id.to_string(),
+        role: access_level,
     };
 
     encode(

@@ -1,7 +1,4 @@
-use std::env;
-
-use actix_web::cookie::{Cookie, SameSite, self};
-use chrono::{NaiveDateTime, Utc, Duration};
+use chrono::NaiveDateTime;
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     AsyncConnection,
@@ -10,10 +7,18 @@ use diesel_async::{
     AsyncMysqlConnection, 
     RunQueryDsl,
 };
-use jsonwebtoken::{encode, Header, EncodingKey};
 use crate::schema::{users, sessions};
 
-use super::{authentication::Claims, session::{UserSessionModel, UserSession}};
+use super::{session::{UserSession, UserSessionModel}, authentication::hash_password_a2id};
+
+
+#[derive(Copy, Clone)]
+pub enum AccessLevel {
+    Anonymous = 10,
+    Member = 20,
+    Admin = 100,
+    Root = 255,
+}
 
 
 #[derive(Queryable, Identifiable, Selectable)]
@@ -29,6 +34,56 @@ pub struct User {
 }
 
 impl User {
+
+    pub async fn modify(
+        &self, 
+        update_mdl: UserModel<'_>, 
+        conn_pool: &Pool<AsyncMysqlConnection>
+    ) {
+        let username = update_mdl.username
+        .map(|username| {
+            // TODO: sanitize
+            username
+        })
+        .or(self.username.as_deref());
+
+        let password = update_mdl.password_hash
+        .and_then(|pwd| {
+            // TODO: sanitize
+            hash_password_a2id(pwd)
+        })
+        .or(self.password_hash.clone());
+
+        let email = update_mdl.email
+        .map(|email| {
+            // TODO: sanitize
+            email
+        })
+        .or(self.email.as_deref());
+
+        match conn_pool.get().await {
+
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let _ = diesel::update(users::table.find(self.id))
+                    .set((
+                        users::access_level.eq(update_mdl.access_level),
+                        users::username.eq(username),
+                        users::email.eq(email),
+                        users::password_hash.eq(password),
+                    ))
+                    .execute(conn)
+                    .await;
+            
+                    Ok(())
+                }.scope_boxed())
+                .await;
+            },
+
+            Err(_) => (),
+        }
+    }
 
     pub async fn create_session(
         &self,
@@ -101,7 +156,7 @@ pub struct UserModel<'a> {
 impl Default for UserModel<'_> {
     fn default() -> Self {
         Self {
-            access_level: 1, 
+            access_level: AccessLevel::Anonymous as u8, 
             username: None,
             email: None,
             password_hash: None,
@@ -110,7 +165,7 @@ impl Default for UserModel<'_> {
 }
 
 impl UserModel<'_> {
-    pub async fn register_user(
+    pub async fn insert(
         &self, 
         db: &Pool<AsyncMysqlConnection>,
     ) -> Option<User> {

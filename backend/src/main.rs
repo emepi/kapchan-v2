@@ -100,7 +100,7 @@ async fn websocket_connect(
         None => {
             // Create an anonymous user for client without a valid access token.
             let user = UserModel::default()
-            .register_user(&conn_pool)
+            .insert(&conn_pool)
             .await
             .ok_or(InternalError::new(
                 "Error placeholder for failed user creation.", 
@@ -124,6 +124,7 @@ async fn websocket_connect(
             )?;
 
             let sess_id = user_session.id;
+            let role = user_session.access_level;
 
             ws::start(
                 WebsocketSession {
@@ -142,7 +143,7 @@ async fn websocket_connect(
                 .parse::<i64>()
                 .expect("`JWT_EXPIRATION` must be a valid number");
         
-                let access_token = create_authentication_token(sess_id)
+                let access_token = create_authentication_token(sess_id, role)
                 .map(|access_token| {
                     Cookie::build("access_token", access_token)
                     .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))

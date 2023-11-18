@@ -113,7 +113,10 @@ async fn login_handler(
                 &conn_pool
             ).await {
                 Some(n_sess) => {
-                    let token = create_authentication_token(n_sess.id)
+                    let token = create_authentication_token(
+                        n_sess.id, 
+                        n_sess.access_level
+                    )
                     .unwrap_or_default();
 
                     // send session upgrade

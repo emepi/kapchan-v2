@@ -114,7 +114,7 @@ impl Actor for WebsocketSession {
             session_address: context.address(), 
         })
         .into_actor(self)
-        .then(|conn_res, act, ctx| {
+        .then(|conn_res, _act, ctx| {
 
             // TODO: look into actor mailbox errors
             let mut connection_response = conn_res.ok();
@@ -229,7 +229,7 @@ impl Handler<ServiceConnection> for WebsocketSession {
     fn handle(
         &mut self, 
         msg: ServiceConnection, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
         self.add_feed(msg.srvc_id, msg.srvc_addr);
     }
@@ -241,7 +241,7 @@ impl Handler<ServiceClose> for WebsocketSession {
     fn handle(
         &mut self, 
         msg: ServiceClose, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
         self.drop_feed(msg.srvc_id);
     }
@@ -253,7 +253,7 @@ impl Handler<UpgradeSession> for WebsocketSession {
     fn handle(
         &mut self, 
         msg: UpgradeSession, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
         self.upgrade_session(msg.sess);
     }
