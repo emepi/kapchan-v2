@@ -1,6 +1,5 @@
 use std::env;
 
-use actix_web::cookie::{Cookie, SameSite, self};
 use argon2::{
     password_hash::{SaltString, rand_core::OsRng}, 
     Argon2, 
@@ -21,8 +20,6 @@ use jsonwebtoken::{decode, DecodingKey, Validation, EncodingKey, Header, encode}
 use serde::{Serialize, Deserialize};
 
 use crate::schema::users;
-
-use super::user::User;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -93,7 +90,7 @@ pub async fn register_user(
 ) -> Option<()> {
     let mut connection = conn_pool.get().await.ok()?;
 
-    let password = encrypt_password(password)?;
+    let password = hash_password_a2id(password)?;
 
     connection.transaction::<_, Error, _>(|conn| async move {
 
@@ -113,19 +110,16 @@ pub async fn register_user(
     .ok()
 }
 
-// TODO: Test
-
-pub fn encrypt_password(password: &str) -> Option<String> {
+pub fn hash_password_a2id(password: &str) -> Option<String> {
     let salt = SaltString::generate(&mut OsRng);
 
-    // TODO: minimize memory footprint
     Argon2::default()
     .hash_password(password.as_bytes(), &salt)
     .map(|hash| hash.to_string())
     .ok()
 }
 
-pub fn hashes_to_password(hash: &str, password: &str) -> bool {
+pub fn validate_password_a2id(hash: &str, password: &str) -> bool {
     let parsed_hash = match PasswordHash::new(hash) {
         Ok(hash) => hash,
         Err(_) => return false,

@@ -16,10 +16,26 @@ use crate::server::{service::{
     WebsocketServiceManager, 
 }, session::UpgradeSession};
 
-use self::{user::User, session::UserSession, authentication::{hashes_to_password, create_authentication_token}};
+use self::{
+    user::User, 
+    session::UserSession, 
+    authentication::{validate_password_a2id, create_authentication_token}
+};
+
 
 pub const USER_SERVICE_ID: u32 = 1;
+
+// Service types (t) for input ServiceFrame
 pub const LOGIN_REQUEST: u32 = 1;
+
+// Service response types (t) for output ServiceFrame
+pub const SUCCESS: u32 = 1;
+pub const FAILURE: u32 = 2;
+pub const NOT_FOUND: u32 = 3;
+pub const NOT_AVAILABE: u32 = 4;
+pub const NOT_ALLOWED: u32 = 5;
+pub const MALFORMATTED: u32 = 6;
+pub const INVALID_SERVICE_TYPE: u32 = 7;
 
 
 pub struct UserService {
@@ -52,7 +68,7 @@ impl WebsocketService for UserService {
                 .await
             },
 
-            _ => unspecified_handler(req),
+            _ => ServiceFrame::from_type(INVALID_SERVICE_TYPE),
         }
     }
 
@@ -69,16 +85,11 @@ async fn login_handler(
     srvc_mgr: &Arc<Mutex<WebsocketServiceManager>>,
 ) -> ServiceFrame {
 
-    info!("starting login..");
-
     let creds: LoginCredentials = match serde_json::from_str(&req.b) {
         Ok(creds) => creds,
-        Err(_) => {
-            return ServiceFrame::default()
-        },
+        // TODO: add a reason
+        Err(_) => return ServiceFrame::from_type(MALFORMATTED),
     };
-
-    info!("creds ok");
 
     let auth;
 
@@ -86,21 +97,14 @@ async fn login_handler(
     .await {
         Some(user) => {
             auth = user.password_hash.clone()
-            .map(|hash| hashes_to_password(&hash, &creds.password))
+            .map(|hash| validate_password_a2id(&hash, &creds.password))
             .unwrap_or(false); // <- password not set
 
             user
         },
 
-        None => {
-            return ServiceFrame {
-                t: 2,
-                b: String::from(""),
-            };
-        },
+        None => return ServiceFrame::from_type(NOT_FOUND),
     };
-
-    info!("user & auth ok");
 
     match auth {
         true => {
@@ -122,29 +126,19 @@ async fn login_handler(
                         });
                     }
 
-                    // TODO: end current session in db
+                    curr_sess.end_session(&conn_pool).await;
 
-                    return ServiceFrame {
-                        t: req.t,
+                    ServiceFrame {
+                        t: SUCCESS,
                         b: token.unwrap_or_default(),
-                    };
+                    }
                 },
 
-                None => {
-                    return ServiceFrame {
-                        t: 2,
-                        b: String::from(""),
-                    };
-                }
-            };
+                None => ServiceFrame::from_type(NOT_AVAILABE),
+            }
         },
 
-        false => {
-            return ServiceFrame {
-                t: 3,
-                b: String::from(""),
-            };
-        },
+        false => ServiceFrame::from_type(FAILURE),
     }
 }
 
@@ -152,11 +146,4 @@ async fn login_handler(
 pub struct LoginCredentials {
     pub username: String,
     pub password: String
-}
-
-fn unspecified_handler(req: ServiceFrame) -> ServiceFrame {
-    ServiceFrame {
-        t: req.t,
-        b: String::from("Unknown service type"),
-    }
 }

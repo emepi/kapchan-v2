@@ -1,4 +1,4 @@
-use std::{time::Instant, collections::HashMap, sync::{Arc, Mutex}};
+use std::{time::Instant, collections::HashMap, sync::Arc};
 
 use actix::prelude::*;
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
@@ -71,7 +71,7 @@ impl WebsocketSession {
         });
 
         self.service_feeds.values().for_each(|srvc| {
-            srvc.try_send(Reconnect {
+            let _ = srvc.try_send(Reconnect {
                 from_session_id: self.user.id,
                 to_session_id: sess.id,
             });

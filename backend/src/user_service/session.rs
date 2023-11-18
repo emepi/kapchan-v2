@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
@@ -55,6 +55,32 @@ impl UserSession {
 
         UserSession::by_id(sess_id, conn_pool)
         .await
+    }
+
+    pub async fn end_session(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>
+    ) {
+        let conn = conn_pool.get().await;
+
+        match conn {
+
+            Ok(mut conn) => {
+                let _ = conn.transaction::<_, Error, _>(|conn| async move {
+                    let time = Utc::now().naive_utc();
+
+                    let _ = diesel::update(sessions::table.find(self.id))
+                    .set(sessions::ended_at.eq(time))
+                    .execute(conn)
+                    .await;
+                
+                    Ok(())
+                }.scope_boxed())
+                .await;
+            },
+
+            Err(_) => (),
+        }
     }
 }
 
