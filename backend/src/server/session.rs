@@ -1,7 +1,13 @@
 use std::{time::Instant, collections::HashMap, sync::Arc};
 
 use actix::prelude::*;
-use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
+use actix_web_actors::ws::{
+    Message, 
+    ProtocolError, 
+    WebsocketContext, 
+    CloseReason, 
+    CloseCode
+};
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +20,9 @@ use super::{
     ConnectionResponse::*, 
     ServiceRequest, service::{ServiceFrame, WebsocketServiceActor}, Reconnect
 };
+
+
+pub const INVALID_SESSION_TOKEN: u32 = 1;
 
 
 /// Websocket session for client - server communication.
@@ -86,6 +95,17 @@ impl Actor for WebsocketSession {
 
     // websocket connection is opened
     fn started(&mut self, context: &mut Self::Context) {
+
+        // Connection was started with an invalidated session token.
+        if !self.user.valid() {
+
+            context.close(Some(CloseReason { 
+                code: CloseCode::Invalid, 
+                description: Some(INVALID_SESSION_TOKEN.to_string()), 
+            }));
+
+            return;
+        }
 
         // Register session to server.
         self.server

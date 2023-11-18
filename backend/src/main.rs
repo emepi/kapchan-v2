@@ -142,7 +142,6 @@ async fn websocket_connect(
                     Cookie::build("access_token", access_token)
                     .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))
                     .same_site(SameSite::Strict)
-                    .http_only(true)
                     .finish()
                 })
                 .ok_or(InternalError::new(

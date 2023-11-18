@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use log::info;
 use serde::Deserialize;
 
 use crate::server::{service::{

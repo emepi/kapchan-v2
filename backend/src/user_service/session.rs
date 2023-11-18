@@ -82,6 +82,10 @@ impl UserSession {
             Err(_) => (),
         }
     }
+
+    pub fn valid(&self) -> bool {
+        self.ended_at.is_none()
+    }
 }
 
 #[derive(Insertable)]
