@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::server::{service::{
     WebsocketService, 
@@ -27,7 +27,7 @@ pub const USER_SERVICE_ID: u32 = 1;
 // Service types (t) for input ServiceFrame
 pub const LOGIN_REQUEST: u32 = 1;
 
-// Service response types (t) for output ServiceFrame
+// Service response types (c)
 pub const SUCCESS: u32 = 1;
 pub const FAILURE: u32 = 2;
 pub const NOT_FOUND: u32 = 3;
@@ -67,7 +67,7 @@ impl WebsocketService for UserService {
                 .await
             },
 
-            _ => ServiceFrame::from_type(INVALID_SERVICE_TYPE),
+            _ => user_service_frame_type(INVALID_SERVICE_TYPE),
         }
     }
 
@@ -87,7 +87,7 @@ async fn login_handler(
     let creds: LoginCredentials = match serde_json::from_str(&req.b) {
         Ok(creds) => creds,
         // TODO: add a reason
-        Err(_) => return ServiceFrame::from_type(MALFORMATTED),
+        Err(_) => return user_service_frame_type(MALFORMATTED),
     };
 
     let auth;
@@ -102,7 +102,7 @@ async fn login_handler(
             user
         },
 
-        None => return ServiceFrame::from_type(NOT_FOUND),
+        None => return user_service_frame_type(NOT_FOUND),
     };
 
     match auth {
@@ -113,7 +113,8 @@ async fn login_handler(
                 &conn_pool
             ).await {
                 Some(n_sess) => {
-                    let token = create_authentication_token(n_sess.id);
+                    let token = create_authentication_token(n_sess.id)
+                    .unwrap_or_default();
 
                     // send session upgrade
                     {
@@ -128,16 +129,19 @@ async fn login_handler(
                     curr_sess.end_session(&conn_pool).await;
 
                     ServiceFrame {
-                        t: SUCCESS,
-                        b: token.unwrap_or_default(),
+                        t: USER_SERVICE_ID,
+                        b: serde_json::to_string(&UserServiceResponseBody {
+                            c: SUCCESS,
+                            m: Some(token),
+                        }).unwrap_or_default(),
                     }
                 },
 
-                None => ServiceFrame::from_type(NOT_AVAILABE),
+                None => user_service_frame_type(NOT_AVAILABE),
             }
         },
 
-        false => ServiceFrame::from_type(FAILURE),
+        false => user_service_frame_type(FAILURE),
     }
 }
 
@@ -145,4 +149,19 @@ async fn login_handler(
 pub struct LoginCredentials {
     pub username: String,
     pub password: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserServiceResponseBody {
+    pub c: u32,
+    pub m: Option<String>, // optional message
+}
+
+pub fn user_service_frame_type(resp_type: u32) -> ServiceFrame {
+    let body = serde_json::to_string(&UserServiceResponseBody {
+        c: resp_type,
+        m: None,
+    });
+
+    ServiceFrame { t: USER_SERVICE_ID, b: body.unwrap_or_default() }
 }

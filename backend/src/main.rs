@@ -3,7 +3,7 @@ mod server;
 mod user_service;
 
 
-use std::{env, time::Instant, collections::HashMap, sync::{Arc, Mutex}};
+use std::{env, time::Instant, collections::HashMap, sync::Arc};
 
 use actix::{Actor, Addr};
 use actix_files::Files;
@@ -24,7 +24,12 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
-use user_service::{UserService, user::UserModel, authentication::{validate_session_id, create_authentication_token}, session::UserSession};
+use user_service::{
+    UserService, 
+    user::UserModel, 
+    authentication::{validate_session_id, create_authentication_token}, 
+    session::UserSession
+};
 
 
 #[actix_web::main]

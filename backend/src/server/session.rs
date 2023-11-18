@@ -173,6 +173,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
 
             match msg {
                 Message::Text(text) => {
+                    info!("text {} from the user.", text);
 
                     let _ = serde_json::from_str(&text)
                     .map(|msg| self.request_service(msg));

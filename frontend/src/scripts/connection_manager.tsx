@@ -1,5 +1,6 @@
 import { eraseCookie } from "./cookies";
 import { ServiceFrame } from "./service";
+import { userServiceReceive } from "./user_service";
 
 enum ConnectionStatus {
   Uninitialized = 0,
@@ -11,13 +12,17 @@ enum CloseCode {
   InvalidSession = 1,
 }
 
+enum Services {
+    UserService = 1,
+}
+
 const TIMEOUT_DEFAULT = 1000;
 
 const connection_manager = {
   socket: connect("ws://127.0.0.1:8080/ws"),
   status: ConnectionStatus.Uninitialized,
   channels: new Map([
-    [1, 'bar'],
+    [1, userServiceReceive],
   ]),
   timeout: TIMEOUT_DEFAULT,
   timeoutMax: 625000,
@@ -43,7 +48,7 @@ function reconnect() {
   );
 
   setTimeout(() => {
-    connect("ws://127.0.0.1:8080/ws");
+    connection_manager.socket = connect("ws://127.0.0.1:8080/ws");
 
   }, connection_manager.timeout);
 
@@ -66,8 +71,24 @@ function onError(e: Event) {
 }
 
 function onMessage(e: MessageEvent) {
-    console.log("Message was received: ", e.data);
-    connection_manager.timeout = 0; // TODO: set on init message
+  connection_manager.timeout = 0; // TODO: set on init message
+
+  let msg = JSON.parse(e.data);
+
+  switch (parseInt(msg.s)) {
+    case Services.UserService:
+      let channel = connection_manager.channels.get(Services.UserService);
+
+      if (channel) {
+        channel(msg.r as ServiceFrame);
+      }
+
+      break;
+        
+    default:
+      console.error("Unimplemented service response received: ", msg);
+      break;
+    }
 }
 
 function onClose(e: CloseEvent) {

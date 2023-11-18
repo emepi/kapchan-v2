@@ -174,12 +174,6 @@ pub struct ServiceFrame {
     pub b: String,
 }
 
-impl ServiceFrame {
-    pub fn from_type(t: u32) -> Self {
-        ServiceFrame { t, b: String::default() }
-    }
-}
-
 #[derive(Message)]
 #[rtype(result = "Result<(), ()>")]
 pub struct ConnectService {
