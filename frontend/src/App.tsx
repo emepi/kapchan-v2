@@ -4,6 +4,7 @@ import { Header } from './components/Header'
 import { Login } from './pages/Login'
 import Sidebar from './components/Sidebar'
 import { Application } from './pages/Application'
+import { Admin } from './pages/Admin'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" component={Placeholder} />
           <Route path="/login" component={Login} />
           <Route path="/apply" component={Application} />
+          <Route path="/admin" component={Admin} />
         </Routes>
       </main>
     </>

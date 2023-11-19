@@ -16,6 +16,13 @@ export function Header() {
       </A>
       <nav class="main-header-nav">
 
+      <Show when={state.user.role >= UserRole.Admin}>
+        <A class="nav-button" href="/admin">
+          <div class="nav-icon">⚖️</div>
+          admin
+        </A>
+      </Show>
+
       <Show
         when={state.user.role === UserRole.Anonymous}
         fallback={
@@ -37,7 +44,6 @@ export function Header() {
           join
         </A>
       </Show>
-        
 
         <form class="nav-search">
           <input class="nav-search-field" type="search" placeholder="threads, posts, images.."></input>
