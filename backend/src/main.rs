@@ -23,11 +23,12 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
 };
 use dotenvy::dotenv;
+use log::info;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
 use user_service::{
     UserService, 
-    user::UserModel, 
-    authentication::{validate_session_id, create_authentication_token}, 
+    user::{UserModel, AccessLevel, User}, 
+    authentication::{validate_session_id, create_authentication_token, hash_password_a2id}, 
     session::UserSession
 };
 
@@ -39,6 +40,9 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let conn_pool = mysql_connection_pool();
+
+    setup_root_user(&conn_pool)
+    .await;
 
     let server = WebsocketServer::new(
         ServerSettings {
@@ -160,6 +164,48 @@ async fn websocket_connect(
                 Ok(http_response)
             })
         },
+    }
+}
+
+async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
+
+    let root_pwd = env::var("ROOT_PASSWORD");
+
+    match root_pwd {
+        
+        Ok(root_pwd) => {
+
+            let pwd_hash = match hash_password_a2id(&root_pwd) {
+                Some(hash) => hash,
+                None => return,
+            };
+
+            let root_mdl = UserModel {
+                access_level: AccessLevel::Root as u8,
+                username: Some("root"),
+                email: None,
+                password_hash: Some(&pwd_hash),
+            };
+
+            let root = User::by_username("root", &conn_pool).await;
+
+            match root {
+                Some(root) => {
+                    root.modify(root_mdl, conn_pool).await;
+                    info!("Root user updated.");
+                },
+
+                None => {
+                    let res = root_mdl.insert(conn_pool).await;
+
+                    if res.is_some() {
+                        info!("Root successfully created.");
+                    }
+                },
+            };
+        },
+
+        Err(_) => info!("Root user was not set."),
     }
 }
 

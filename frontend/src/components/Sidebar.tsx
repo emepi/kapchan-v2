@@ -1,6 +1,6 @@
 /**
  * 
- * 
+ * <img src={kapakkaLogo} class="logo" alt="Entity from outer worlds" />
  */
 
 import { A } from "@solidjs/router";
@@ -9,7 +9,6 @@ import kapakkaLogo from '/src/assets/logo.png'
 function Sidebar() {
   return (
     <aside class="main-sidebar">
-        <img src={kapakkaLogo} class="logo" alt="Entity from outer worlds" />
         <h2>Kapchan-v2</h2>
         <nav class="sidebar-nav">
            <div class="icon-a">
