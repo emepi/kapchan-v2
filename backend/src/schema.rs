@@ -1,6 +1,19 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    applications (id) {
+        id -> Unsigned<Integer>,
+        user_id -> Unsigned<Integer>,
+        reviewer_id -> Nullable<Unsigned<Integer>>,
+        referer_id -> Nullable<Unsigned<Integer>>,
+        accepted -> Bool,
+        background -> Text,
+        motivation -> Text,
+        other -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Integer>,
@@ -32,6 +45,7 @@ diesel::table! {
 diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    applications,
     sessions,
     users,
 );
