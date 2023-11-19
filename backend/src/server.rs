@@ -80,7 +80,7 @@ impl Handler<Disconnect> for WebsocketServer {
     fn handle(
         &mut self, 
         msg: Disconnect, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
 
         self.sessions.remove(&msg.id);
@@ -93,7 +93,7 @@ impl Handler<Connect> for WebsocketServer {
     fn handle(
         &mut self,
         msg: Connect,
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
 
         if self.sessions.len() >= self.sessions_limit {
@@ -121,7 +121,7 @@ impl Handler<ServiceRequest> for WebsocketServer {
     fn handle(
         &mut self, 
         msg: ServiceRequest, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
 
         let session_actor = match self.sessions.get(&msg.sess.id) {
@@ -151,7 +151,7 @@ impl Handler<Reconnect> for WebsocketServer {
     fn handle(
         &mut self, 
         msg: Reconnect, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
         let prev = self.sessions.remove(&msg.from_session_id);
 

@@ -8,6 +8,7 @@
 * {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 a {
@@ -21,11 +22,12 @@ a {
   height: 100vh;
 }
 
-.main-header {
-  padding: 15px;;
+.main-head {
+  padding: 15px;
 }
 
-.main-content {
+.main-cont {
+  height: 100%;
   background-color: #1a1a1a;
   padding: 15px;
 }

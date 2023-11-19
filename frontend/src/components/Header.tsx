@@ -7,7 +7,7 @@ import './Header.css'
 
 export function Header() {
   return (
-    <header class="main-header">
+    <header class="main-head">
       <A href="/">
         <h1>kapakka</h1>
       </A>

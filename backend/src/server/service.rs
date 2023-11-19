@@ -158,7 +158,7 @@ impl Handler<Reconnect> for WebsocketServiceActor {
     fn handle(
         &mut self, 
         msg: Reconnect, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
 
         self.srvc_mgr.lock().unwrap()

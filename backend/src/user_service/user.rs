@@ -64,7 +64,7 @@ impl User {
         match conn_pool.get().await {
 
             Ok(mut conn) => {
-                conn.transaction::<_, Error, _>(|conn| async move {
+                let _ = conn.transaction::<_, Error, _>(|conn| async move {
 
                     let _ = diesel::update(users::table.find(self.id))
                     .set((

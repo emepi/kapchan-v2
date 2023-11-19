@@ -8,12 +8,12 @@ function App() {
     <>
       <Header/>
 
-      <div class="main-content">
+      <main class="main-cont">
         <Routes>
           <Route path="/" component={Placeholder} />
           <Route path="/login" component={Login} />
         </Routes>
-      </div>
+      </main>
     </>
   )
 }
