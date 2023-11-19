@@ -13,6 +13,14 @@ h1 {
   gap: 15px;
 }
 
+.nav-act {
+  all: unset;
+}
+
+.nav-act:hover {
+  cursor: pointer;
+}
+
 .nav-button {
   text-align: center;
   color: whitesmoke;

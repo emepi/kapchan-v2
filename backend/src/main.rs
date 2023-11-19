@@ -175,16 +175,11 @@ async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
         
         Ok(root_pwd) => {
 
-            let pwd_hash = match hash_password_a2id(&root_pwd) {
-                Some(hash) => hash,
-                None => return,
-            };
-
-            let root_mdl = UserModel {
+            let mut root_mdl = UserModel {
                 access_level: AccessLevel::Root as u8,
                 username: Some("root"),
                 email: None,
-                password_hash: Some(&pwd_hash),
+                password_hash: Some(&root_pwd),
             };
 
             let root = User::by_username("root", &conn_pool).await;
@@ -196,6 +191,13 @@ async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
                 },
 
                 None => {
+                    let pwd_hash = match hash_password_a2id(&root_pwd) {
+                        Some(hash) => hash,
+                        None => return,
+                    };
+
+                    root_mdl.password_hash = Some(&pwd_hash);
+
                     let res = root_mdl.insert(conn_pool).await;
 
                     if res.is_some() {

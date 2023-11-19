@@ -1,7 +1,10 @@
-import { JSX } from 'solid-js'
+import { JSX, Show } from 'solid-js'
 import { serviceRequest } from '../scripts/connection_manager';
 import space from "../assets/12397866.435000004_space.jpg";
 import './Login.css'
+import { state } from '..';
+import { UserRole } from '../scripts/user';
+import { Navigate } from '@solidjs/router';
 
 export function Login() {
   const loginHandler: JSX.EventHandlerUnion<HTMLFormElement, Event> = (e) => {
@@ -16,6 +19,12 @@ export function Login() {
   }
 
   return (
+    <Show
+      when={state.user.role === UserRole.Anonymous}
+      fallback={ //TODO: redirect to last page
+        <Navigate href={"/"} />
+      }
+    >
     <div class="login-page">
       <div class="login-wrap">
         <header class="login-page-header">
@@ -43,5 +52,6 @@ export function Login() {
 
       <img class="login-img" src={space} alt="" />
     </div>
+    </Show>
   )
 }

@@ -14,7 +14,7 @@ enum CloseCode {
 }
 
 enum Services {
-    UserService = 1,
+  UserService = 1,
 }
 
 const TIMEOUT_DEFAULT = 1000;

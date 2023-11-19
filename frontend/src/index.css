@@ -35,6 +35,7 @@ a {
   padding: 15px;
 }
 
-.main-sidebar {
+.main-side {
   grid-area: 2 / 1 / 3 / 2;
+  background-color: #1a1a1a;
 }
