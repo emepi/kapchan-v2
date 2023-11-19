@@ -5,7 +5,8 @@ import { createStore } from 'solid-js/store';
 
 import './index.css'
 import App from './App'
-import { anonUser, cookieSession } from './scripts/cookies';
+import { cookieSession } from './scripts/cookies';
+import { anonUser } from './scripts/user';
 
 
 export const [state, setState] = createStore({

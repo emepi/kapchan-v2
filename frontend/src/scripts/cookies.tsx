@@ -1,3 +1,5 @@
+import { User } from "./user";
+
 export function eraseCookie(name: string) {   
     document.cookie = name + 
     '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict;';  
@@ -8,16 +10,24 @@ export function setCookie(name: string, value: string) {
     '; max-age=31536000; path=/; SameSite=Strict;';
 }
 
-interface User {
-    role: Number,
+export function getCookie(name: string): string {
+    let a = `; ${document.cookie}`.match(`;\\s*${name}=([^;]+)`);
+    return a ? a[1] : '';
 }
 
 export function cookieSession(): User | undefined {
-    return {
-        role: 0,
-    }
-}
+    let jwt = getCookie("access_token");
 
-export const anonUser: User = {
-    role: 10,
+    console.log(jwt);
+
+    if (jwt) {
+        let token_data = JSON.parse(atob(jwt.split('.')[1]));
+        console.log(token_data);
+
+        return {
+            role: token_data.role,
+        }
+    }
+
+    return undefined;
 }

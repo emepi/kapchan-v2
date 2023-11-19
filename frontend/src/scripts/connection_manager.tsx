@@ -1,4 +1,5 @@
-import { eraseCookie } from "./cookies";
+import { setState } from "..";
+import { cookieSession, eraseCookie } from "./cookies";
 import { ServiceFrame } from "./service";
 import { userServiceReceive } from "./user_service";
 
@@ -62,6 +63,7 @@ function reconnect() {
 
 function onOpen(e: Event) {
     connection_manager.status = ConnectionStatus.Ready;
+    setState({user: cookieSession()});
     
     console.log("Connected to server: ", e);
 }

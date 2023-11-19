@@ -1,4 +1,5 @@
-import { setCookie } from "./cookies";
+import { setState } from "..";
+import { cookieSession, setCookie } from "./cookies";
 import { ServiceFrame } from "./service";
 
 enum ResponseCode {
@@ -25,12 +26,9 @@ export function userServiceReceive(input: ServiceFrame) {
         case ServiceType.Login:
             let token = body.m;
 
-            let token_data = JSON.parse(atob(token.split('.')[1]));
-
-            console.log(token_data);
-
             if (token) {
                 setCookie("access_token", token);
+                setState({user: cookieSession()});
             }
 
             break;
