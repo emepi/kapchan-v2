@@ -16,9 +16,8 @@ use crate::user_service::session::UserSession;
 use self::service::{
     WebsocketService, 
     ConnectService, 
-    ServiceFrame, 
     WebsocketServiceActor, 
-    WebsocketServiceManager
+    WebsocketServiceManager, ServiceRequestFrame
 };
 use self::session::WebsocketSession;
 
@@ -220,5 +219,5 @@ pub struct Disconnect {
 pub struct ServiceRequest {
     pub service_id: u32,
     pub sess: Arc<UserSession>,
-    pub msg: ServiceFrame,
+    pub msg: ServiceRequestFrame,
 }

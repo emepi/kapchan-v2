@@ -7,12 +7,11 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::server::{service::{
-    WebsocketService, 
-    ServiceFrame, 
-    WebsocketServiceManager, 
+    WebsocketService,
+    WebsocketServiceManager, ServiceRequestFrame, ServiceResponseFrame, 
 }, session::UpgradeSession};
 
 use self::{
@@ -26,6 +25,7 @@ pub const USER_SERVICE_ID: u32 = 1;
 
 // Service types (t) for input ServiceFrame
 pub const LOGIN_REQUEST: u32 = 1;
+pub const LOGOUT_REQUEST: u32 = 2;
 
 // Service response types (c)
 pub const SUCCESS: u32 = 1;
@@ -58,8 +58,8 @@ impl WebsocketService for UserService {
     async fn user_request(
         &self,
         sess: &Arc<UserSession>,
-        req: ServiceFrame, 
-    ) -> ServiceFrame {
+        req: ServiceRequestFrame, 
+    ) -> ServiceResponseFrame {
 
         match req.t {
             LOGIN_REQUEST => {
@@ -67,7 +67,16 @@ impl WebsocketService for UserService {
                 .await
             },
 
-            _ => user_service_frame_type(INVALID_SERVICE_TYPE),
+            LOGOUT_REQUEST => {
+                logout_handler(sess, &self.conn_pool)
+                .await
+            }
+
+            unknown_type => ServiceResponseFrame {
+                t: unknown_type,
+                c: INVALID_SERVICE_TYPE,
+                b: String::default(),
+            },
         }
     }
 
@@ -78,16 +87,22 @@ impl WebsocketService for UserService {
 
 
 async fn login_handler(
-    req: ServiceFrame,
+    req: ServiceRequestFrame,
     curr_sess: &Arc<UserSession>,
     conn_pool: &Pool<AsyncMysqlConnection>,
     srvc_mgr: &Arc<Mutex<WebsocketServiceManager>>,
-) -> ServiceFrame {
+) -> ServiceResponseFrame {
 
     let creds: LoginCredentials = match serde_json::from_str(&req.b) {
         Ok(creds) => creds,
-        // TODO: add a reason
-        Err(_) => return user_service_frame_type(MALFORMATTED),
+        
+        Err(_) => {
+            return ServiceResponseFrame {
+                t: LOGIN_REQUEST,
+                c: MALFORMATTED,
+                b: String::default(),
+            }
+        },
     };
 
     let auth;
@@ -102,7 +117,11 @@ async fn login_handler(
             user
         },
 
-        None => return user_service_frame_type(NOT_FOUND),
+        None => return ServiceResponseFrame {
+            t: LOGIN_REQUEST,
+            c: NOT_FOUND,
+            b: String::default(),
+        },
     };
 
     match auth {
@@ -131,20 +150,26 @@ async fn login_handler(
 
                     curr_sess.end_session(&conn_pool).await;
 
-                    ServiceFrame {
-                        t: USER_SERVICE_ID,
-                        b: serde_json::to_string(&UserServiceResponseBody {
-                            c: SUCCESS,
-                            m: Some(token),
-                        }).unwrap_or_default(),
+                    ServiceResponseFrame {
+                        t: LOGIN_REQUEST,
+                        c: SUCCESS,
+                        b: token,
                     }
                 },
 
-                None => user_service_frame_type(NOT_AVAILABE),
+                None => ServiceResponseFrame {
+                    t: LOGIN_REQUEST,
+                    c: NOT_AVAILABE,
+                    b: String::default(),
+                },
             }
         },
 
-        false => user_service_frame_type(FAILURE),
+        false => ServiceResponseFrame {
+            t: LOGIN_REQUEST,
+            c: FAILURE,
+            b: String::default(),
+        },
     }
 }
 
@@ -154,17 +179,16 @@ pub struct LoginCredentials {
     pub password: String
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserServiceResponseBody {
-    pub c: u32,
-    pub m: Option<String>, // optional message
-}
+async fn logout_handler(
+    curr_sess: &Arc<UserSession>,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> ServiceResponseFrame {
+    curr_sess.end_session(conn_pool)
+    .await;
 
-pub fn user_service_frame_type(resp_type: u32) -> ServiceFrame {
-    let body = serde_json::to_string(&UserServiceResponseBody {
-        c: resp_type,
-        m: None,
-    });
-
-    ServiceFrame { t: USER_SERVICE_ID, b: body.unwrap_or_default() }
+    ServiceResponseFrame {
+        t: LOGOUT_REQUEST,
+        c: SUCCESS,
+        b: String::default(),
+    }
 }

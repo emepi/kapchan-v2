@@ -5,10 +5,20 @@ import { A } from '@solidjs/router'
 import { Show } from 'solid-js'
 import './Header.css'
 import { state } from '..'
-import { UserRole, logout } from '../scripts/user'
+import { UserRole } from '../scripts/user'
+import { Service, serviceRequest } from '../scripts/connection_manager'
+import { UserServiceType } from '../scripts/user_service'
 
 
 export function Header() {
+  
+  const logoutRequest = () => {
+    serviceRequest(Service.UserService, {
+      t: UserServiceType.Logout,
+      b: ""
+    });
+  };
+
   return (
     <header class="main-head">
       <A href="/">
@@ -28,7 +38,7 @@ export function Header() {
         fallback={
           <button 
             class="nav-button nav-act" 
-            onClick={logout}
+            onClick={logoutRequest}
           >
             <div class="nav-icon">🔒</div>
             logout

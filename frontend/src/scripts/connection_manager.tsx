@@ -1,7 +1,11 @@
 import { setState } from "..";
 import { cookieSession, eraseCookie } from "./cookies";
-import { ServiceFrame } from "./service";
 import { userServiceReceive } from "./user_service";
+import { 
+  ServiceFrame, 
+  ServiceRequestFrame, 
+  ServiceResponseFrame 
+} from "./service";
 
 enum ConnectionStatus {
   Uninitialized = 0,
@@ -13,7 +17,7 @@ enum CloseCode {
   InvalidSession = 1,
 }
 
-enum Services {
+export enum Service {
   UserService = 1,
 }
 
@@ -75,20 +79,20 @@ function onError(e: Event) {
 function onMessage(e: MessageEvent) {
   connection_manager.timeout = 0; // TODO: set on init message
 
-  let msg = JSON.parse(e.data);
+  let frame: ServiceFrame = JSON.parse(e.data);
 
-  switch (parseInt(msg.s)) {
-    case Services.UserService:
-      let channel = connection_manager.channels.get(Services.UserService);
+  switch (frame.s) {
+    case Service.UserService:
+      let channel = connection_manager.channels.get(Service.UserService);
 
       if (channel) {
-        channel(msg.r as ServiceFrame);
+        channel(frame.r as ServiceResponseFrame);
       }
 
       break;
         
     default:
-      console.error("Unimplemented service response received: ", msg);
+      console.error("Unimplemented service response received: ", frame);
       break;
     }
 }
@@ -116,13 +120,13 @@ function onClose(e: CloseEvent) {
   }
 }
 
-export function serviceRequest(service_id: Number, request: ServiceFrame) {
+export function serviceRequest(service_id: Number, request: ServiceRequestFrame) {
     if (connection_manager.status === ConnectionStatus.Ready) {
-        let message = {
+        let frame: ServiceFrame = {
             s: service_id,
             r: request,
         }
         
-        connection_manager.socket.send(JSON.stringify(message));
+        connection_manager.socket.send(JSON.stringify(frame));
     }
 }

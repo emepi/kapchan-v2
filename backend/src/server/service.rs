@@ -16,11 +16,10 @@ use serde::{Serialize, Deserialize};
 use crate::user_service::session::UserSession;
 
 use super::{session::{
-    WebsocketSession, 
-    ServiceResponse, 
+    WebsocketSession,
     ServiceConnection, 
     ServiceClose
-}, Reconnect, ConnectionResponse};
+}, Reconnect, ConnectionResponse, Disconnect};
 
 
 #[async_trait]
@@ -33,8 +32,8 @@ pub trait WebsocketService {
     async fn user_request(
         &self,
         sess: &Arc<UserSession>,
-        req: ServiceFrame,
-    ) -> ServiceFrame;
+        req: ServiceRequestFrame,
+    ) -> ServiceResponseFrame;
 
     fn id(&self) -> u32;
 }
@@ -94,6 +93,10 @@ impl WebsocketServiceManager {
             None => ConnectionResponse::Blocked,
         }
     }
+
+    pub fn disconnect(&mut self, sess_id: u32) {
+        self.subs.remove(&sess_id);
+    }
 }
 
 pub struct WebsocketServiceActor {
@@ -142,9 +145,9 @@ impl Handler<ConnectService> for WebsocketServiceActor {
             )
             .await;
             
-            let _ = &msg.session_actor.try_send(ServiceResponse {
-                srvc_id: srvc.id(),
-                srvc_frame: resp,
+            let _ = &msg.session_actor.try_send(ServiceOutputFrame {
+                s: srvc.id(),
+                r: resp,
             });
         
             Ok(())
@@ -166,11 +169,44 @@ impl Handler<Reconnect> for WebsocketServiceActor {
     }
 }
 
+impl Handler<Disconnect> for WebsocketServiceActor {
+    type Result = ();
+
+    fn handle(
+        &mut self, 
+        msg: Disconnect, 
+        _ctx: &mut Self::Context
+    ) -> Self::Result {
+        self.srvc_mgr.lock().unwrap().disconnect(msg.id);
+    }
+}
+
 #[derive(Message)]
 #[rtype(result = "()")]
-#[derive(Serialize, Deserialize, Default)]
-pub struct ServiceFrame {
+#[derive(Deserialize)]
+pub struct ServiceInputFrame {
+    pub s: u32,
+    pub r: ServiceRequestFrame,
+}
+
+#[derive(Deserialize)]
+pub struct ServiceRequestFrame {
     pub t: u32,
+    pub b: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+#[derive(Serialize)]
+pub struct ServiceOutputFrame {
+    pub s: u32,
+    pub r: ServiceResponseFrame,
+}
+
+#[derive(Serialize)]
+pub struct ServiceResponseFrame {
+    pub t: u32,
+    pub c: u32,
     pub b: String,
 }
 
@@ -179,5 +215,5 @@ pub struct ServiceFrame {
 pub struct ConnectService {
     pub session: Arc<UserSession>,
     pub session_actor: Addr<WebsocketSession>,
-    pub service_request: ServiceFrame,
+    pub service_request: ServiceRequestFrame,
 }

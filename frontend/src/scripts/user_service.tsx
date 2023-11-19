@@ -1,6 +1,7 @@
 import { setState } from "..";
 import { cookieSession, setCookie } from "./cookies";
-import { ServiceFrame } from "./service";
+import { ServiceResponseFrame } from "./service";
+import { logout } from "./user";
 
 enum ResponseCode {
     Success = 1,
@@ -12,25 +13,28 @@ enum ResponseCode {
     InvalidServiceType = 7,
 }
 
-enum ServiceType {
+export enum UserServiceType {
     Login = 1,
+    Logout = 2,
 }
 
-export function userServiceReceive(input: ServiceFrame) {
+export function userServiceReceive(input: ServiceResponseFrame) {
 
-    let body = JSON.parse(input.b);
-
-    console.log("User services received input: ", body);
+    console.log("User services received input: ", input);
 
     switch (input.t) {
-        case ServiceType.Login:
-            let token = body.m;
+        case UserServiceType.Login:
+            let token = input.b;
 
             if (token) {
                 setCookie("access_token", token);
                 setState({user: cookieSession()});
             }
 
+            break;
+        
+        case UserServiceType.Logout:
+            logout();
             break;
         
         default:

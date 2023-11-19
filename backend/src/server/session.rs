@@ -8,17 +8,21 @@ use actix_web_actors::ws::{
     CloseReason, 
     CloseCode
 };
-use log::info;
-use serde::{Deserialize, Serialize};
+use log::{info, error};
 
-use crate::user_service::session::UserSession;
+use crate::{
+    user_service::session::UserSession, 
+    server::service::ServiceInputFrame
+};
 
 use super::{
     WebsocketServer,
     Disconnect, 
     Connect, 
     ConnectionResponse::*, 
-    ServiceRequest, service::{ServiceFrame, WebsocketServiceActor}, Reconnect
+    ServiceRequest, 
+    service::{WebsocketServiceActor, ServiceOutputFrame}, 
+    Reconnect
 };
 
 
@@ -45,7 +49,7 @@ impl WebsocketSession {
 
     fn request_service(
         &self, 
-        msg: MessageFrame,
+        msg: ServiceInputFrame,
     ) {
         info!("Sending a srvc req");
         let _ = self.server
@@ -148,9 +152,14 @@ impl Actor for WebsocketSession {
 
     // connection is closed
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
+        info!("Session disconnected");
 
         // Disconnect session from the server and service feeds
         self.server.do_send(Disconnect { id: self.user.id });
+
+        self.service_feeds.values().for_each(|srvc| {
+            srvc.do_send(Disconnect { id: self.user.id });
+        });
 
         Running::Stop
     }
@@ -175,8 +184,15 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
                 Message::Text(text) => {
                     info!("text {} from the user.", text);
 
-                    let _ = serde_json::from_str(&text)
-                    .map(|msg| self.request_service(msg));
+                    match serde_json::from_str::<ServiceInputFrame>(&text) {
+                        Ok(msg_frame) => {
+
+                            // TODO let srvc = self.service_feeds.get(&msg_frame.s);
+                            self.request_service(msg_frame);
+                        },
+
+                        Err(_) => (),
+                    }
                 },
 
                 Message::Binary(bin) => {
@@ -204,21 +220,20 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
     }
 }
 
-impl Handler<ServiceResponse> for WebsocketSession {
+impl Handler<ServiceOutputFrame> for WebsocketSession {
     type Result = ();
 
     fn handle(
         &mut self, 
-        msg: ServiceResponse, 
+        msg: ServiceOutputFrame, 
         ctx: &mut Self::Context
     ) -> Self::Result {
 
-        match serde_json::to_string(&MessageFrame {
-            s: msg.srvc_id,
-            r: msg.srvc_frame,
-        }) {
+        match serde_json::to_string(&msg) {
             Ok(msg_frame) => ctx.text(msg_frame),
-            Err(_) => (),
+            Err(err) => {
+                error!("Service output frame serialization failed\n{}", err);
+            },
         };
     }
 }
@@ -257,19 +272,6 @@ impl Handler<UpgradeSession> for WebsocketSession {
     ) -> Self::Result {
         self.upgrade_session(msg.sess);
     }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct MessageFrame {
-    s: u32,
-    r: ServiceFrame,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct ServiceResponse {
-    pub srvc_id: u32,
-    pub srvc_frame: ServiceFrame,
 }
 
 #[derive(Message)]
