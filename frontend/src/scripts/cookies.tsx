@@ -7,3 +7,17 @@ export function setCookie(name: string, value: string) {
     document.cookie = name + '=' + value + 
     '; max-age=31536000; path=/; SameSite=Strict;';
 }
+
+interface User {
+    role: Number,
+}
+
+export function cookieSession(): User | undefined {
+    return {
+        role: 0,
+    }
+}
+
+export const anonUser: User = {
+    role: 10,
+}
