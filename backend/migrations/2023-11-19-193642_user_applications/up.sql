@@ -7,6 +7,8 @@ CREATE TABLE applications (
     background  TEXT             NOT NULL,
     motivation  TEXT             NOT NULL,
     other       TEXT,
+    created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    closed_at   DATETIME,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (reviewer_id) REFERENCES users(id),

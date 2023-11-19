@@ -10,6 +10,8 @@ diesel::table! {
         background -> Text,
         motivation -> Text,
         other -> Nullable<Text>,
+        created_at -> Datetime,
+        closed_at -> Nullable<Datetime>,
     }
 }
 
