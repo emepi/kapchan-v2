@@ -23,11 +23,13 @@ export function userServiceReceive(input: ServiceResponseFrame) {
 
     console.log("User services received input: ", input);
 
+    let token;
+
     switch (input.t) {
         case UserServiceType.Login:
-            let token = input.b;
+            token = input.b;
 
-            if (token) {
+            if (input.c === ResponseCode.Success && token) {
                 setCookie("access_token", token);
                 setState({user: cookieSession()});
             }
@@ -39,6 +41,12 @@ export function userServiceReceive(input: ServiceResponseFrame) {
             break;
 
         case UserServiceType.Application:
+            token = input.b;
+
+            if (input.c === ResponseCode.Success && token) {
+                setCookie("access_token", token);
+                setState({user: cookieSession()});
+            }
             break;
         
         default:

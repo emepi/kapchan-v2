@@ -196,6 +196,25 @@ impl User {
         .await
         .ok()
     }
+
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Option<User> {
+        let mut connection = conn_pool.get().await
+        .ok()?;
+
+        connection.transaction::<_, Error, _>(|conn| async move {
+            let user = users::table
+            .find(id)
+            .first::<User>(conn)
+            .await?;
+
+            Ok(user)
+        }.scope_boxed())
+        .await
+        .ok()
+    }
 }
 
 /// Model for inserting a new user into the database.

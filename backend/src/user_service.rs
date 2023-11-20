@@ -18,7 +18,8 @@ use crate::{server::{service::{
 use self::{
     user::{User, AccessLevel}, 
     session::UserSession, 
-    authentication::{validate_password_a2id, create_authentication_token}, application::ApplicationModel
+    authentication::{validate_password_a2id, create_authentication_token}, 
+    application::ApplicationModel
 };
 
 
@@ -75,7 +76,7 @@ impl WebsocketService for UserService {
             },
 
             APPLICATION_REQUEST => {
-                Application_handler(req, sess, &self.conn_pool)
+                application_handler(req, sess, &self.conn_pool, &self.srvc_mgr)
                 .await
             },
 
@@ -200,10 +201,11 @@ async fn logout_handler(
     }
 }
 
-async fn Application_handler(
+async fn application_handler(
     req: ServiceRequestFrame,
     curr_sess: &Arc<UserSession>,
     conn_pool: &Pool<AsyncMysqlConnection>,
+    srvc_mgr: &Arc<Mutex<WebsocketServiceManager>>,
 ) -> ServiceResponseFrame {
     if curr_sess.access_level != AccessLevel::Anonymous as u8 {
         return ServiceResponseFrame {
@@ -222,24 +224,61 @@ async fn Application_handler(
         },
     };
 
-    let user_promote = User::modify_by_id(
-        curr_sess.user_id, 
-        UserModel {
-            access_level: AccessLevel::PendingMember as u8,
-            username: Some(&input.username),
-            email: Some(&input.password),
-            password_hash: Some(&input.email),
-        }, 
-        conn_pool,
-    ).await;
+    let user = match User::by_id(curr_sess.user_id, conn_pool).await {
+        Some(user) => {
+            user.modify(
+                UserModel {
+                    access_level: AccessLevel::PendingMember as u8,
+                    username: Some(&input.username),
+                    email: Some(&input.password),
+                    password_hash: Some(&input.email),
+                }, 
+                conn_pool,
+            )
+            .await;
 
-    if user_promote.is_none() {
-        return ServiceResponseFrame {
+            user
+        },
+        None => return ServiceResponseFrame {
             t: APPLICATION_REQUEST,
             c: MALFORMATTED,
             b: String::default(),
-        };
-    }
+        },
+    };
+
+    let session = user.create_session(
+        curr_sess.ip_address.as_deref(), 
+        curr_sess.user_agent.as_deref(), 
+        conn_pool
+    )
+    .await;
+
+    let token = match session {
+        Some(session) => {
+
+            let token = create_authentication_token(
+                session.id, 
+                session.access_level
+            )
+            .unwrap_or_default();
+
+            srvc_mgr.lock().unwrap().get_client(curr_sess.id)
+            .map(|cli| {
+                let _ = cli.try_send(UpgradeSession {
+                    sess: Arc::new(session),
+                });
+            });
+
+            curr_sess.end_session(conn_pool).await;
+
+            token
+        },
+        None => return ServiceResponseFrame {
+            t: APPLICATION_REQUEST,
+            c: FAILURE,
+            b: String::default(),
+        },
+    };
 
     let application = ApplicationModel {
         user_id: curr_sess.user_id,
@@ -261,7 +300,7 @@ async fn Application_handler(
             ServiceResponseFrame {
                 t: APPLICATION_REQUEST,
                 c: SUCCESS,
-                b: String::default(),
+                b: token,
             }
         },
         None => ServiceResponseFrame { 
