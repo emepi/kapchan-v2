@@ -10,15 +10,15 @@ use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::Deserialize;
 
-use crate::server::{service::{
+use crate::{server::{service::{
     WebsocketService,
     WebsocketServiceManager, ServiceRequestFrame, ServiceResponseFrame, 
-}, session::UpgradeSession};
+}, session::UpgradeSession}, user_service::user::UserModel};
 
 use self::{
-    user::User, 
+    user::{User, AccessLevel}, 
     session::UserSession, 
-    authentication::{validate_password_a2id, create_authentication_token}
+    authentication::{validate_password_a2id, create_authentication_token}, application::ApplicationModel
 };
 
 
@@ -27,6 +27,7 @@ pub const USER_SERVICE_ID: u32 = 1;
 // Service types (t) for input ServiceFrame
 pub const LOGIN_REQUEST: u32 = 1;
 pub const LOGOUT_REQUEST: u32 = 2;
+pub const APPLICATION_REQUEST: u32 = 3;
 
 // Service response types (c)
 pub const SUCCESS: u32 = 1;
@@ -192,4 +193,86 @@ async fn logout_handler(
         c: SUCCESS,
         b: String::default(),
     }
+}
+
+async fn Application_handler(
+    req: ServiceRequestFrame,
+    curr_sess: &Arc<UserSession>,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> ServiceResponseFrame {
+    if curr_sess.access_level != AccessLevel::Anonymous as u8 {
+        return ServiceResponseFrame {
+            t: APPLICATION_REQUEST,
+            c: NOT_ALLOWED,
+            b: String::default(),
+        };
+    }
+
+    let input = match serde_json::from_str::<ApplicationInput>(&req.b) {
+        Ok(input) => input,
+        Err(_) => return ServiceResponseFrame {
+            t: APPLICATION_REQUEST,
+            c: MALFORMATTED,
+            b: String::default(),
+        },
+    };
+
+    let user_promote = User::modify_by_id(
+        curr_sess.user_id, 
+        UserModel {
+            access_level: AccessLevel::PendingMember as u8,
+            username: Some(&input.username),
+            email: Some(&input.password),
+            password_hash: Some(&input.email),
+        }, 
+        conn_pool,
+    ).await;
+
+    if user_promote.is_none() {
+        return ServiceResponseFrame {
+            t: APPLICATION_REQUEST,
+            c: MALFORMATTED,
+            b: String::default(),
+        };
+    }
+
+    let application = ApplicationModel {
+        user_id: curr_sess.user_id,
+        reviewer_id: None,
+        referer_id: None,
+        accepted: false,
+        background: &input.background,
+        motivation: &input.motivation,
+        other: input.other.as_deref(),
+        closed_at: None,
+    }
+    .insert(conn_pool)
+    .await;
+
+    match application {
+        Some(application) => {
+            // TODO: return application data?
+            
+            ServiceResponseFrame {
+                t: APPLICATION_REQUEST,
+                c: SUCCESS,
+                b: String::default(),
+            }
+        },
+        None => ServiceResponseFrame { 
+            t: APPLICATION_REQUEST, 
+            c: FAILURE, 
+            b: String::default(), 
+        },
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ApplicationInput {
+    pub username: String,
+    pub email: String,
+    pub password: String,
+    pub background: String,
+    pub motivation: String,
+    pub other: Option<String>,
 }

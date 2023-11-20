@@ -8,18 +8,15 @@ use argon2::{
     PasswordVerifier
 };
 use chrono::{Duration, Utc};
-use diesel::{result::Error, QueryDsl, ExpressionMethods};
-use diesel_async::{
-    pooled_connection::deadpool::Pool, 
-    AsyncMysqlConnection, 
-    AsyncConnection, 
-    RunQueryDsl, 
-    scoped_futures::ScopedFutureExt,
+use jsonwebtoken::{
+    decode, 
+    DecodingKey, 
+    Validation, 
+    EncodingKey, 
+    Header, 
+    encode
 };
-use jsonwebtoken::{decode, DecodingKey, Validation, EncodingKey, Header, encode};
 use serde::{Serialize, Deserialize};
-
-use crate::schema::users;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -81,37 +78,6 @@ pub fn create_authentication_token(
         &user_claims, 
         &EncodingKey::from_secret(jwt_secret.as_ref())
     )
-    .ok()
-}
-
-
-// TODO: sanitize user inputs and refactor
-pub async fn register_user(
-    user_id: u32,
-    username: &str,
-    email: &str,
-    password: &str,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> Option<()> {
-    let mut connection = conn_pool.get().await.ok()?;
-
-    let password = hash_password_a2id(password)?;
-
-    connection.transaction::<_, Error, _>(|conn| async move {
-
-        let _ = diesel::update(users::table.find(user_id))
-        .set((
-            users::username.eq(username),
-            users::email.eq(email),
-            users::password_hash.eq(password),
-        ))
-        .execute(conn)
-        .await;
-
-
-        Ok(())
-    }.scope_boxed())
-    .await
     .ok()
 }
 

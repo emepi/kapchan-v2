@@ -15,6 +15,7 @@ use super::{session::{UserSession, UserSessionModel}, authentication::hash_passw
 #[derive(Copy, Clone)]
 pub enum AccessLevel {
     Anonymous = 10,
+    PendingMember = 15,
     Member = 20,
     Admin = 100,
     Root = 255,
@@ -38,7 +39,7 @@ impl User {
     pub async fn modify(
         &self, 
         update_mdl: UserModel<'_>, 
-        conn_pool: &Pool<AsyncMysqlConnection>
+        conn_pool: &Pool<AsyncMysqlConnection>,
     ) {
         let username = update_mdl.username
         .map(|username| {
@@ -82,6 +83,60 @@ impl User {
             },
 
             Err(_) => (),
+        }
+    }
+
+    pub async fn modify_by_id(
+        id: u32,
+        update_mdl: UserModel<'_>, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Option<()> {
+        let username = match update_mdl.username {
+            Some(usrname) => {
+                 // TODO: sanitize
+                usrname
+            },
+            None => return None,
+        };
+
+        let password = match update_mdl.password_hash {
+            Some(pwd) => {
+                // TODO: sanitize
+                hash_password_a2id(pwd)
+            },
+            None => return None,
+        };
+
+        let email = match update_mdl.email {
+            Some(email) => {
+                // TODO: sanitize
+                email
+            },
+            None => return None,
+        };
+
+        match conn_pool.get().await {
+
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let _ = diesel::update(users::table.find(id))
+                    .set((
+                        users::access_level.eq(update_mdl.access_level),
+                        users::username.eq(username),
+                        users::email.eq(email),
+                        users::password_hash.eq(password),
+                    ))
+                    .execute(conn)
+                    .await;
+            
+                    Ok(())
+                }.scope_boxed())
+                .await
+                .ok()
+            },
+
+            Err(_) => None,
         }
     }
 
