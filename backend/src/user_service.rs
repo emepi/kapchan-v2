@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::{server::{service::{
     WebsocketService,
@@ -19,7 +20,7 @@ use self::{
     user::{User, AccessLevel}, 
     session::UserSession, 
     authentication::{validate_password_a2id, create_authentication_token}, 
-    application::ApplicationModel
+    application::{ApplicationModel, Application}
 };
 
 
@@ -29,6 +30,7 @@ pub const USER_SERVICE_ID: u32 = 1;
 pub const LOGIN_REQUEST: u32 = 1;
 pub const LOGOUT_REQUEST: u32 = 2;
 pub const APPLICATION_REQUEST: u32 = 3;
+pub const APPLICATION_FETCH_REQUEST: u32 = 4;
 
 // Service response types (c)
 pub const SUCCESS: u32 = 1;
@@ -79,6 +81,11 @@ impl WebsocketService for UserService {
                 application_handler(req, sess, &self.conn_pool, &self.srvc_mgr)
                 .await
             },
+
+            APPLICATION_FETCH_REQUEST => {
+                application_fetch_handler(req, sess, &self.conn_pool)
+                .await
+            }
 
             unknown_type => ServiceResponseFrame {
                 t: unknown_type,
@@ -319,4 +326,47 @@ pub struct ApplicationInput {
     pub background: String,
     pub motivation: String,
     pub referrer: Option<String>,
+}
+
+async fn application_fetch_handler(
+    req: ServiceRequestFrame,
+    curr_sess: &Arc<UserSession>,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> ServiceResponseFrame {
+    if curr_sess.access_level < AccessLevel::Admin as u8 {
+        return ServiceResponseFrame {
+            t: APPLICATION_FETCH_REQUEST,
+            c: NOT_ALLOWED,
+            b: String::default(),
+        };
+    }
+
+    let input = match serde_json::from_str::<ApplicationFetchInput>(&req.b) {
+        Ok(input) => input,
+        Err(_) => return ServiceResponseFrame {
+            t: APPLICATION_FETCH_REQUEST,
+            c: MALFORMATTED,
+            b: String::default(),
+        },
+    };
+
+    let applications = Application::list_by_status(
+        input.accepted, 
+        input.handled, 
+        input.limit, 
+        conn_pool
+    ).await;
+
+    ServiceResponseFrame {
+        t: APPLICATION_FETCH_REQUEST,
+        c: SUCCESS,
+        b: json!(applications).to_string(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ApplicationFetchInput {
+    pub accepted: bool,
+    pub handled: bool,
+    pub limit: Option<i64>,
 }

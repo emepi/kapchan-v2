@@ -9,7 +9,10 @@ use diesel_async::{
 };
 use crate::schema::{users, sessions};
 
-use super::{session::{UserSession, UserSessionModel}, authentication::hash_password_a2id};
+use super::{
+    session::{UserSession, UserSessionModel}, 
+    authentication::hash_password_a2id
+};
 
 
 #[derive(Copy, Clone)]

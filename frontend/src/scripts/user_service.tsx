@@ -17,6 +17,7 @@ export enum UserServiceType {
     Login = 1,
     Logout = 2,
     Application = 3,
+    FetchApplications = 4,
 }
 
 export function userServiceReceive(input: ServiceResponseFrame) {
@@ -47,6 +48,10 @@ export function userServiceReceive(input: ServiceResponseFrame) {
                 setCookie("access_token", token);
                 setState({user: cookieSession()});
             }
+            break;
+        
+        case UserServiceType.FetchApplications:
+            console.log(JSON.parse(input.b));
             break;
         
         default:

@@ -7,11 +7,12 @@ use diesel_async::{
     AsyncConnection, 
     scoped_futures::ScopedFutureExt
 };
+use serde::Serialize;
 
-use crate::schema::applications;
+use crate::schema::applications::{self, accepted, closed_at};
 
 
-#[derive(Queryable, Identifiable, Selectable)]
+#[derive(Queryable, Identifiable, Selectable, Serialize)]
 #[diesel(table_name = applications)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Application {
@@ -49,6 +50,46 @@ impl Application {
             },
 
             Err(_) => None,
+        }
+    }
+
+    pub async fn list_by_status(
+        accept: bool,
+        handled: bool,
+        amount: Option<i64>,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Vec<Application> {
+
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+        
+                    let mut query = applications::table.into_boxed()
+                    .filter(accepted.eq(accept));
+
+                    match handled {
+                        true => query = query.filter(closed_at.is_not_null()),
+                        false => query = query.filter(closed_at.is_null()),
+                    }
+
+                    match amount {
+                        Some(amount) => query = query.limit(amount),
+                        None => (),
+                    }
+                    
+                    let applications = query
+                    .select(Application::as_select())
+                    .load(conn)
+                    .await
+                    .unwrap_or(Vec::new());
+                    
+                    Ok(applications)
+                }.scope_boxed())
+                .await
+                .unwrap_or(Vec::new())
+            },
+
+            Err(_) => Vec::new(),
         }
     }
 }
