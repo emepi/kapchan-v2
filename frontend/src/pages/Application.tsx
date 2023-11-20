@@ -1,6 +1,7 @@
 import { JSX } from "solid-js";
-import { serviceRequest } from "../scripts/connection_manager";
+import { Service, serviceRequest } from "../scripts/connection_manager";
 import './Application.css'
+import { UserServiceType } from "../scripts/user_service";
 
 
 export function Application() {
@@ -8,9 +9,10 @@ export function Application() {
       e.preventDefault();
     
       let data = new FormData(e.target as HTMLFormElement);
-    
-      serviceRequest(1, {
-        t: 2,
+
+      console.log(Object.fromEntries(data));
+      serviceRequest(Service.UserService, {
+        t: UserServiceType.Application,
         b: JSON.stringify(Object.fromEntries(data)),
       });
     }

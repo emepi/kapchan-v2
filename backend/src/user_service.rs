@@ -72,7 +72,12 @@ impl WebsocketService for UserService {
             LOGOUT_REQUEST => {
                 logout_handler(sess, &self.conn_pool)
                 .await
-            }
+            },
+
+            APPLICATION_REQUEST => {
+                Application_handler(req, sess, &self.conn_pool)
+                .await
+            },
 
             unknown_type => ServiceResponseFrame {
                 t: unknown_type,
@@ -243,7 +248,7 @@ async fn Application_handler(
         accepted: false,
         background: &input.background,
         motivation: &input.motivation,
-        other: input.other.as_deref(),
+        other: input.referrer.as_deref(),
         closed_at: None,
     }
     .insert(conn_pool)
@@ -274,5 +279,5 @@ pub struct ApplicationInput {
     pub password: String,
     pub background: String,
     pub motivation: String,
-    pub other: Option<String>,
+    pub referrer: Option<String>,
 }

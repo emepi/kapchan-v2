@@ -16,6 +16,7 @@ enum ResponseCode {
 export enum UserServiceType {
     Login = 1,
     Logout = 2,
+    Application = 3,
 }
 
 export function userServiceReceive(input: ServiceResponseFrame) {
@@ -35,6 +36,9 @@ export function userServiceReceive(input: ServiceResponseFrame) {
         
         case UserServiceType.Logout:
             logout();
+            break;
+
+        case UserServiceType.Application:
             break;
         
         default:
