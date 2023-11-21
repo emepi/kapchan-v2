@@ -20,7 +20,7 @@ use self::{
     user::{User, AccessLevel}, 
     session::UserSession, 
     authentication::{validate_password_a2id, create_authentication_token}, 
-    application::{ApplicationModel, Application}
+    application::{ApplicationModel, Application, list_applications}
 };
 
 
@@ -36,7 +36,7 @@ pub const APPLICATION_FETCH_REQUEST: u32 = 4;
 pub const SUCCESS: u32 = 1;
 pub const FAILURE: u32 = 2;
 pub const NOT_FOUND: u32 = 3;
-pub const NOT_AVAILABE: u32 = 4;
+pub const NOT_AVAILABLE: u32 = 4;
 pub const NOT_ALLOWED: u32 = 5;
 pub const MALFORMATTED: u32 = 6;
 pub const INVALID_SERVICE_TYPE: u32 = 7;
@@ -174,7 +174,7 @@ async fn login_handler(
 
                 None => ServiceResponseFrame {
                     t: LOGIN_REQUEST,
-                    c: NOT_AVAILABE,
+                    c: NOT_AVAILABLE,
                     b: String::default(),
                 },
             }
@@ -232,8 +232,8 @@ async fn application_handler(
     };
 
     let user = match User::by_id(curr_sess.user_id, conn_pool).await {
-        Some(user) => {
-            user.modify(
+        Some(mut user) => {
+            user = user.modify(
                 UserModel {
                     access_level: AccessLevel::PendingMember as u8,
                     username: Some(&input.username),
@@ -289,8 +289,6 @@ async fn application_handler(
 
     let application = ApplicationModel {
         user_id: curr_sess.user_id,
-        reviewer_id: None,
-        referer_id: None,
         accepted: false,
         background: &input.background,
         motivation: &input.motivation,
@@ -350,7 +348,7 @@ async fn application_fetch_handler(
         },
     };
 
-    let applications = Application::list_by_status(
+    let applications = list_applications(
         input.accepted, 
         input.handled, 
         input.limit, 

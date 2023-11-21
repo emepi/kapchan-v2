@@ -9,7 +9,9 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::{applications::{self, accepted, closed_at}, users};
+use crate::schema::{applications::{self, accepted, closed_at}, users, application_reviews, invites};
+
+use super::user::User;
 
 
 #[derive(Queryable, Identifiable, Selectable, Serialize)]
@@ -18,8 +20,6 @@ use crate::schema::{applications::{self, accepted, closed_at}, users};
 pub struct Application {
     pub id: u32,
     pub user_id: u32,
-    pub reviewer_id: Option<u32>,
-    pub referer_id: Option<u32>,
     pub accepted: bool,
     pub background: String,
     pub motivation: String,
@@ -100,8 +100,6 @@ impl Application {
 #[diesel(table_name = applications)]
 pub struct ApplicationModel<'a> {
     pub user_id: u32,
-    pub reviewer_id: Option<u32>,
-    pub referer_id: Option<u32>,
     pub accepted: bool,
     pub background: &'a str,
     pub motivation: &'a str,
@@ -136,6 +134,80 @@ impl ApplicationModel<'_> {
 
             Err(_) => None,
         }
+    }
+}
+
+#[derive(Queryable, Identifiable, Selectable)]
+#[diesel(table_name = application_reviews)]
+#[diesel(check_for_backend(diesel::mysql::Mysql))]
+pub struct ApplicationReview {
+    pub id: u32,
+    pub reviewer_id: u32,
+    pub application_id: u32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = application_reviews)]
+pub struct ApplicationReviewModel {
+    pub reviewer_id: u32,
+    pub application_id: u32,
+}
+
+#[derive(Queryable, Identifiable, Selectable)]
+#[diesel(table_name = invites)]
+#[diesel(check_for_backend(diesel::mysql::Mysql))]
+pub struct Invite {
+    pub id: u32,
+    pub inviter_id: u32,
+    pub application_id: u32,
+    pub code: Option<String>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = invites)]
+pub struct InviteModel<'a> {
+    pub inviter_id: u32,
+    pub application_id: u32,
+    pub code: Option<&'a str>,
+}
+
+
+pub async fn list_applications(
+    approved: bool,
+    handled: bool,
+    amount: Option<i64>,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> Vec<(Application, User)> {
+    match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+
+                let mut query = applications::table.into_boxed()
+                .inner_join(users::table)
+                .filter(accepted.eq(approved));
+
+                match handled {
+                    true => query = query.filter(closed_at.is_not_null()),
+                    false => query = query.filter(closed_at.is_null()),
+                }
+
+                match amount {
+                    Some(amount) => query = query.limit(amount),
+                    None => (),
+                }
+
+                let applications: Vec<(Application, User)> = query
+                .select((Application::as_select(), User::as_select()))
+                .load::<(Application, User)>(conn)
+                .await
+                .unwrap_or(Vec::new());
+
+                Ok(applications)
+            }.scope_boxed())
+            .await
+            .unwrap_or(Vec::new())
+        },
+        Err(_) => Vec::new(),
     }
 }
 

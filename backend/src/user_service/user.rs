@@ -7,6 +7,7 @@ use diesel_async::{
     AsyncMysqlConnection, 
     RunQueryDsl,
 };
+use serde::Serialize;
 use crate::schema::{users, sessions};
 
 use super::{
@@ -25,7 +26,7 @@ pub enum AccessLevel {
 }
 
 
-#[derive(Queryable, Identifiable, Selectable)]
+#[derive(Queryable, Identifiable, Selectable, Serialize)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
@@ -43,7 +44,7 @@ impl User {
         &self, 
         update_mdl: UserModel<'_>, 
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) {
+    ) -> User {
         let username = update_mdl.username
         .map(|username| {
             // TODO: sanitize
@@ -64,6 +65,17 @@ impl User {
             email
         })
         .or(self.email.as_deref());
+
+        // TODO: check if db insert was successful
+
+        let n_user = User {
+            id: self.id,
+            access_level: update_mdl.access_level,
+            username: username.map(|str| str.to_string()),
+            email: email.map(|str| str.to_string()),
+            password_hash: password.clone(),
+            created_at: self.created_at,
+        };
 
         match conn_pool.get().await {
 
@@ -87,6 +99,8 @@ impl User {
 
             Err(_) => (),
         }
+
+        n_user
     }
 
     pub async fn modify_by_id(
