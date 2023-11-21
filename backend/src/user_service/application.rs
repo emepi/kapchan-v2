@@ -9,7 +9,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::applications::{self, accepted, closed_at};
+use crate::schema::{applications::{self, accepted, closed_at}, users};
 
 
 #[derive(Queryable, Identifiable, Selectable, Serialize)]
@@ -60,6 +60,7 @@ impl Application {
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Vec<Application> {
 
+        // TODO: join user and select only relevant fields
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
