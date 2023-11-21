@@ -7,8 +7,9 @@ pub mod user;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
+use chrono::NaiveDateTime;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{server::{service::{
@@ -353,7 +354,11 @@ async fn application_fetch_handler(
         input.handled, 
         input.limit, 
         conn_pool
-    ).await;
+    )
+    .await
+    .into_iter()
+    .map(ApplicationFetchOutput::from)
+    .collect::<Vec<ApplicationFetchOutput>>();
 
     ServiceResponseFrame {
         t: APPLICATION_FETCH_REQUEST,
@@ -367,4 +372,27 @@ pub struct ApplicationFetchInput {
     pub accepted: bool,
     pub handled: bool,
     pub limit: Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct ApplicationFetchOutput {
+    pub username: String,
+    pub email: String,
+    pub background: String,
+    pub motivation: String,
+    pub other: String,
+    pub created_at: NaiveDateTime,
+}
+
+impl ApplicationFetchOutput {
+    pub fn from(values: (Application, User)) -> Self {
+        Self {
+            username: values.1.username.unwrap_or_default(),
+            email: values.1.email.unwrap_or_default(),
+            background: values.0.background,
+            motivation: values.0.motivation,
+            other: values.0.other.unwrap_or_default(),
+            created_at: values.0.created_at,
+        }
+    }
 }
