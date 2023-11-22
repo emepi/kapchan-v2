@@ -20,9 +20,17 @@ export enum UserServiceType {
     FetchApplications = 4,
 }
 
+let caller: Function;
+
+export function userServiceCallback(callback?: Function) {
+    if (callback) {
+        caller = callback;
+    }
+}
+
 export function userServiceReceive(input: ServiceResponseFrame) {
 
-    console.log("User services received input: ", input);
+    //console.log("User services received input: ", input);
 
     let token;
 
@@ -51,7 +59,11 @@ export function userServiceReceive(input: ServiceResponseFrame) {
             break;
         
         case UserServiceType.FetchApplications:
-            console.log(JSON.parse(input.b));
+
+            if (caller) {
+                caller(input.b);
+            }
+
             break;
         
         default:

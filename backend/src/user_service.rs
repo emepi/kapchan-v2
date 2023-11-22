@@ -238,8 +238,8 @@ async fn application_handler(
                 UserModel {
                     access_level: AccessLevel::PendingMember as u8,
                     username: Some(&input.username),
-                    email: Some(&input.password),
-                    password_hash: Some(&input.email),
+                    email: Some(&input.email),
+                    password_hash: Some(&input.password),
                 }, 
                 conn_pool,
             )

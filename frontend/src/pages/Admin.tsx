@@ -9,9 +9,13 @@ export function Admin() {
         b: JSON.stringify({
           accepted: false,
           handled: false,
-          limit: 2,
-        }),
-      });
+        })
+      }, printApplication
+      );
+    };
+
+    let printApplication = (b: string) => {
+      console.log(JSON.parse(b));
     };
 
     return (
@@ -20,7 +24,7 @@ export function Admin() {
             <h2>Administration</h2>
             <p>todo..</p>
           </section>
-          <button onClick={applications}></button>
+          <button onClick={applications}>Get applications</button>
         </div>
     )
 }

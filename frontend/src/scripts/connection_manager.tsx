@@ -1,6 +1,6 @@
 import { setState } from "..";
 import { cookieSession, eraseCookie } from "./cookies";
-import { userServiceReceive } from "./user_service";
+import { userServiceCallback, userServiceReceive } from "./user_service";
 import { 
   ServiceFrame, 
   ServiceRequestFrame, 
@@ -27,7 +27,10 @@ const connection_manager = {
   socket: connect("ws://127.0.0.1:8080/ws"),
   status: ConnectionStatus.Uninitialized,
   channels: new Map([
-    [1, userServiceReceive],
+    [1, {
+      rcv: userServiceReceive,
+      callback: userServiceCallback,
+    }],
   ]),
   timeout: TIMEOUT_DEFAULT,
   timeoutMax: 625000,
@@ -83,7 +86,7 @@ function onMessage(e: MessageEvent) {
 
   switch (frame.s) {
     case Service.UserService:
-      let channel = connection_manager.channels.get(Service.UserService);
+      let channel = connection_manager.channels.get(Service.UserService)?.rcv;
 
       if (channel) {
         channel(frame.r as ServiceResponseFrame);
@@ -120,7 +123,11 @@ function onClose(e: CloseEvent) {
   }
 }
 
-export function serviceRequest(service_id: Number, request: ServiceRequestFrame) {
+export function serviceRequest(
+  service_id: Number, 
+  request: ServiceRequestFrame,
+  callback?: Function
+) {
     if (connection_manager.status === ConnectionStatus.Ready) {
         let frame: ServiceFrame = {
             s: service_id,
@@ -128,5 +135,9 @@ export function serviceRequest(service_id: Number, request: ServiceRequestFrame)
         }
         
         connection_manager.socket.send(JSON.stringify(frame));
+    }
+
+    if (callback) {
+      connection_manager.channels.get(Service.UserService)?.callback(callback);
     }
 }
