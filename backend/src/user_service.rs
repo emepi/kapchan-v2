@@ -9,13 +9,14 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{server::{service::{
     WebsocketService,
     WebsocketServiceManager, ServiceRequestFrame, ServiceResponseFrame, 
-}, session::UpgradeSession}, user_service::user::UserModel};
+}, session::UpgradeSession}, user_service::{user::UserModel, authentication::hash_password_a2id}};
 
 use self::{
     user::{User, AccessLevel}, 
@@ -232,21 +233,27 @@ async fn application_handler(
         },
     };
 
-    let user = match User::by_id(curr_sess.user_id, conn_pool).await {
-        Some(mut user) => {
-            user = user.modify(
-                UserModel {
-                    access_level: AccessLevel::PendingMember as u8,
-                    username: Some(&input.username),
-                    email: Some(&input.email),
-                    password_hash: Some(&input.password),
-                }, 
-                conn_pool,
-            )
-            .await;
+    let modification = User::modify_by_id(
+        curr_sess.user_id, 
+        UserModel {
+            access_level: AccessLevel::PendingMember as u8,
+            username: Some(&input.username),
+            email: Some(&input.email),
+            password_hash: hash_password_a2id(&input.password).as_deref(),
+        }, 
+        conn_pool
+    ).await;
 
-            user
-        },
+    if modification.is_none() {
+        return ServiceResponseFrame {
+            t: APPLICATION_REQUEST,
+            c: MALFORMATTED,
+            b: String::default(),
+        };
+    }
+
+    let n_user = match User::by_id(curr_sess.user_id, conn_pool).await {
+        Some(user) => user,
         None => return ServiceResponseFrame {
             t: APPLICATION_REQUEST,
             c: MALFORMATTED,
@@ -254,7 +261,7 @@ async fn application_handler(
         },
     };
 
-    let session = user.create_session(
+    let session = n_user.create_session(
         curr_sess.ip_address.as_deref(), 
         curr_sess.user_agent.as_deref(), 
         conn_pool
@@ -317,7 +324,7 @@ async fn application_handler(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ApplicationInput {
     pub username: String,
     pub email: String,

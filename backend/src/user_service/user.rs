@@ -26,7 +26,7 @@ pub enum AccessLevel {
 }
 
 
-#[derive(Queryable, Identifiable, Selectable, Serialize)]
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
@@ -44,63 +44,36 @@ impl User {
         &self, 
         update_mdl: UserModel<'_>, 
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> User {
-        let username = update_mdl.username
-        .map(|username| {
-            // TODO: sanitize
-            username
-        })
-        .or(self.username.as_deref());
-
-        let password = update_mdl.password_hash
-        .and_then(|pwd| {
-            // TODO: sanitize
-            hash_password_a2id(pwd)
-        })
-        .or(self.password_hash.clone());
-
-        let email = update_mdl.email
-        .map(|email| {
-            // TODO: sanitize
-            email
-        })
-        .or(self.email.as_deref());
-
-        // TODO: check if db insert was successful
-
-        let n_user = User {
-            id: self.id,
-            access_level: update_mdl.access_level,
-            username: username.map(|str| str.to_string()),
-            email: email.map(|str| str.to_string()),
-            password_hash: password.clone(),
-            created_at: self.created_at,
-        };
+    ) -> Option<()> {
 
         match conn_pool.get().await {
 
             Ok(mut conn) => {
-                let _ = conn.transaction::<_, Error, _>(|conn| async move {
+                conn.transaction::<_, Error, _>(|conn| async move {
 
                     let _ = diesel::update(users::table.find(self.id))
                     .set((
                         users::access_level.eq(update_mdl.access_level),
-                        users::username.eq(username),
-                        users::email.eq(email),
-                        users::password_hash.eq(password),
+                        users::username.eq(update_mdl.username),
+                        users::email.eq(update_mdl.email),
+                        users::password_hash.eq(update_mdl.password_hash),
                     ))
                     .execute(conn)
-                    .await;
+                    .await?;
+
+                    //let user = users::table
+                    //.find(self.id)
+                    //.first::<User>(conn)
+                    //.await?;
             
                     Ok(())
                 }.scope_boxed())
-                .await;
+                .await
+                .ok()
             },
 
-            Err(_) => (),
+            Err(_) => None,
         }
-
-        n_user
     }
 
     pub async fn modify_by_id(
@@ -119,7 +92,8 @@ impl User {
         let password = match update_mdl.password_hash {
             Some(pwd) => {
                 // TODO: sanitize
-                hash_password_a2id(pwd)
+                //hash_password_a2id(pwd)
+                pwd
             },
             None => return None,
         };
