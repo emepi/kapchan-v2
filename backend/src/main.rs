@@ -185,7 +185,15 @@ async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
             let root = User::by_username("root", &conn_pool).await;
 
             match root {
+                
                 Some(root) => {
+                    let pwd_hash = match hash_password_a2id(&root_pwd) {
+                        Some(hash) => hash,
+                        None => return,
+                    };
+
+                    root_mdl.password_hash = Some(&pwd_hash);
+                    
                     root.modify(root_mdl, conn_pool).await;
                     info!("Root user updated.");
                 },

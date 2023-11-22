@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
