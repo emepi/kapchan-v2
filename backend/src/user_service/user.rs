@@ -40,71 +40,11 @@ pub struct User {
 
 impl User {
 
-    pub async fn modify(
-        &self, 
-        update_mdl: UserModel<'_>, 
-        conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Option<()> {
-
-        match conn_pool.get().await {
-
-            Ok(mut conn) => {
-                conn.transaction::<_, Error, _>(|conn| async move {
-
-                    let _ = diesel::update(users::table.find(self.id))
-                    .set((
-                        users::access_level.eq(update_mdl.access_level),
-                        users::username.eq(update_mdl.username),
-                        users::email.eq(update_mdl.email),
-                        users::password_hash.eq(update_mdl.password_hash),
-                    ))
-                    .execute(conn)
-                    .await?;
-
-                    //let user = users::table
-                    //.find(self.id)
-                    //.first::<User>(conn)
-                    //.await?;
-            
-                    Ok(())
-                }.scope_boxed())
-                .await
-                .ok()
-            },
-
-            Err(_) => None,
-        }
-    }
-
     pub async fn modify_by_id(
         id: u32,
         update_mdl: UserModel<'_>, 
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Option<()> {
-        let username = match update_mdl.username {
-            Some(usrname) => {
-                 // TODO: sanitize
-                usrname
-            },
-            None => return None,
-        };
-
-        let password = match update_mdl.password_hash {
-            Some(pwd) => {
-                // TODO: sanitize
-                //hash_password_a2id(pwd)
-                pwd
-            },
-            None => return None,
-        };
-
-        let email = match update_mdl.email {
-            Some(email) => {
-                // TODO: sanitize
-                email
-            },
-            None => return None,
-        };
 
         match conn_pool.get().await {
 
@@ -112,12 +52,7 @@ impl User {
                 conn.transaction::<_, Error, _>(|conn| async move {
 
                     let _ = diesel::update(users::table.find(id))
-                    .set((
-                        users::access_level.eq(update_mdl.access_level),
-                        users::username.eq(username),
-                        users::email.eq(email),
-                        users::password_hash.eq(password),
-                    ))
+                    .set(update_mdl)
                     .execute(conn)
                     .await;
             
@@ -209,7 +144,7 @@ impl User {
 }
 
 /// Model for inserting a new user into the database.
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct UserModel<'a> {
     pub access_level: u8,

@@ -30,7 +30,7 @@ export function userServiceCallback(callback?: Function) {
 
 export function userServiceReceive(input: ServiceResponseFrame) {
 
-    //console.log("User services received input: ", input);
+    console.log("User services received input: ", input);
 
     let token;
 

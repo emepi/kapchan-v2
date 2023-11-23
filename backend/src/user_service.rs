@@ -19,9 +19,9 @@ use crate::{server::{service::{
 
 use self::{
     user::{User, AccessLevel}, 
-    session::UserSession, 
+    session::{UserSession, active_sessions_by_user_id}, 
     authentication::{validate_password_a2id, create_authentication_token}, 
-    application::{ApplicationModel, Application, list_applications}
+    application::{ApplicationModel, Application, list_applications, close_application}
 };
 
 
@@ -32,6 +32,7 @@ pub const LOGIN_REQUEST: u32 = 1;
 pub const LOGOUT_REQUEST: u32 = 2;
 pub const APPLICATION_REQUEST: u32 = 3;
 pub const APPLICATION_FETCH_REQUEST: u32 = 4;
+pub const APPLICATION_CLOSE_REQUEST: u32 = 5;
 
 // Service response types (c)
 pub const SUCCESS: u32 = 1;
@@ -86,7 +87,12 @@ impl WebsocketService for UserService {
             APPLICATION_FETCH_REQUEST => {
                 application_fetch_handler(req, sess, &self.conn_pool)
                 .await
-            }
+            },
+
+            APPLICATION_CLOSE_REQUEST => {
+                application_close_handler(req, sess, &self.conn_pool)
+                .await
+            },
 
             unknown_type => ServiceResponseFrame {
                 t: unknown_type,
@@ -382,6 +388,8 @@ pub struct ApplicationFetchInput {
 
 #[derive(Serialize)]
 pub struct ApplicationFetchOutput {
+    pub application_id: u32,
+    pub user_id: u32,
     pub username: String,
     pub email: String,
     pub background: String,
@@ -393,6 +401,8 @@ pub struct ApplicationFetchOutput {
 impl ApplicationFetchOutput {
     pub fn from(values: (Application, User)) -> Self {
         Self {
+            application_id: values.0.id,
+            user_id: values.1.id,
             username: values.1.username.unwrap_or_default(),
             email: values.1.email.unwrap_or_default(),
             background: values.0.background,
@@ -401,4 +411,63 @@ impl ApplicationFetchOutput {
             created_at: values.0.created_at,
         }
     }
+}
+
+async fn application_close_handler(
+    req: ServiceRequestFrame,
+    curr_sess: &Arc<UserSession>,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> ServiceResponseFrame {
+    if curr_sess.access_level < AccessLevel::Admin as u8 {
+        return ServiceResponseFrame {
+            t: APPLICATION_FETCH_REQUEST,
+            c: NOT_ALLOWED,
+            b: String::default(),
+        };
+    }
+
+    let input = match serde_json::from_str::<ApplicationCloseInput>(&req.b) {
+        Ok(input) => input,
+        Err(_) => return ServiceResponseFrame {
+            t: APPLICATION_FETCH_REQUEST,
+            c: MALFORMATTED,
+            b: String::default(),
+        },
+    };
+
+    let status = close_application(
+        curr_sess.user_id, 
+        input.user_id, 
+        input.application_id, 
+        input.accepted, 
+        &conn_pool
+    )
+    .await;
+
+    let old_sessions = active_sessions_by_user_id(input.user_id, &conn_pool)
+    .await;
+
+    for sess in old_sessions.iter() {
+        sess.end_session(&conn_pool).await;
+    }
+
+    match status {
+        Some(_) => ServiceResponseFrame {
+            t: APPLICATION_FETCH_REQUEST,
+            c: SUCCESS,
+            b: String::default(),
+        },
+        None => ServiceResponseFrame {
+            t: APPLICATION_FETCH_REQUEST,
+            c: FAILURE,
+            b: String::default(),
+        },
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ApplicationCloseInput {
+    pub application_id: u32,
+    pub user_id: u32,
+    pub accepted: bool,
 }

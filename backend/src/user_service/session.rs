@@ -100,4 +100,29 @@ pub struct UserSessionModel<'a> {
 }
 
 
+pub async fn active_sessions_by_user_id(
+    user_id: u32,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> Vec<UserSession> {
+    match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let sess: Vec<UserSession> = sessions::table
+                .filter(sessions::user_id.eq(user_id).and(sessions::ended_at.is_null()))
+                .select(UserSession::as_select())
+                .load::<UserSession>(conn)
+                .await
+                .unwrap_or(Vec::new());
+
+                Ok(sess)
+            }.scope_boxed())
+            .await
+            .unwrap_or(Vec::new())
+        },
+
+        Err(_) => Vec::new(),
+    }
+}
+
+
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);
