@@ -18,6 +18,7 @@ export enum UserServiceType {
     Logout = 2,
     Application = 3,
     FetchApplications = 4,
+    CloseApplication = 5,
 }
 
 let caller: Function;
@@ -63,6 +64,10 @@ export function userServiceReceive(input: ServiceResponseFrame) {
             if (caller) {
                 caller(input.b);
             }
+
+            break;
+        
+        case UserServiceType.CloseApplication:
 
             break;
         

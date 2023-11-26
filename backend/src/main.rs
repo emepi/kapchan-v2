@@ -10,12 +10,11 @@ use actix_files::Files;
 use actix_web::{
     HttpServer, 
     App, 
-    web, 
     HttpResponse, 
     Error, 
     HttpRequest, 
     error::InternalError, 
-    http::{StatusCode, header}, cookie::{Cookie, self, SameSite},
+    http::{StatusCode, header}, cookie::{Cookie, self, SameSite}, web,
 };
 use actix_web_actors::ws;
 use diesel_async::{
@@ -28,7 +27,11 @@ use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
 use user_service::{
     UserService, 
     user::{UserModel, AccessLevel, User}, 
-    authentication::{validate_session_id, create_authentication_token, hash_password_a2id}, 
+    authentication::{
+        validate_session_id, 
+        create_authentication_token, 
+        hash_password_a2id
+    }, 
     session::UserSession
 };
 
