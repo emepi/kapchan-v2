@@ -1,8 +1,8 @@
-import { For } from "solid-js";
+import { For, JSX } from "solid-js";
 import { Service, serviceRequest } from "../scripts/connection_manager";
 import { UserServiceType } from "../scripts/user_service";
 import { createStore } from "solid-js/store";
-import './ApplicationBrowser.css'
+import './ApplicationBrowser.css';
 
 interface Application {
   application_id: number,
@@ -36,6 +36,21 @@ export function ApplicationBrowser() {
     console.log(applications);
   };
 
+  const closeApplication: JSX.EventHandler<HTMLButtonElement, MouseEvent> = (
+    event
+  ) => {
+    let application = event.target;
+
+    serviceRequest(Service.UserService, {
+      t: UserServiceType.CloseApplication,
+      b: JSON.stringify({
+        application_id: parseInt(application.getAttribute('data-id')!),
+        user_id: parseInt(application.getAttribute('data-user')!),
+        accepted: JSON.parse(application.getAttribute('data-resolution')!),
+      })
+    });
+  }
+
   fetchApplications();
 
   return (
@@ -67,10 +82,20 @@ export function ApplicationBrowser() {
                 {data.other}
               </p>
               <div class="apli-ctrl">
-                <button>
+                <button 
+                  data-id={data.application_id}
+                  data-user={data.user_id}
+                  data-resolution={true}
+                  onClick={closeApplication}
+                >
                   Accept
                 </button>
-                <button>
+                <button
+                  data-id={data.application_id}
+                  data-user={data.user_id}
+                  data-resolution={false}
+                  onClick={closeApplication}
+                >
                   Decline
                 </button>
               </div>

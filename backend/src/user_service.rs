@@ -420,7 +420,7 @@ async fn application_close_handler(
 ) -> ServiceResponseFrame {
     if curr_sess.access_level < AccessLevel::Admin as u8 {
         return ServiceResponseFrame {
-            t: APPLICATION_FETCH_REQUEST,
+            t: APPLICATION_CLOSE_REQUEST,
             c: NOT_ALLOWED,
             b: String::default(),
         };
@@ -429,7 +429,7 @@ async fn application_close_handler(
     let input = match serde_json::from_str::<ApplicationCloseInput>(&req.b) {
         Ok(input) => input,
         Err(_) => return ServiceResponseFrame {
-            t: APPLICATION_FETCH_REQUEST,
+            t: APPLICATION_CLOSE_REQUEST,
             c: MALFORMATTED,
             b: String::default(),
         },
@@ -453,12 +453,12 @@ async fn application_close_handler(
 
     match status {
         Some(_) => ServiceResponseFrame {
-            t: APPLICATION_FETCH_REQUEST,
+            t: APPLICATION_CLOSE_REQUEST,
             c: SUCCESS,
             b: String::default(),
         },
         None => ServiceResponseFrame {
-            t: APPLICATION_FETCH_REQUEST,
+            t: APPLICATION_CLOSE_REQUEST,
             c: FAILURE,
             b: String::default(),
         },
