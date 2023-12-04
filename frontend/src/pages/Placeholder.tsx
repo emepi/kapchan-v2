@@ -1,4 +1,5 @@
-import boomer from '/src/assets/boomer.jpg'
+import { state } from ".."
+
 
 function Placeholder() {
     return (
@@ -6,8 +7,9 @@ function Placeholder() {
           <section>
             <h2>Welcome to avaruuskapakka</h2>
             <p>We are in development!</p>
+            <p>User data:</p>
+            <p>role: {state.user.role.toString()}</p>
           </section>
-          <img src={boomer} alt="Boomer judging the state of kapchan" />
         </div>
     )
 }

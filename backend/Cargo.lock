@@ -386,6 +386,7 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "argon2",
+ "async-trait",
  "chrono",
  "deadpool 0.10.0",
  "diesel",
@@ -395,6 +396,7 @@ dependencies = [
  "jsonwebtoken",
  "log",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -647,6 +649,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-targets",
 ]

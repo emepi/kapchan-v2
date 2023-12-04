@@ -1,0 +1,8 @@
+.logo {
+    height: 350px;
+    width: 350px;
+}
+
+.main-side {
+    border-right: 3px solid black;
+}

@@ -1,14 +1,18 @@
 /* @refresh reload */
 import { render } from 'solid-js/web'
 import { Router } from "@solidjs/router";
+import { createStore } from 'solid-js/store';
 
-import { connection } from './scripts/connection_manager'
-import './styles/kapchan.css'
+import './index.css'
 import App from './App'
+import { cookieSession } from './scripts/cookies';
+import { anonUser } from './scripts/user';
 
-const root = document.getElementById('root')
 
-let test = connection;
+export const [state, setState] = createStore({
+  user: cookieSession() ?? anonUser,
+});
+
 
 render(
   () => (
@@ -16,5 +20,5 @@ render(
       <App />
     </Router>
   ), 
-  root!
+  document.getElementById('root')!
 )

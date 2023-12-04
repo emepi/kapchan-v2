@@ -3,13 +3,22 @@ pub mod service;
 
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use actix::dev::{MessageResponse, OneshotSender};
 use actix::prelude::*;
 use diesel_async::AsyncMysqlConnection;
 use diesel_async::pooled_connection::deadpool::Pool;
+use log::info;
 
-use self::service::{ServiceRequest, WebsocketService, Service};
+use crate::user_service::session::UserSession;
+
+use self::service::{
+    WebsocketService, 
+    ConnectService, 
+    WebsocketServiceActor, 
+    WebsocketServiceManager, ServiceRequestFrame
+};
 use self::session::WebsocketSession;
 
 
@@ -19,7 +28,7 @@ pub struct WebsocketServer {
 
     pub sessions_limit: usize,
 
-    pub services: HashMap<u32, Recipient<ServiceRequest>>,
+    pub services: HashMap<u32, Recipient<ConnectService>>,
 
     pub database: Pool<AsyncMysqlConnection>,
 }
@@ -34,17 +43,28 @@ impl WebsocketServer {
         }
     }
 
-    pub fn service(mut self, service: Box<dyn Service>) -> Self {
+    pub fn service<S>(mut self) -> Self 
+    where
+        S: WebsocketService + 'static,
+    {
+        let srvc_mgr = Arc::new(
+            Mutex::new(WebsocketServiceManager {
+                subs: HashMap::new(),
+                max_subs: self.sessions_limit,
+            })
+        );
 
-        let id = service.id();
-        let service_addr = WebsocketService {
-            id,
-            service,
-            conn_pool: self.database.clone(),
+        let srvc = S::new(srvc_mgr.clone(), self.database.clone());
+        let srvc_id = srvc.id();
+
+
+        let service_actor = WebsocketServiceActor {
+            srvc: Arc::new(srvc),
+            srvc_mgr: srvc_mgr.clone(),
         }
         .start();
-        
-        self.services.insert(id, service_addr.recipient());
+
+        self.services.insert(srvc_id, service_actor.recipient());
         self
     }
 }
@@ -59,7 +79,7 @@ impl Handler<Disconnect> for WebsocketServer {
     fn handle(
         &mut self, 
         msg: Disconnect, 
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
 
         self.sessions.remove(&msg.id);
@@ -72,12 +92,11 @@ impl Handler<Connect> for WebsocketServer {
     fn handle(
         &mut self,
         msg: Connect,
-        ctx: &mut Self::Context
+        _ctx: &mut Self::Context
     ) -> Self::Result {
 
         if self.sessions.len() >= self.sessions_limit {
             // TODO: check if other connections can be purged for this user.
-
             return ConnectionResponse::ServerFull;
         }
 
@@ -88,8 +107,61 @@ impl Handler<Connect> for WebsocketServer {
             },
 
             None => {
+                info!("Session id: {} connected to server.", msg.session_id);
                 ConnectionResponse::Connected
             },
+        }
+    }
+}
+
+impl Handler<ServiceRequest> for WebsocketServer {
+    type Result = ConnectionResponse;
+
+    fn handle(
+        &mut self, 
+        msg: ServiceRequest, 
+        _ctx: &mut Self::Context
+    ) -> Self::Result {
+
+        let session_actor = match self.sessions.get(&msg.sess.id) {
+            Some(session) => session.clone(),
+            None => return ConnectionResponse::Blocked,
+        };
+
+        self.services
+        .get(&msg.service_id)
+        .and_then(|service| {
+            service.try_send(ConnectService {
+                service_request: msg.msg,
+                session: msg.sess,
+                session_actor, 
+            })
+            .ok()
+        })
+        .map(|_| ConnectionResponse::Connected)
+        .unwrap_or(ConnectionResponse::Blocked)
+        
+    }
+}
+
+impl Handler<Reconnect> for WebsocketServer {
+    type Result = ConnectionResponse;
+
+    fn handle(
+        &mut self, 
+        msg: Reconnect, 
+        _ctx: &mut Self::Context
+    ) -> Self::Result {
+        let prev = self.sessions.remove(&msg.from_session_id);
+
+        match prev {
+            Some(sess_addr) => {
+                self.sessions.insert(msg.to_session_id, sess_addr);
+
+                ConnectionResponse::Reconnected
+            },
+
+            None => ConnectionResponse::Blocked,
         }
     }
 }
@@ -130,7 +202,22 @@ pub struct Connect {
 }
 
 #[derive(Message)]
+#[rtype(result = "ConnectionResponse")]
+pub struct Reconnect {
+    pub from_session_id: u32,
+    pub to_session_id: u32,
+}
+
+#[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
     pub id: u32,
+}
+
+#[derive(Message)]
+#[rtype(result = "ConnectionResponse")]
+pub struct ServiceRequest {
+    pub service_id: u32,
+    pub sess: Arc<UserSession>,
+    pub msg: ServiceRequestFrame,
 }

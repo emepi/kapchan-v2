@@ -1,7 +1,4 @@
-use std::env;
-
-use actix_web::cookie::{Cookie, SameSite, self};
-use chrono::{NaiveDateTime, Utc, Duration};
+use chrono::NaiveDateTime;
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     AsyncConnection,
@@ -10,13 +7,26 @@ use diesel_async::{
     AsyncMysqlConnection, 
     RunQueryDsl,
 };
-use jsonwebtoken::{encode, Header, EncodingKey};
+use serde::Serialize;
 use crate::schema::{users, sessions};
 
-use super::authentication::Claims;
+use super::{
+    session::{UserSession, UserSessionModel}, 
+    authentication::hash_password_a2id
+};
 
 
-#[derive(Queryable, Identifiable, Selectable)]
+#[derive(Copy, Clone)]
+pub enum AccessLevel {
+    Anonymous = 10,
+    PendingMember = 15,
+    Member = 20,
+    Admin = 100,
+    Root = 255,
+}
+
+
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
@@ -29,35 +39,31 @@ pub struct User {
 }
 
 impl User {
-    pub fn create_authentication_token(&self) -> Option<Cookie> {
-        let jwt_secret = env::var("JWT_SECRET")
-        .expect(".env variable `JWT_SECRET` must be set");
-        
-        let jwt_expiration = env::var("JWT_EXPIRATION")
-        .expect(".env variable `JWT_EXPIRATION` must be set")
-        .parse::<i64>()
-        .expect("`JWT_EXPIRATION` must be a valid number");
 
-        let now = Utc::now();
+    pub async fn modify_by_id(
+        id: u32,
+        update_mdl: UserModel<'_>, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Option<()> {
 
-        let user_claims = Claims {
-            exp: (now + Duration::minutes(jwt_expiration)).timestamp() as usize,
-            iat: now.timestamp() as usize,
-            sub: self.id.to_string(),
-        };
+        match conn_pool.get().await {
 
-        encode(
-            &Header::default(), 
-            &user_claims, 
-            &EncodingKey::from_secret(jwt_secret.as_ref())
-        )
-        .map(|access_token| {
-            Cookie::build("access_token", access_token)
-            .max_age(cookie::time::Duration::new(jwt_expiration * 60, 0))
-            .same_site(SameSite::Strict)
-            .http_only(true)
-            .finish()
-        }).ok()
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let _ = diesel::update(users::table.find(id))
+                    .set(update_mdl)
+                    .execute(conn)
+                    .await;
+            
+                    Ok(())
+                }.scope_boxed())
+                .await
+                .ok()
+            },
+
+            Err(_) => None,
+        }
     }
 
     pub async fn create_session(
@@ -97,10 +103,48 @@ impl User {
 
         result
     }
+
+    pub async fn by_username(
+        username: &str, 
+        db: &Pool<AsyncMysqlConnection>
+    ) -> Option<User> {
+        let mut connection = db.get().await
+        .ok()?;
+
+        connection.transaction::<_, Error, _>(|conn| async move {
+            let user = users::table
+            .filter(users::username.eq(username))
+            .first::<User>(conn)
+            .await?;
+
+            Ok(user)
+        }.scope_boxed())
+        .await
+        .ok()
+    }
+
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Option<User> {
+        let mut connection = conn_pool.get().await
+        .ok()?;
+
+        connection.transaction::<_, Error, _>(|conn| async move {
+            let user = users::table
+            .find(id)
+            .first::<User>(conn)
+            .await?;
+
+            Ok(user)
+        }.scope_boxed())
+        .await
+        .ok()
+    }
 }
 
 /// Model for inserting a new user into the database.
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct UserModel<'a> {
     pub access_level: u8,
@@ -112,7 +156,7 @@ pub struct UserModel<'a> {
 impl Default for UserModel<'_> {
     fn default() -> Self {
         Self {
-            access_level: 1, 
+            access_level: AccessLevel::Anonymous as u8, 
             username: None,
             email: None,
             password_hash: None,
@@ -121,7 +165,7 @@ impl Default for UserModel<'_> {
 }
 
 impl UserModel<'_> {
-    pub async fn register_user(
+    pub async fn insert(
         &self, 
         db: &Pool<AsyncMysqlConnection>,
     ) -> Option<User> {
@@ -151,30 +195,5 @@ impl UserModel<'_> {
     }
 }
 
-#[derive(Queryable, Selectable)]
-#[diesel(table_name = sessions)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct UserSession {
-    pub id: u32,
-    pub user_id: u32,
-    pub access_level: u8,
-    pub mode: u8,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub created_at: NaiveDateTime,
-    pub ended_at: Option<NaiveDateTime>,
-}
 
-#[derive(Insertable)]
-#[diesel(table_name = sessions)]
-pub struct UserSessionModel<'a> {
-    pub user_id: u32,
-    pub access_level: u8,
-    pub mode: u8,
-    pub ip_address: Option<&'a str>,
-    pub user_agent: Option<&'a str>,
-    pub ended_at: Option<&'a NaiveDateTime>,
-}
-
-// TODO: move to a different module
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);

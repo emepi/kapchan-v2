@@ -1,27 +1,24 @@
-import Sidebar from './components/Sidebar'
 import { Route, Routes } from '@solidjs/router'
 import Placeholder from './pages/Placeholder'
-import Rules from './pages/Rules'
-import Settings from './pages/Settings'
+import { Header } from './components/Header'
+import { Login } from './pages/Login'
+import Sidebar from './components/Sidebar'
+import { Application } from './pages/Application'
+import { Admin } from './pages/Admin'
 
 function App() {
-
   return (
     <>
-      <header class="main-header">
-        <h1>kapakka</h1>
-      </header>
-
-      <Sidebar />
-
-      <div class="main-content">
+      <Header/>
+      <Sidebar/>
+      <main class="main-cont">
         <Routes>
           <Route path="/" component={Placeholder} />
-          <Route path="/plc" component={Placeholder} />
-          <Route path="/rules" component={Rules} />
-          <Route path="/settings" component={Settings} />
+          <Route path="/login" component={Login} />
+          <Route path="/apply" component={Application} />
+          <Route path="/admin" component={Admin} />
         </Routes>
-      </div>
+      </main>
     </>
   )
 }

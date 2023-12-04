@@ -1,6 +1,36 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    application_reviews (id) {
+        id -> Unsigned<Integer>,
+        reviewer_id -> Unsigned<Integer>,
+        application_id -> Unsigned<Integer>,
+    }
+}
+
+diesel::table! {
+    applications (id) {
+        id -> Unsigned<Integer>,
+        user_id -> Unsigned<Integer>,
+        accepted -> Bool,
+        background -> Text,
+        motivation -> Text,
+        other -> Nullable<Text>,
+        created_at -> Datetime,
+        closed_at -> Nullable<Datetime>,
+    }
+}
+
+diesel::table! {
+    invites (id) {
+        id -> Unsigned<Integer>,
+        inviter_id -> Unsigned<Integer>,
+        application_id -> Unsigned<Integer>,
+        code -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Integer>,
@@ -29,9 +59,17 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(application_reviews -> applications (application_id));
+diesel::joinable!(application_reviews -> users (reviewer_id));
+diesel::joinable!(applications -> users (user_id));
+diesel::joinable!(invites -> applications (application_id));
+diesel::joinable!(invites -> users (inviter_id));
 diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    application_reviews,
+    applications,
+    invites,
     sessions,
     users,
 );
