@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use serde::Deserialize;
 
 use crate::{
     server::service::{
@@ -13,8 +14,10 @@ use crate::{
         ServiceRequestFrame, 
         ServiceResponseFrame
     }, 
-    user_service::{session::UserSession, user::AccessLevel}
+    user_service::{session::UserSession, user::AccessLevel}, board_service::board::BoardFlagModel
 };
+
+use self::board::BoardModel;
 
 
 pub const BOARD_SERVICE_ID: u32 = 2;
@@ -78,6 +81,7 @@ impl WebsocketService for BoardService {
 
 async fn create_board(
     sess: &Arc<UserSession>,
+    req: ServiceRequestFrame,
     conn_pool: &Pool<AsyncMysqlConnection>,
 ) -> ServiceResponseFrame {
 
@@ -89,7 +93,50 @@ async fn create_board(
         }
     }
 
-    
+    let input = match serde_json::from_str::<BoardCreationInput>(&req.b) {
+        Ok(input) => input,
+        Err(_) => return ServiceResponseFrame {
+            t: CREATE_BOARD_REQUEST,
+            c: MALFORMATTED,
+            b: String::default(),
+        },
+    };
 
-    todo!()
+    let board = BoardModel {
+        handle: &input.handle,
+        title: &input.title,
+        description: &input.description,
+        created_by: sess.user_id,
+    };
+
+    let board = board.insert(conn_pool).await;
+
+    match board {
+        Some(board) => {
+            for flag in input.flags.iter() {
+                BoardFlagModel {
+                    board_id: board.id,
+                    flag: *flag,
+                }
+                .insert(conn_pool)
+                .await;
+            }
+        },
+
+        None => (),
+    }
+
+    ServiceResponseFrame {
+        t: CREATE_BOARD_REQUEST,
+        c: SUCCESS,
+        b: String::default(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct BoardCreationInput {
+    pub handle: String,
+    pub title: String,
+    pub description: String,
+    pub flags: Vec<u8>,
 }
