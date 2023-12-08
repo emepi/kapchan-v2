@@ -1,6 +1,7 @@
 pub mod schema;
 mod server;
 mod user_service;
+mod board_service;
 
 
 use std::{env, time::Instant, collections::HashMap, sync::Arc};
