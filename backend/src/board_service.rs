@@ -62,7 +62,7 @@ impl WebsocketService for BoardService {
         match req.t {
 
             CREATE_BOARD_REQUEST => {
-                create_board(sess, &self.conn_pool).await
+                create_board(sess, req, &self.conn_pool).await
             },
 
             unknown_type => ServiceResponseFrame {
@@ -85,7 +85,7 @@ async fn create_board(
     conn_pool: &Pool<AsyncMysqlConnection>,
 ) -> ServiceResponseFrame {
 
-    if sess.access_level < AccessLevel::Admin as u8 {
+    if sess.access_level < AccessLevel::Owner as u8 {
         return ServiceResponseFrame {
             t: CREATE_BOARD_REQUEST,
             c: NOT_ALLOWED,

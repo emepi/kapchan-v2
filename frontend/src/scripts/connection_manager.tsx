@@ -6,6 +6,7 @@ import {
   ServiceRequestFrame, 
   ServiceResponseFrame 
 } from "./service";
+import { boardServiceReceive } from "./board_service";
 
 enum ConnectionStatus {
   Uninitialized = 0,
@@ -19,6 +20,7 @@ enum CloseCode {
 
 export enum Service {
   UserService = 1,
+  BoardService = 2,
 }
 
 const TIMEOUT_DEFAULT = 1000;
@@ -31,6 +33,10 @@ const connection_manager = {
       rcv: userServiceReceive,
       callback: userServiceCallback,
     }],
+    [2, {
+      rcv: boardServiceReceive,
+      callback: boardServiceReceive,
+    }]
   ]),
   timeout: TIMEOUT_DEFAULT,
   timeoutMax: 625000,
@@ -93,6 +99,15 @@ function onMessage(e: MessageEvent) {
       }
 
       break;
+    
+    case Service.BoardService:
+      let boardChannel = connection_manager.channels.get(Service.BoardService)?.rcv;
+
+      if (boardChannel) {
+        boardChannel(frame.r as ServiceResponseFrame);
+      }
+
+      break;
         
     default:
       console.error("Unimplemented service response received: ", frame);
@@ -124,7 +139,7 @@ function onClose(e: CloseEvent) {
 }
 
 export function serviceRequest(
-  service_id: Number, 
+  service_id: number, 
   request: ServiceRequestFrame,
   callback?: Function
 ) {
@@ -138,6 +153,6 @@ export function serviceRequest(
     }
 
     if (callback) {
-      connection_manager.channels.get(Service.UserService)?.callback(callback);
+      connection_manager.channels.get(service_id)?.callback(callback);
     }
 }

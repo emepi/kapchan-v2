@@ -8,6 +8,7 @@ export enum UserRole {
     Anonymous = 10,
     Member = 20,
     Admin = 100,
+    Owner = 200,
 }
 
 export const anonUser: User = {
