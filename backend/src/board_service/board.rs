@@ -73,7 +73,8 @@ impl BoardModel<'_> {
     }
 }
 
-#[derive(Queryable, Identifiable, Selectable, Serialize)]
+#[derive(Queryable, Identifiable, Associations, Selectable, Serialize)]
+#[diesel(belongs_to(Board))]
 #[diesel(table_name = board_flags)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct BoardFlag {
@@ -117,6 +118,41 @@ impl BoardFlagModel {
 
             Err(_) => None,
         }
+    }
+}
+
+
+pub async fn query_boards(
+    conn_pool: &Pool<AsyncMysqlConnection>
+) -> Vec<(Board, Vec<BoardFlag>)> {
+    match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let boards = boards::table
+                .select(Board::as_select())
+                .load(conn)
+                .await?;
+    
+                let flags = BoardFlag::belonging_to(&boards)
+                .select(BoardFlag::as_select())
+                .load(conn)
+                .await?;
+
+                let boards_with_flags: Vec<(Board, Vec<BoardFlag>)> = flags
+                .grouped_by(&boards)
+                .into_iter()
+                .zip(boards)
+                .map(|(flags, board)| (board, flags))
+                .collect::<Vec<(Board, Vec<BoardFlag>)>>();
+
+                
+                Ok(boards_with_flags)
+            }.scope_boxed())
+            .await
+            .unwrap_or(Vec::new())
+        },
+
+        Err(_) => Vec::new(),
     }
 }
 

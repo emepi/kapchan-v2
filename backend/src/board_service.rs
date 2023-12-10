@@ -17,13 +17,14 @@ use crate::{
     user_service::{session::UserSession, user::AccessLevel}, board_service::board::BoardFlagModel
 };
 
-use self::board::BoardModel;
+use self::board::{BoardModel, query_boards};
 
 
 pub const BOARD_SERVICE_ID: u32 = 2;
 
 // Service types (t) for input ServiceFrame
 pub const CREATE_BOARD_REQUEST: u32 = 1;
+pub const FETCH_BOARDS_REQUEST: u32 = 2;
 
 // Service response types (c)
 pub const SUCCESS: u32 = 1;
@@ -64,6 +65,10 @@ impl WebsocketService for BoardService {
             CREATE_BOARD_REQUEST => {
                 create_board(sess, req, &self.conn_pool).await
             },
+
+            FETCH_BOARDS_REQUEST => {
+                fetch_boards(sess, req, &self.conn_pool).await
+            }
 
             unknown_type => ServiceResponseFrame {
                 t: unknown_type,
@@ -139,4 +144,20 @@ pub struct BoardCreationInput {
     pub title: String,
     pub description: String,
     pub flags: Vec<u8>,
+}
+
+pub async fn fetch_boards (
+    sess: &Arc<UserSession>,
+    req: ServiceRequestFrame,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> ServiceResponseFrame {
+    // TODO: implement user filters & display by rank.
+
+    let boards = query_boards(conn_pool).await;
+
+    ServiceResponseFrame {
+        t: CREATE_BOARD_REQUEST,
+        c: SUCCESS,
+        b: serde_json::json!(boards).to_string(),
+    }
 }

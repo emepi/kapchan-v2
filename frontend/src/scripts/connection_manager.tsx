@@ -6,7 +6,7 @@ import {
   ServiceRequestFrame, 
   ServiceResponseFrame 
 } from "./service";
-import { boardServiceReceive } from "./board_service";
+import { boardServiceCallback, boardServiceReceive } from "./board_service";
 
 enum ConnectionStatus {
   Uninitialized = 0,
@@ -35,7 +35,7 @@ const connection_manager = {
     }],
     [2, {
       rcv: boardServiceReceive,
-      callback: boardServiceReceive,
+      callback: boardServiceCallback,
     }]
   ]),
   timeout: TIMEOUT_DEFAULT,

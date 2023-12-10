@@ -2,6 +2,7 @@ import { ServiceResponseFrame } from "./service";
 
 export enum BoardServiceType {
     CreateBoard = 1,
+    FetchBoards = 2,
 }
 
 let caller: Function;
@@ -22,6 +23,10 @@ export function boardServiceReceive(input: ServiceResponseFrame) {
         case BoardServiceType.CreateBoard:
             token = input.b;
 
+            break;
+        
+        case BoardServiceType.FetchBoards:
+            //callback
             break;
         
         default:
