@@ -156,7 +156,7 @@ pub async fn fetch_boards (
     let boards = query_boards(conn_pool).await;
 
     ServiceResponseFrame {
-        t: CREATE_BOARD_REQUEST,
+        t: FETCH_BOARDS_REQUEST,
         c: SUCCESS,
         b: serde_json::json!(boards).to_string(),
     }

@@ -26,7 +26,9 @@ export function boardServiceReceive(input: ServiceResponseFrame) {
             break;
         
         case BoardServiceType.FetchBoards:
-            //callback
+            if (caller) {
+                caller(input.b);
+            }
             break;
         
         default:
