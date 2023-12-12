@@ -41,6 +41,7 @@ const connection_manager = {
   timeout: TIMEOUT_DEFAULT,
   timeoutMax: 625000,
   timeoutMult: 5,
+  stack: [] as ServiceFrame[],
 }
 
 function connect(addr: string): WebSocket {
@@ -75,10 +76,15 @@ function reconnect() {
 }
 
 function onOpen(e: Event) {
-    connection_manager.status = ConnectionStatus.Ready;
-    setState({user: cookieSession()});
+  connection_manager.status = ConnectionStatus.Ready;
+  setState({user: cookieSession()});
     
-    console.log("Connected to server: ", e);
+  console.log("Connected to server: ", e);
+
+  // empty stack'
+  connection_manager.stack.forEach(frame => {
+    connection_manager.socket.send(JSON.stringify(frame));
+  });
 }
 
 function onError(e: Event) {
@@ -143,16 +149,21 @@ export function serviceRequest(
   request: ServiceRequestFrame,
   callback?: Function
 ) {
-    if (connection_manager.status === ConnectionStatus.Ready) {
-        let frame: ServiceFrame = {
-            s: service_id,
-            r: request,
-        }
-        
-        connection_manager.socket.send(JSON.stringify(frame));
-    }
+  let frame: ServiceFrame = {
+    s: service_id,
+    r: request,
+  }
 
-    if (callback) {
-      connection_manager.channels.get(service_id)?.callback(callback);
-    }
+  if (connection_manager.status === ConnectionStatus.Ready) {
+
+    connection_manager.socket.send(JSON.stringify(frame));
+  }
+
+  else {
+    connection_manager.stack.push(frame);
+  }
+
+  if (callback) {
+    connection_manager.channels.get(service_id)?.callback(callback);
+  }
 }

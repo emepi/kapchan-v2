@@ -41,6 +41,7 @@ function Sidebar() {
 
   return (
     <aside class="main-side">
+        <img class="logo" src={kapakkaLogo}></img>
         <h2>Kapchan-v2</h2>
         <nav class="sidebar-nav">
           <A href="/rules">Rules</A>
@@ -64,8 +65,6 @@ function Sidebar() {
         }</For>
 
         </nav>
-
-        <button onClick={fetchBoards}>fetch boards</button>
     </aside>
   )
 }
