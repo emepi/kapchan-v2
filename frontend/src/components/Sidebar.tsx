@@ -11,6 +11,15 @@ import { BoardServiceType } from "../scripts/board_service";
 import { createStore } from "solid-js/store";
 import { For } from "solid-js";
 
+interface Board {
+  created_at: string,
+  created_by: number,
+  description: string,
+  handle: string,
+  id: number,
+  title: string,
+};
+
 function Sidebar() {
   const [boards, setBoards] = createStore([]);
 
@@ -47,12 +56,10 @@ function Sidebar() {
         <nav class="sidebar-nav">
 
         <For each={boards} fallback={<p>loading..</p>}>{board => {
-          //let data = application as Application;
-
-          console.log(board);
+          let board_data = board[0] as Board;
       
           return(
-            <A href="/plc">/{board[0].handle}/ {board[0].title}</A>
+            <A href={"/".concat(board_data.handle)}>/{board_data.handle}/ {board_data.title}</A>
           )}
         }</For>
 
