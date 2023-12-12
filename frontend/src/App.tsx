@@ -5,6 +5,7 @@ import { Login } from './pages/Login'
 import Sidebar from './components/Sidebar'
 import { Application } from './pages/Application'
 import { Admin } from './pages/Admin'
+import { Boards } from './pages/Boards'
 
 function App() {
   return (
@@ -13,7 +14,7 @@ function App() {
       <Sidebar/>
       <main class="main-cont">
         <Routes>
-          <Route path="/" component={Placeholder} />
+          <Route path="/:board?" component={Boards} />
           <Route path="/login" component={Login} />
           <Route path="/apply" component={Application} />
           <Route path="/admin" component={Admin} />
