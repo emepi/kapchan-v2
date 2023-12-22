@@ -15,7 +15,7 @@ use serde_json::json;
 use crate::{server::{service::{
     WebsocketService,
     WebsocketServiceManager, ServiceRequestFrame, ServiceResponseFrame, 
-}, session::UpgradeSession}, user_service::{user::UserModel, authentication::hash_password_a2id}};
+}, session::UpgradeSession}, user_service::{user::UserModel, authentication::hash_password_a2id}, USER_SERVICE_ID};
 
 use self::{
     user::{User, AccessLevel}, 
@@ -24,8 +24,6 @@ use self::{
     application::{ApplicationModel, Application, list_applications, close_application}
 };
 
-
-pub const USER_SERVICE_ID: u32 = 1;
 
 // Service types (t) for input ServiceFrame
 pub const LOGIN_REQUEST: u32 = 1;

@@ -5,7 +5,6 @@ mod board_service;
 
 
 use std::{env, time::Instant, collections::HashMap, sync::Arc};
-
 use actix::{Actor, Addr};
 use actix_files::Files;
 use actix_web::{
@@ -38,6 +37,11 @@ use user_service::{
 };
 
 
+// Websocket service identifiers for message routing.
+pub const USER_SERVICE_ID: u32  = 1;
+pub const BOARD_SERVICE_ID: u32 = 2;
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Load environment variables.
@@ -55,8 +59,8 @@ async fn main() -> std::io::Result<()> {
             database: conn_pool.clone(),
         }
     )
-    .service::<UserService>()
-    .service::<BoardService>()
+    .service::<UserService>(USER_SERVICE_ID)
+    .service::<BoardService>(BOARD_SERVICE_ID)
     .start();
 
     HttpServer::new(move || {

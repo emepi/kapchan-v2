@@ -43,7 +43,7 @@ impl WebsocketServer {
         }
     }
 
-    pub fn service<S>(mut self) -> Self 
+    pub fn service<S>(mut self, srvc_id: u32) -> Self 
     where
         S: WebsocketService + 'static,
     {
@@ -55,7 +55,6 @@ impl WebsocketServer {
         );
 
         let srvc = S::new(srvc_mgr.clone(), self.database.clone());
-        let srvc_id = srvc.id();
 
 
         let service_actor = WebsocketServiceActor {

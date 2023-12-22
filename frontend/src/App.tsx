@@ -1,5 +1,4 @@
 import { Route, Routes } from '@solidjs/router'
-import Placeholder from './pages/Placeholder'
 import { Header } from './components/Header'
 import { Login } from './pages/Login'
 import Sidebar from './components/Sidebar'

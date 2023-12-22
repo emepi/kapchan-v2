@@ -14,13 +14,11 @@ use crate::{
         ServiceRequestFrame, 
         ServiceResponseFrame
     }, 
-    user_service::{session::UserSession, user::AccessLevel}, board_service::board::BoardFlagModel
+    user_service::{session::UserSession, user::AccessLevel}, board_service::board::BoardFlagModel, BOARD_SERVICE_ID
 };
 
 use self::board::{BoardModel, query_boards};
 
-
-pub const BOARD_SERVICE_ID: u32 = 2;
 
 // Service types (t) for input ServiceFrame
 pub const CREATE_BOARD_REQUEST: u32 = 1;
