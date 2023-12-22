@@ -12,9 +12,15 @@ use crate::{
         WebsocketService, 
         WebsocketServiceManager, 
         ServiceRequestFrame, 
-        ServiceResponseFrame
+        ServiceResponseFrame, 
+        INVALID_SERVICE_TYPE, 
+        NOT_ALLOWED, 
+        MALFORMATTED, 
+        SUCCESS
     }, 
-    user_service::{session::UserSession, user::AccessLevel}, board_service::board::BoardFlagModel, BOARD_SERVICE_ID
+    user_service::{session::UserSession, user::AccessLevel}, 
+    board_service::board::BoardFlagModel, 
+    BOARD_SERVICE_ID
 };
 
 use self::board::{BoardModel, query_boards};
@@ -23,15 +29,6 @@ use self::board::{BoardModel, query_boards};
 // Service types (t) for input ServiceFrame
 pub const CREATE_BOARD_REQUEST: u32 = 1;
 pub const FETCH_BOARDS_REQUEST: u32 = 2;
-
-// Service response types (c)
-pub const SUCCESS: u32 = 1;
-pub const FAILURE: u32 = 2;
-pub const NOT_FOUND: u32 = 3;
-pub const NOT_AVAILABLE: u32 = 4;
-pub const NOT_ALLOWED: u32 = 5;
-pub const MALFORMATTED: u32 = 6;
-pub const INVALID_SERVICE_TYPE: u32 = 7;
 
 
 pub struct BoardService {

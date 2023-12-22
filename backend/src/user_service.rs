@@ -12,10 +12,29 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{server::{service::{
-    WebsocketService,
-    WebsocketServiceManager, ServiceRequestFrame, ServiceResponseFrame, 
-}, session::UpgradeSession}, user_service::{user::UserModel, authentication::hash_password_a2id}, USER_SERVICE_ID};
+use crate::{
+    server::{
+        service::{
+            WebsocketService,
+            WebsocketServiceManager, 
+            ServiceRequestFrame, 
+            ServiceResponseFrame, 
+            INVALID_SERVICE_TYPE, 
+            MALFORMATTED, 
+            NOT_FOUND, 
+            SUCCESS, 
+            NOT_AVAILABLE, 
+            FAILURE, 
+            NOT_ALLOWED, 
+        }, 
+        session::UpgradeSession
+    }, 
+    user_service::{
+        user::UserModel, 
+        authentication::hash_password_a2id
+    }, 
+    USER_SERVICE_ID
+};
 
 use self::{
     user::{User, AccessLevel}, 
@@ -31,15 +50,6 @@ pub const LOGOUT_REQUEST: u32 = 2;
 pub const APPLICATION_REQUEST: u32 = 3;
 pub const APPLICATION_FETCH_REQUEST: u32 = 4;
 pub const APPLICATION_CLOSE_REQUEST: u32 = 5;
-
-// Service response types (c)
-pub const SUCCESS: u32 = 1;
-pub const FAILURE: u32 = 2;
-pub const NOT_FOUND: u32 = 3;
-pub const NOT_AVAILABLE: u32 = 4;
-pub const NOT_ALLOWED: u32 = 5;
-pub const MALFORMATTED: u32 = 6;
-pub const INVALID_SERVICE_TYPE: u32 = 7;
 
 
 pub struct UserService {
