@@ -41,7 +41,7 @@ impl WebsocketService for BoardService {
     fn new(
         srvc_mgr: Arc<Mutex<WebsocketServiceManager>>,
         conn_pool: Pool<AsyncMysqlConnection>,
-    ) -> Self where Self:Sized {
+    ) -> Self where Self: Sized {
 
         BoardService { 
             srvc_mgr, 

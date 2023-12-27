@@ -42,6 +42,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    files (id) {
+        id -> Unsigned<Integer>,
+        #[max_length = 32]
+        hash -> Varchar,
+        #[max_length = 200]
+        name -> Varchar,
+        #[max_length = 500]
+        location -> Varchar,
+        created_at -> Datetime,
+        uploaded_by -> Unsigned<Integer>,
+    }
+}
+
+diesel::table! {
     invites (id) {
         id -> Unsigned<Integer>,
         inviter_id -> Unsigned<Integer>,
@@ -84,6 +98,7 @@ diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
 diesel::joinable!(board_flags -> boards (board_id));
 diesel::joinable!(boards -> users (created_by));
+diesel::joinable!(files -> users (uploaded_by));
 diesel::joinable!(invites -> applications (application_id));
 diesel::joinable!(invites -> users (inviter_id));
 diesel::joinable!(sessions -> users (user_id));
@@ -93,6 +108,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     applications,
     board_flags,
     boards,
+    files,
     invites,
     sessions,
     users,
