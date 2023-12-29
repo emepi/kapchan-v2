@@ -44,6 +44,7 @@ diesel::table! {
 diesel::table! {
     files (id) {
         id -> Unsigned<Integer>,
+        access_level -> Unsigned<Tinyint>,
         #[max_length = 64]
         name -> Varchar,
         #[max_length = 32]
