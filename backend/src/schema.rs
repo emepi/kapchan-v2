@@ -44,11 +44,14 @@ diesel::table! {
 diesel::table! {
     files (id) {
         id -> Unsigned<Integer>,
+        #[max_length = 64]
+        name -> Varchar,
         #[max_length = 32]
         hash -> Varchar,
-        #[max_length = 200]
-        name -> Varchar,
-        #[max_length = 500]
+        #[sql_name = "type"]
+        type_ -> Unsigned<Smallint>,
+        size -> Unsigned<Integer>,
+        #[max_length = 512]
         location -> Varchar,
         created_at -> Datetime,
         uploaded_by -> Unsigned<Integer>,

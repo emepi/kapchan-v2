@@ -180,6 +180,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for WebsocketSession {
         .map(|msg| {
             self.last_activity = Instant::now();
 
+            // TODO: check and handle default max size 64KiB (continuation).
             match msg {
                 Message::Text(text) => {
                     info!("text {} from the user.", text);
