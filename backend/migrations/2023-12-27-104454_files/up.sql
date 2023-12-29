@@ -1,7 +1,7 @@
 CREATE TABLE files (
     id           INTEGER UNSIGNED  NOT NULL  AUTO_INCREMENT,
     name         VARCHAR(64)       NOT NULL,
-    hash         VARCHAR(32)       NOT NULL  UNIQUE,
+    hash         VARCHAR(32)       NOT NULL,
     type         SMALLINT UNSIGNED NOT NULL,
     size         INTEGER UNSIGNED  NOT NULL,
     location     VARCHAR(512)      NOT NULL,
