@@ -8,5 +8,5 @@ CREATE TABLE files (
     created_at   DATETIME          NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     uploaded_by  INTEGER UNSIGNED  NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (uploaded_by) REFERENCES users(id)
+    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
 );
