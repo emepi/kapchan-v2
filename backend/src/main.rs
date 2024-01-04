@@ -1,6 +1,7 @@
 pub mod schema;
 mod server;
 mod user_service;
+mod board_service;
 
 
 use std::{env, time::Instant, collections::HashMap, sync::Arc};
@@ -17,6 +18,7 @@ use actix_web::{
     http::{StatusCode, header}, cookie::{Cookie, self, SameSite}, web,
 };
 use actix_web_actors::ws;
+use board_service::BoardService;
 use diesel_async::{
     AsyncMysqlConnection,
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 
@@ -36,6 +38,11 @@ use user_service::{
 };
 
 
+// Websocket service identifiers for message routing.
+pub const USER_SERVICE_ID: u32  = 1;
+pub const BOARD_SERVICE_ID: u32 = 2;
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Load environment variables.
@@ -44,8 +51,7 @@ async fn main() -> std::io::Result<()> {
 
     let conn_pool = mysql_connection_pool();
 
-    setup_root_user(&conn_pool)
-    .await;
+    setup_root_user(&conn_pool).await;
 
     let server = WebsocketServer::new(
         ServerSettings {
@@ -53,7 +59,8 @@ async fn main() -> std::io::Result<()> {
             database: conn_pool.clone(),
         }
     )
-    .service::<UserService>()
+    .service::<UserService>(USER_SERVICE_ID)
+    .service::<BoardService>(BOARD_SERVICE_ID)
     .start();
 
     HttpServer::new(move || {
@@ -170,6 +177,23 @@ async fn websocket_connect(
     }
 }
 
+fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
+
+    let mysql_url = env::var("DATABASE_URL").expect(r#"
+        env variable `DATABASE_URL` must be set in `backend/.env`
+        see: .env.example
+    "#);
+
+    let mysql_connection_pool = Pool::builder(
+        AsyncDieselConnectionManager::<diesel_async::AsyncMysqlConnection>
+        ::new(mysql_url)
+    )
+    .build()
+    .expect("failed to establish connection pooling");
+
+    mysql_connection_pool
+}
+
 async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
 
     let root_pwd = env::var("ROOT_PASSWORD");
@@ -220,21 +244,4 @@ async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
 
         Err(_) => info!("Root user was not set."),
     }
-}
-
-fn mysql_connection_pool() -> Pool<AsyncMysqlConnection> {
-
-    let mysql_url = env::var("DATABASE_URL").expect(r#"
-        env variable `DATABASE_URL` must be set in `backend/.env`
-        see: .env.example
-    "#);
-
-    let mysql_connection_pool = Pool::builder(
-        AsyncDieselConnectionManager::<diesel_async::AsyncMysqlConnection>
-        ::new(mysql_url)
-    )
-    .build()
-    .expect("failed to establish connection pooling");
-
-    mysql_connection_pool
 }

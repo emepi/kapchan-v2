@@ -6,3 +6,8 @@
 .main-side {
     border-right: 3px solid black;
 }
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+}

@@ -22,6 +22,16 @@ use super::{session::{
 }, Reconnect, ConnectionResponse, Disconnect};
 
 
+// Service response types (c)
+pub const SUCCESS: u32 = 1;
+pub const FAILURE: u32 = 2;
+pub const NOT_FOUND: u32 = 3;
+pub const NOT_AVAILABLE: u32 = 4;
+pub const NOT_ALLOWED: u32 = 5;
+pub const MALFORMATTED: u32 = 6;
+pub const INVALID_SERVICE_TYPE: u32 = 7;
+
+
 #[async_trait]
 pub trait WebsocketService {
     fn new(

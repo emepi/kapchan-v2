@@ -6,6 +6,7 @@ import {
   ServiceRequestFrame, 
   ServiceResponseFrame 
 } from "./service";
+import { boardServiceCallback, boardServiceReceive } from "./board_service";
 
 enum ConnectionStatus {
   Uninitialized = 0,
@@ -19,6 +20,7 @@ enum CloseCode {
 
 export enum Service {
   UserService = 1,
+  BoardService = 2,
 }
 
 const TIMEOUT_DEFAULT = 1000;
@@ -31,10 +33,15 @@ const connection_manager = {
       rcv: userServiceReceive,
       callback: userServiceCallback,
     }],
+    [2, {
+      rcv: boardServiceReceive,
+      callback: boardServiceCallback,
+    }]
   ]),
   timeout: TIMEOUT_DEFAULT,
   timeoutMax: 625000,
   timeoutMult: 5,
+  stack: [] as ServiceFrame[],
 }
 
 function connect(addr: string): WebSocket {
@@ -69,10 +76,15 @@ function reconnect() {
 }
 
 function onOpen(e: Event) {
-    connection_manager.status = ConnectionStatus.Ready;
-    setState({user: cookieSession()});
+  connection_manager.status = ConnectionStatus.Ready;
+  setState({user: cookieSession()});
     
-    console.log("Connected to server: ", e);
+  console.log("Connected to server: ", e);
+
+  // empty stack'
+  connection_manager.stack.forEach(frame => {
+    connection_manager.socket.send(JSON.stringify(frame));
+  });
 }
 
 function onError(e: Event) {
@@ -90,6 +102,15 @@ function onMessage(e: MessageEvent) {
 
       if (channel) {
         channel(frame.r as ServiceResponseFrame);
+      }
+
+      break;
+    
+    case Service.BoardService:
+      let boardChannel = connection_manager.channels.get(Service.BoardService)?.rcv;
+
+      if (boardChannel) {
+        boardChannel(frame.r as ServiceResponseFrame);
       }
 
       break;
@@ -124,20 +145,25 @@ function onClose(e: CloseEvent) {
 }
 
 export function serviceRequest(
-  service_id: Number, 
+  service_id: number, 
   request: ServiceRequestFrame,
   callback?: Function
 ) {
-    if (connection_manager.status === ConnectionStatus.Ready) {
-        let frame: ServiceFrame = {
-            s: service_id,
-            r: request,
-        }
-        
-        connection_manager.socket.send(JSON.stringify(frame));
-    }
+  let frame: ServiceFrame = {
+    s: service_id,
+    r: request,
+  }
 
-    if (callback) {
-      connection_manager.channels.get(Service.UserService)?.callback(callback);
-    }
+  if (connection_manager.status === ConnectionStatus.Ready) {
+
+    connection_manager.socket.send(JSON.stringify(frame));
+  }
+
+  else {
+    connection_manager.stack.push(frame);
+  }
+
+  if (callback) {
+    connection_manager.channels.get(service_id)?.callback(callback);
+  }
 }

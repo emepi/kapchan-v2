@@ -1,4 +1,5 @@
 import { ApplicationBrowser } from "../components/ApplicationBrowser";
+import { BoardBrowser } from "../components/BoardBrowser";
 
 
 export function Admin() {
@@ -10,6 +11,7 @@ export function Admin() {
             <p>todo..</p>
           </section>
           <ApplicationBrowser />
+          <BoardBrowser />
         </div>
     )
 }
