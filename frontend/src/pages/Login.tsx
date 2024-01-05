@@ -1,5 +1,4 @@
 import { JSX, Show } from 'solid-js'
-import { serviceRequest } from '../scripts/connection_manager';
 import space from "../assets/12397866.435000004_space.jpg";
 import './Login.css'
 import { state } from '..';
@@ -11,11 +10,6 @@ export function Login() {
     e.preventDefault();
 
     let data = new FormData(e.target as HTMLFormElement);
-
-    serviceRequest(1, {
-      t: 1,
-      b: JSON.stringify(Object.fromEntries(data)),
-    });
   }
 
   return (

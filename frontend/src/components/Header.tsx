@@ -6,17 +6,12 @@ import { Show } from 'solid-js'
 import './Header.css'
 import { state } from '..'
 import { UserRole } from '../scripts/user'
-import { Service, serviceRequest } from '../scripts/connection_manager'
-import { UserServiceType } from '../scripts/user_service'
 
 
 export function Header() {
   
   const logoutRequest = () => {
-    serviceRequest(Service.UserService, {
-      t: UserServiceType.Logout,
-      b: ""
-    });
+
   };
 
   return (

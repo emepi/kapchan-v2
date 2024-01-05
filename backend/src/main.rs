@@ -27,7 +27,6 @@ use dotenvy::dotenv;
 use log::info;
 use server::{WebsocketServer, session::WebsocketSession, ServerSettings};
 use user_service::{
-    UserService, 
     user::{UserModel, AccessLevel, User}, 
     authentication::{
         validate_session_id, 
@@ -53,27 +52,28 @@ async fn main() -> std::io::Result<()> {
 
     setup_root_user(&conn_pool).await;
 
-    let server = WebsocketServer::new(
-        ServerSettings {
-            max_sessions: 100,
-            database: conn_pool.clone(),
-        }
-    )
-    .service::<UserService>(USER_SERVICE_ID)
-    .service::<BoardService>(BOARD_SERVICE_ID)
-    .start();
+    //let server = WebsocketServer::new(
+    //    ServerSettings {
+    //        max_sessions: 100,
+    //        database: conn_pool.clone(),
+    //    }
+    //)
+    //.service::<UserService>(USER_SERVICE_ID)
+    //.service::<BoardService>(BOARD_SERVICE_ID)
+    //.start();
 
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(conn_pool.clone()))
-        .app_data(web::Data::new(server.clone()))
-        .route("/ws", web::get().to(websocket_connect))
-        .service(
-            Files::new("/", "../frontend/dist")
-                .show_files_listing()
-                .index_file("index.html")
-                .use_last_modified(true),
-        )
+        .configure(user_service::endpoints)
+        //.app_data(web::Data::new(server.clone()))
+        //.route("/ws", web::get().to(websocket_connect))
+        //.service(
+        //    Files::new("/", "../frontend/dist")
+        //        .show_files_listing()
+        //        .index_file("index.html")
+        //        .use_last_modified(true),
+        //)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

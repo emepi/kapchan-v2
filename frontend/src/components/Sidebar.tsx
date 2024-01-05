@@ -6,8 +6,6 @@
 import { A } from "@solidjs/router";
 import kapakkaLogo from '/src/assets/logo.png'
 import './Sidebar.css'
-import { Service, serviceRequest } from "../scripts/connection_manager";
-import { BoardServiceType } from "../scripts/board_service";
 import { createStore } from "solid-js/store";
 import { For } from "solid-js";
 
@@ -24,10 +22,7 @@ function Sidebar() {
   const [boards, setBoards] = createStore([]);
 
   const fetchBoards = () => {
-    serviceRequest(Service.BoardService, {
-      t: BoardServiceType.FetchBoards,
-      b: JSON.stringify("")
-    }, updateBoards);
+    
   };
 
   const updateBoards = (b: string) => {
