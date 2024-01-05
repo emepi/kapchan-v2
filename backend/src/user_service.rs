@@ -13,6 +13,8 @@ use diesel_async::{
     AsyncMysqlConnection, 
     AsyncConnection, scoped_futures::ScopedFutureExt
 };
+use log::info;
+use serde::Deserialize;
 
 use crate::schema::users;
 
@@ -26,24 +28,48 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
 }
 
 
+#[derive(Debug, Deserialize)]
+struct UsersQuery {
+   pub page: Option<u32>,
+   pub size: Option<u32>,
+}
+
 async fn users(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    query: web::Query<UsersQuery>
 ) -> impl Responder {
+
+    let page = match query.page {
+        Some(page) => page,
+        None => 0,
+    };
+
+    let page_size = match query.size {
+        Some(size) => {
+            // Max page size.
+            if size > 50 {
+                return HttpResponse::BadRequest().finish();
+            }
+
+            size
+        },
+        None => 50,
+    };
 
     let users = match conn_pool.get().await {
         Ok(mut conn) => {
             conn.transaction::<_, Error, _>(|conn| async move {
                 let users = users::table
                 .select((
-                    users::access_level, 
-                    users::created_at, 
-                    users::email, 
-                    users::id, 
-                    users::username
+                    users::id,
+                    users::access_level,
+                    users::username,  
+                    users::email,  
+                    users::created_at,
                 ))
-                .limit(50)  // page size
-                .offset(0)  // page * page size
-                .load::<(u8, NaiveDateTime, Option<String>, u32, Option<String>)>(conn)
+                .limit(page_size.into())
+                .offset((page * page_size).into())
+                .load::<(u32, u8, Option<String>, Option<String>, NaiveDateTime)>(conn)
                 .await?;
 
                 Ok(users)
@@ -57,6 +83,11 @@ async fn users(
 
     match users {
         Some(users) => {
+            // Change response code to 404 on no matches.
+            if page_size > 0 && users.len() == 0 {
+                return HttpResponse::NotFound().finish();
+            }
+
             HttpResponse::Ok().json(serde_json::json!(users))
         },
 
