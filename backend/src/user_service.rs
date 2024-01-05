@@ -5,7 +5,7 @@ pub mod user;
 
 
 use actix_web::{web, HttpResponse, Responder};
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, offset};
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     RunQueryDsl, 
@@ -23,15 +23,16 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
     .service(
         web::resource("/users")
-            .route(web::get().to(users))
+        .route(web::get().to(users))
     );
 }
 
 
 #[derive(Debug, Deserialize)]
 struct UsersQuery {
-   pub page: Option<u32>,
-   pub size: Option<u32>,
+   pub offset: Option<u32>,
+   pub limit: Option<u32>,
+   pub role: Option<u8>,
    pub username: Option<String>,
 }
 
@@ -40,19 +41,19 @@ async fn users(
     query: web::Query<UsersQuery>
 ) -> impl Responder {
 
-    let page = match query.page {
-        Some(page) => page,
+    let offset = match query.offset {
+        Some(offset) => offset,
         None => 0,
     };
 
-    let page_size = match query.size {
-        Some(size) => {
+    let limit = match query.limit {
+        Some(limit) => {
             // Max page size.
-            if size > 50 {
+            if limit > 50 {
                 return HttpResponse::BadRequest().finish();
             }
 
-            size
+            limit
         },
         None => 50,
     };
@@ -61,12 +62,29 @@ async fn users(
         Ok(mut conn) => {
             conn.transaction::<_, Error, _>(|conn| async move {
                 let mut db_query = users::table.into_boxed();
+                let mut count_query = users::table.into_boxed();
+
+                if let Some(role) = query.role {
+                    db_query = db_query.filter(
+                        users::access_level.ge(role)
+                    );
+                    count_query = count_query.filter(
+                        users::access_level.ge(role)
+                    );
+                }
 
                 if let Some(username) = &query.username {
                     db_query = db_query.filter(
                         users::username.like(format!("{}%", username))
                     );
+                    count_query = count_query.filter(
+                        users::username.like(format!("{}%", username))
+                    );
                 }
+
+                let total_count: i64 = count_query.count()
+                .get_result(conn)
+                .await?;
 
                 let users = db_query.select((
                     users::id,
@@ -75,12 +93,12 @@ async fn users(
                     users::email,  
                     users::created_at,
                 ))
-                .limit(page_size.into())
-                .offset((page * page_size).into())
+                .limit(limit.into())
+                .offset(offset.into())
                 .load::<(u32, u8, Option<String>, Option<String>, NaiveDateTime)>(conn)
                 .await?;
 
-                Ok(users)
+                Ok((total_count, users))
             }.scope_boxed())
             .await
         },
@@ -95,11 +113,13 @@ async fn users(
     match users {
         Ok(users) => {
             // Change response code to 404 on no matches.
-            if page_size > 0 && users.len() == 0 {
+            if limit > 0 && users.1.len() == 0 {
                 return HttpResponse::NotFound().finish();
             }
 
-            HttpResponse::Ok().json(serde_json::json!(users))
+            HttpResponse::Ok()
+            .insert_header(("X-Total-Count", users.0))
+            .json(serde_json::json!(users.1))
         },
 
         Err(err) => {
