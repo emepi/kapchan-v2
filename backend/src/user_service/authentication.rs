@@ -51,6 +51,19 @@ pub fn validate_session_id(token: &str) -> Option<u32> {
     claims.sub.parse::<u32>().ok()
 }
 
+pub fn validate_claims(token: &str) -> Option<Claims> {
+    let jwt_secret = env::var("JWT_SECRET")
+    .expect(".env variable `JWT_SECRET` must be set");
+
+    decode::<Claims>(
+        token, 
+        &DecodingKey::from_secret(jwt_secret.as_ref()), 
+        &Validation::default(),
+    )
+    .ok()
+    .map(|data| data.claims)
+}
+
 pub fn create_authentication_token(
     sess_id: u32, 
     access_level: u8

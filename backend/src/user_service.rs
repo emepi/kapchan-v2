@@ -4,8 +4,8 @@ pub mod session;
 pub mod user;
 
 
-use actix_web::{web, HttpResponse, Responder};
-use chrono::{NaiveDateTime, offset};
+use actix_web::{web, HttpResponse, Responder, HttpRequest, http::header};
+use chrono::NaiveDateTime;
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     RunQueryDsl, 
@@ -17,6 +17,8 @@ use log::error;
 use serde::Deserialize;
 
 use crate::schema::users;
+
+use self::{authentication::validate_claims, user::AccessLevel};
 
 
 pub fn endpoints(cfg: &mut web::ServiceConfig) {
@@ -38,8 +40,30 @@ struct UsersQuery {
 
 async fn users(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
     query: web::Query<UsersQuery>
 ) -> impl Responder {
+
+    if let Some(auth_token) = req.headers().get(header::AUTHORIZATION) {
+        let auth_token = match auth_token.to_str() {
+            Ok(token) => token,
+            Err(_) => return HttpResponse::NotAcceptable().finish(),
+        };
+
+        let claims = match validate_claims(auth_token) {
+            Some(claims) => claims,
+
+            // Expired or invalid token.
+            None => return HttpResponse::Unauthorized().finish(),
+        };
+
+        if claims.role < AccessLevel::Admin as u8 {
+            return HttpResponse::Forbidden().finish();
+        }
+
+    } else {
+        return HttpResponse::Unauthorized().finish();
+    }
 
     let offset = match query.offset {
         Some(offset) => offset,
