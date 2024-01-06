@@ -18,7 +18,6 @@ use actix_web::{
     http::{StatusCode, header}, cookie::{Cookie, self, SameSite}, web,
 };
 use actix_web_actors::ws;
-use board_service::BoardService;
 use diesel_async::{
     AsyncMysqlConnection,
     pooled_connection::{AsyncDieselConnectionManager, deadpool::Pool}, 

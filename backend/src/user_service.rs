@@ -13,22 +13,175 @@ use diesel_async::{
     AsyncMysqlConnection, 
     AsyncConnection, scoped_futures::ScopedFutureExt
 };
-use log::error;
+use log::{error, info};
 use serde::Deserialize;
 
-use crate::schema::users;
+use crate::schema::{users, sessions};
 
-use self::{authentication::validate_claims, user::AccessLevel};
+use self::{authentication::{validate_claims, validate_password_a2id, create_authentication_token}, user::{AccessLevel, User}, session::{UserSessionModel, UserSession}};
 
 
 pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
+    .service(
+        web::resource("/sessions")
+        .route(web::post().to(create_session))
+    )
     .service(
         web::resource("/users")
         .route(web::get().to(users))
     );
 }
 
+
+#[derive(Debug, Deserialize)]
+struct LoginInfo {
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub password: String,
+}
+
+async fn create_session(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    login: Option<web::Json<LoginInfo>>,
+    req: HttpRequest,
+) -> impl Responder {
+
+    let user = match login {
+        Some(login_info) => {
+
+            let password = login_info.password.clone();
+
+            // Fetch user by username or email.
+            let user = match conn_pool.get().await {
+                Ok(mut conn) => {
+                    conn.transaction::<_, Error, _>(|conn| async move {
+
+                        let mut user: Option<User> = None;
+                        let db_query = users::table.into_boxed();
+
+                        if let Some(username) = &login_info.username {
+                            user = db_query.filter(users::username.eq(username))
+                            .first::<User>(conn)
+                            .await
+                            .ok();
+                        } else if let Some(email) = &login_info.email {
+                            user = db_query.filter(users::email.eq(email))
+                            .first::<User>(conn)
+                            .await
+                            .ok();
+                        }
+
+                        Ok(user)
+                    }.scope_boxed())
+                    .await
+                },
+        
+                Err(err) => {
+                    error!("Connection pool reported an error.\n {:?}", err);
+        
+                    return HttpResponse::InternalServerError().finish();
+                },
+            };
+
+            match user {
+                Ok(user) => {
+                    match user {
+                        Some(user) => {
+                            //TODO: make password not null
+                            if let Some(hash) = &user.password_hash {
+                                match validate_password_a2id(&hash, &password) {
+                                    true => Some(user),
+                                    false => return HttpResponse::Unauthorized()
+                                    .finish(),
+                                }
+                            } else {
+                                None
+                            }
+                        },
+
+                        None => return HttpResponse::NotFound().finish(),
+                    }
+                },
+
+                Err(err) => {
+                    error!("Error with a database query for user.\n {:?}", err);
+        
+                    return HttpResponse::InternalServerError().finish();
+                },
+            }
+        },
+
+        None => None,
+    };
+
+    let ip_address = req.peer_addr().map(|addr| addr.ip().to_string());
+            
+    let user_agent = req.headers().get(header::USER_AGENT)
+    .and_then(|header| header.to_str().ok());
+
+    let mut access_level = AccessLevel::Anonymous as u8;
+
+    let mut user_id: Option<u32> = None;
+
+    if let Some(user) = user {
+        access_level = user.access_level;
+        user_id = Some(user.id);
+    }
+
+    let session = UserSessionModel {
+        user_id,
+        access_level,
+        mode: 1,
+        ip_address: ip_address.as_deref(),
+        user_agent,
+        ended_at: None,
+    };
+
+    let session = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let _ = diesel::insert_into(sessions::table)
+                .values(session)
+                .execute(conn)
+                .await?;
+            
+                let user_session = sessions::table
+                .find(last_insert_id())
+                .first::<UserSession>(conn)
+                .await?;
+
+                Ok(user_session)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match session {
+        Ok(session) => {
+            if let Some(token) = create_authentication_token(session.id, session.access_level) {
+                return HttpResponse::Ok()
+                .insert_header((header::AUTHORIZATION, token))
+                .finish();
+            } else {
+                // Token creation failed.
+                return HttpResponse::InternalServerError().finish();
+            }
+        },
+
+        Err(err) => {
+            error!("Error with a database insert for session.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    }
+}
 
 #[derive(Debug, Deserialize)]
 struct UsersQuery {
@@ -153,3 +306,5 @@ async fn users(
         },
     }
 }
+
+sql_function!(fn last_insert_id() -> Unsigned<Integer>);

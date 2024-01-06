@@ -17,7 +17,7 @@ use super::authentication::validate_session_id;
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct UserSession {
     pub id: u32,
-    pub user_id: u32,
+    pub user_id: Option<u32>,
     pub access_level: u8,
     pub mode: u8,
     pub ip_address: Option<String>,
@@ -91,7 +91,7 @@ impl UserSession {
 #[derive(Insertable)]
 #[diesel(table_name = sessions)]
 pub struct UserSessionModel<'a> {
-    pub user_id: u32,
+    pub user_id: Option<u32>,
     pub access_level: u8,
     pub mode: u8,
     pub ip_address: Option<&'a str>,

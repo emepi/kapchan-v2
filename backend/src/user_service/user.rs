@@ -1,3 +1,4 @@
+use actix_web::HttpResponse;
 use chrono::NaiveDateTime;
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
@@ -75,7 +76,7 @@ impl User {
     ) -> Option<UserSession> {
 
         let session_model = UserSessionModel {
-            user_id: self.id,
+            user_id: Some(self.id),
             access_level: self.access_level,
             mode: 1,
             ip_address: ip_address,

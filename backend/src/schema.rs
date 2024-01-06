@@ -71,7 +71,7 @@ diesel::table! {
 diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
-        user_id -> Unsigned<Integer>,
+        user_id -> Nullable<Unsigned<Integer>>,
         access_level -> Unsigned<Tinyint>,
         mode -> Unsigned<Tinyint>,
         #[max_length = 45]
