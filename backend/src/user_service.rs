@@ -13,8 +13,8 @@ use diesel_async::{
     AsyncMysqlConnection, 
     AsyncConnection, scoped_futures::ScopedFutureExt
 };
-use log::{error, info};
-use serde::Deserialize;
+use log::error;
+use serde::{Deserialize, Serialize};
 
 use crate::schema::{users, sessions};
 
@@ -47,6 +47,11 @@ struct LoginInfo {
     pub username: Option<String>,
     pub email: Option<String>,
     pub password: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SessionResponse {
+    pub access_token: String,
 }
 
 async fn create_session(
@@ -169,9 +174,9 @@ async fn create_session(
     match session {
         Ok(session) => {
             if let Some(token) = create_authentication_token(session.id, session.access_level) {
-                return HttpResponse::Ok()
-                .insert_header((header::AUTHORIZATION, token))
-                .finish();
+                return HttpResponse::Ok().json(SessionResponse {
+                    access_token: token,
+                });
             } else {
                 // Token creation failed.
                 return HttpResponse::InternalServerError().finish();

@@ -16,6 +16,7 @@ use jsonwebtoken::{
     Header, 
     encode
 };
+use regex::Regex;
 use serde::{Serialize, Deserialize};
 
 
@@ -55,13 +56,20 @@ pub fn validate_claims(token: &str) -> Option<Claims> {
     let jwt_secret = env::var("JWT_SECRET")
     .expect(".env variable `JWT_SECRET` must be set");
 
-    decode::<Claims>(
-        token, 
-        &DecodingKey::from_secret(jwt_secret.as_ref()), 
-        &Validation::default(),
-    )
-    .ok()
-    .map(|data| data.claims)
+    let bearer_scheme = Regex::new(r"Bearer (?<token>\w.+)").unwrap();
+
+    match bearer_scheme.captures(token) {
+        Some(capture) => {
+            decode::<Claims>(
+                &capture["token"], 
+                &DecodingKey::from_secret(jwt_secret.as_ref()), 
+                &Validation::default(),
+            )
+            .ok()
+            .map(|data| data.claims)
+        },
+        None => None,
+    }
 }
 
 pub fn create_authentication_token(
