@@ -18,7 +18,15 @@ use serde::Deserialize;
 
 use crate::schema::{users, sessions};
 
-use self::{authentication::{validate_claims, validate_password_a2id, create_authentication_token}, user::{AccessLevel, User}, session::{UserSessionModel, UserSession}};
+use self::{
+    authentication::{
+        validate_claims, 
+        validate_password_a2id, 
+        create_authentication_token
+    }, 
+    user::{AccessLevel, User}, 
+    session::{UserSessionModel, UserSession}
+};
 
 
 pub fn endpoints(cfg: &mut web::ServiceConfig) {
@@ -88,15 +96,10 @@ async fn create_session(
                 Ok(user) => {
                     match user {
                         Some(user) => {
-                            //TODO: make password not null
-                            if let Some(hash) = &user.password_hash {
-                                match validate_password_a2id(&hash, &password) {
-                                    true => Some(user),
-                                    false => return HttpResponse::Unauthorized()
-                                    .finish(),
-                                }
-                            } else {
-                                None
+                            match validate_password_a2id(&user.password_hash, &password) {
+                                true => Some(user),
+                                false => return HttpResponse::Unauthorized()
+                                .finish(),
                             }
                         },
 
@@ -272,7 +275,7 @@ async fn users(
                 ))
                 .limit(limit.into())
                 .offset(offset.into())
-                .load::<(u32, u8, Option<String>, Option<String>, NaiveDateTime)>(conn)
+                .load::<(u32, u8, String, Option<String>, NaiveDateTime)>(conn)
                 .await?;
 
                 Ok((total_count, users))

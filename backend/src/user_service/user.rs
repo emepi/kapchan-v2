@@ -34,9 +34,9 @@ pub enum AccessLevel {
 pub struct User {
     pub id: u32,
     pub access_level: u8,
-    pub username: Option<String>,
+    pub username: String,
     pub email: Option<String>,
-    pub password_hash: Option<String>,
+    pub password_hash: String,
     pub created_at: NaiveDateTime,
 }
 
@@ -150,20 +150,9 @@ impl User {
 #[diesel(table_name = users)]
 pub struct UserModel<'a> {
     pub access_level: u8,
-    pub username: Option<&'a str>,
+    pub username: &'a str,
     pub email: Option<&'a str>,
-    pub password_hash: Option<&'a str>,
-}
-
-impl Default for UserModel<'_> {
-    fn default() -> Self {
-        Self {
-            access_level: AccessLevel::Anonymous as u8, 
-            username: None,
-            email: None,
-            password_hash: None,
-        }
-    }
+    pub password_hash: &'a str,
 }
 
 impl UserModel<'_> {
