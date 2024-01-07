@@ -5,12 +5,12 @@ import { createStore } from 'solid-js/store';
 
 import './index.css'
 import App from './App'
-import { cookieSession } from './scripts/cookies';
 import { anonUser } from './scripts/user';
+import { userSession } from './scripts/credentials';
 
 
 export const [state, setState] = createStore({
-  user: cookieSession() ?? anonUser,
+  user: userSession() ?? anonUser,
 });
 
 
