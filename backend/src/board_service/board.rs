@@ -17,6 +17,7 @@ use crate::schema::{boards, board_flags};
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Board {
     pub id: u32,
+    pub board_group: Option<u32>,
     pub handle: String,
     pub title: String,
     pub description: Option<String>,
@@ -28,6 +29,7 @@ pub struct Board {
 #[derive(Insertable)]
 #[diesel(table_name = boards)]
 pub struct BoardModel<'a> {
+    pub board_group: Option<u32>,
     pub handle: &'a str,
     pub title: &'a str,
     pub description: &'a str,

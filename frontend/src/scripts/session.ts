@@ -52,6 +52,15 @@ export const loadSession = async () => {
   }
 }
 
+export const endSession = async () => {
+  apiFetch("/sessions/" + userSession()?.sub, {
+    method: "PUT",
+    body: JSON.stringify({
+      continue_session: false,
+    }),
+  })
+}
+
 export interface Session {
   exp: number,          // Expiration time (as UTC timestamp)
   iat: number,          // Issued at (as UTC timestamp)

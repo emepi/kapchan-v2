@@ -4,7 +4,7 @@
 import { A } from '@solidjs/router'
 import { Show, useContext } from 'solid-js'
 import './Header.css'
-import { startSession, userSession } from '../scripts/session';
+import { endSession, startSession, userSession } from '../scripts/session';
 import { AccessLevel } from '../scripts/user';
 import { setState, state } from '..';
 
@@ -12,6 +12,8 @@ import { setState, state } from '..';
 export function Header() {
 
   const logout = () => {
+    endSession();
+
     startSession()
     .then((res) => setState("session", userSession()))
     .catch((err) => console.log(err));

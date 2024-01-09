@@ -61,7 +61,6 @@ struct SessionResponse {
 async fn create_session(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
     login: Option<web::Json<LoginInfo>>,
-    req: HttpRequest,
 ) -> impl Responder {
 
     let user = match login {
