@@ -20,8 +20,6 @@ pub struct UserSession {
     pub user_id: Option<u32>,
     pub access_level: u8,
     pub mode: u8,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
     pub created_at: NaiveDateTime,
     pub ended_at: Option<NaiveDateTime>,
 }
@@ -94,8 +92,6 @@ pub struct UserSessionModel<'a> {
     pub user_id: Option<u32>,
     pub access_level: u8,
     pub mode: u8,
-    pub ip_address: Option<&'a str>,
-    pub user_agent: Option<&'a str>,
     pub ended_at: Option<&'a NaiveDateTime>,
 }
 

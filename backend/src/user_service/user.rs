@@ -70,8 +70,6 @@ impl User {
 
     pub async fn create_session(
         &self,
-        ip_address: Option<&str>,
-        user_agent: Option<&str>,
         db: &Pool<AsyncMysqlConnection>,
     ) -> Option<UserSession> {
 
@@ -79,8 +77,6 @@ impl User {
             user_id: Some(self.id),
             access_level: self.access_level,
             mode: 1,
-            ip_address: ip_address,
-            user_agent: user_agent,
             ended_at: None,
         };
 

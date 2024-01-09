@@ -1,6 +1,5 @@
 import { JSX, Show } from "solid-js";
-import { state } from "..";
-import { UserRole } from "../scripts/user";
+//import { state } from "..";
 import './BoardBrowser.css';
 
 export function BoardBrowser() {
@@ -14,7 +13,7 @@ export function BoardBrowser() {
   return (
     <div class="board-brwsr">
       <h3>Board Browser</h3>
-      <Show when={state.user.role >= UserRole.Owner}>
+      <Show when={true}>
         <form class="board-crt" onSubmit={boardHandler}>
 
           <input

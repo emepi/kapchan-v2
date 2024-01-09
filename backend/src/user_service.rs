@@ -13,7 +13,7 @@ use diesel_async::{
     AsyncMysqlConnection, 
     AsyncConnection, scoped_futures::ScopedFutureExt
 };
-use log::error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::schema::{users, sessions};
@@ -34,6 +34,10 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/sessions")
         .route(web::post().to(create_session))
+    )
+    .service(
+        web::resource("/sessions/{id}")
+        .route(web::put().to(update_session))
     )
     .service(
         web::resource("/users")
@@ -62,7 +66,6 @@ async fn create_session(
 
     let user = match login {
         Some(login_info) => {
-
             let password = login_info.password.clone();
 
             // Fetch user by username or email.
@@ -123,11 +126,6 @@ async fn create_session(
         None => None,
     };
 
-    let ip_address = req.peer_addr().map(|addr| addr.ip().to_string());
-            
-    let user_agent = req.headers().get(header::USER_AGENT)
-    .and_then(|header| header.to_str().ok());
-
     let mut access_level = AccessLevel::Anonymous as u8;
 
     let mut user_id: Option<u32> = None;
@@ -141,8 +139,6 @@ async fn create_session(
         user_id,
         access_level,
         mode: 1,
-        ip_address: ip_address.as_deref(),
-        user_agent,
         ended_at: None,
     };
 
@@ -174,7 +170,7 @@ async fn create_session(
     match session {
         Ok(session) => {
             if let Some(token) = create_authentication_token(session.id, session.access_level) {
-                return HttpResponse::Ok().json(SessionResponse {
+                return HttpResponse::Created().json(SessionResponse {
                     access_token: token,
                 });
             } else {
@@ -189,6 +185,24 @@ async fn create_session(
             return HttpResponse::InternalServerError().finish();
         },
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct SessionOptions {
+    pub access_level: Option<u8>,
+    pub continue_session: bool,
+    pub mode: Option<u8>,
+}
+
+async fn update_session(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    path: web::Path<u32>,
+    req: HttpRequest,
+    sess_opt: web::Json<SessionOptions>,
+) -> impl Responder {
+    info!("{}", path.into_inner());
+
+    HttpResponse::NotFound().finish()
 }
 
 #[derive(Debug, Deserialize)]

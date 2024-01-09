@@ -1,3 +1,8 @@
+.apply-page {
+  padding: 15px;
+  color: var(--secondary);
+}
+
 .apply-form {
     display: flex;
     flex-direction: column;

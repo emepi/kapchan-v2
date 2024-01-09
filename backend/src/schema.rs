@@ -74,10 +74,6 @@ diesel::table! {
         user_id -> Nullable<Unsigned<Integer>>,
         access_level -> Unsigned<Tinyint>,
         mode -> Unsigned<Tinyint>,
-        #[max_length = 45]
-        ip_address -> Nullable<Varchar>,
-        #[max_length = 512]
-        user_agent -> Nullable<Varchar>,
         created_at -> Datetime,
         ended_at -> Nullable<Datetime>,
     }

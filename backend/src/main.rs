@@ -6,6 +6,7 @@ mod board_service;
 
 use std::env;
 
+use actix_files::Files;
 use actix_web::{HttpServer, App, web};
 use diesel_async::{
     AsyncMysqlConnection,
@@ -50,12 +51,12 @@ async fn main() -> std::io::Result<()> {
         .configure(user_service::endpoints)
         //.app_data(web::Data::new(server.clone()))
         //.route("/ws", web::get().to(websocket_connect))
-        //.service(
-        //    Files::new("/", "../frontend/dist")
-        //        .show_files_listing()
-        //        .index_file("index.html")
-        //        .use_last_modified(true),
-        //)
+        .service(
+            Files::new("/", "../frontend/dist")
+                .show_files_listing()
+                .index_file("index.html")
+                .use_last_modified(true),
+        )
     })
     .bind(("127.0.0.1", 8080))?
     .run()
