@@ -5,7 +5,7 @@ pub mod user;
 
 
 use actix_web::{web, HttpResponse, Responder, HttpRequest, http::header};
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     RunQueryDsl, 
@@ -194,15 +194,91 @@ struct SessionOptions {
     pub mode: Option<u8>,
 }
 
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = sessions)]
+pub struct SessionUpdate {
+    pub access_level: Option<u8>,
+    pub mode: Option<u8>,
+    pub ended_at: Option<NaiveDateTime>,
+}
+
 async fn update_session(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
     path: web::Path<u32>,
     req: HttpRequest,
     sess_opt: web::Json<SessionOptions>,
 ) -> impl Responder {
-    info!("{}", path.into_inner());
 
-    HttpResponse::NotFound().finish()
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::NotFound().finish(),
+    };
+
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let curr_sess_id = match claims.sub.parse::<u32>() {
+        Ok(id) => id,
+        Err(_) => return HttpResponse::NotAcceptable().finish(),
+    };
+
+    // Allow only self modification unless user is root.
+    if (path.into_inner() != curr_sess_id) && (claims.role != AccessLevel::Root as u8) {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    // Allow access level modifications only for below access current level.
+    if sess_opt.access_level.is_some() && sess_opt.access_level.unwrap() > claims.role {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let sess_changes = SessionUpdate {
+        access_level: sess_opt.access_level,
+        mode: sess_opt.mode,
+        ended_at: match sess_opt.continue_session {
+            true => None,
+            false => Some(Utc::now().naive_utc()),
+        },
+    };
+
+    let res = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let res: usize = diesel::update(sessions::table.find(curr_sess_id))
+                .set(sess_changes)
+                .execute(conn)
+                .await?;
+
+                Ok(res)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match res {
+        Ok(res) => {
+            HttpResponse::Ok()
+            .insert_header(("X-Total-Count", res))
+            .finish()
+        },
+
+        Err(err) => {
+            error!("Error with a database update for session.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
+        },
+    }
 }
 
 #[derive(Debug, Deserialize)]

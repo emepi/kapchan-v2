@@ -86,7 +86,7 @@ impl UserSession {
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = sessions)]
 pub struct UserSessionModel<'a> {
     pub user_id: Option<u32>,
