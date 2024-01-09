@@ -25,7 +25,7 @@ use self::{
         create_authentication_token
     }, 
     user::{AccessLevel, User}, 
-    session::{UserSessionModel, UserSession}
+    session::{UserSessionModel, UserSession, is_active_session}
 };
 
 
@@ -227,6 +227,10 @@ async fn update_session(
         Err(_) => return HttpResponse::NotAcceptable().finish(),
     };
 
+    if !is_active_session(curr_sess_id, &conn_pool).await {
+        return HttpResponse::Unauthorized().finish();
+    }
+
     // Allow only self modification unless user is root.
     if (path.into_inner() != curr_sess_id) && (claims.role != AccessLevel::Root as u8) {
         return HttpResponse::Forbidden().finish();
@@ -307,6 +311,15 @@ async fn users(
             // Expired or invalid token.
             None => return HttpResponse::Unauthorized().finish(),
         };
+
+        let curr_sess_id = match claims.sub.parse::<u32>() {
+            Ok(id) => id,
+            Err(_) => return HttpResponse::NotAcceptable().finish(),
+        };
+
+        if !is_active_session(curr_sess_id, &conn_pool).await {
+            return HttpResponse::Unauthorized().finish();
+        }
 
         if claims.role < AccessLevel::Admin as u8 {
             return HttpResponse::Forbidden().finish();

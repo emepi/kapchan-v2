@@ -120,5 +120,15 @@ pub async fn active_sessions_by_user_id(
     }
 }
 
+pub async fn is_active_session(
+    sess_id: u32,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> bool {
+    match UserSession::by_id(sess_id, conn_pool).await {
+        Some(sess) => sess.valid(),
+        None => false,
+    }
+}
+
 
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);
