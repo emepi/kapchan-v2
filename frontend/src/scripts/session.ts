@@ -18,9 +18,9 @@ export const startSession = async (user?: LoginInfo): Promise<number> => {
     method: "POST",
     body: (user?.email || user?.username) ? JSON.stringify(user) : undefined,
   })
-  .then((res) => {
+  .then(async (res) => {
     if (res.ok) {
-      res.json()
+      await res.json()
       .then((data: SessionResponse) => replaceSession(data.access_token));
     }
 

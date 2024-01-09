@@ -6,16 +6,22 @@ import { Show, useContext } from 'solid-js'
 import './Header.css'
 import { endSession, startSession, userSession } from '../scripts/session';
 import { AccessLevel } from '../scripts/user';
-import { setState, state } from '..';
+import { role, setRole } from '..';
 
 
 export function Header() {
 
-  const logout = () => {
-    endSession();
+  const logout = async () => {
+    await endSession();
 
-    startSession()
-    .then((res) => setState("session", userSession()))
+    await startSession()
+    .then((res) => {
+      const session = userSession();
+
+      if (session) {
+        setRole(session.role);
+      }
+    })
     .catch((err) => console.log(err));
   };
 
@@ -26,14 +32,14 @@ export function Header() {
       </A>
       <nav class="main-header-nav">
 
-      <Show when={state.session && state.session.role >= AccessLevel.Admin}>
+      <Show when={role() >= AccessLevel.Admin}>
         <A class="nav-button" href="/admin">
           <div class="nav-icon">⚖️</div>
           admin
         </A>
       </Show>
 
-      <Show when={state.session && state.session.role < AccessLevel.PendingMember}>
+      <Show when={role() < AccessLevel.PendingMember}>
         <A class="nav-button" href="/login">
           <div class="nav-icon">🔒</div>
           login
@@ -44,7 +50,7 @@ export function Header() {
         </A>
       </Show>
 
-      <Show when={state.session && state.session.role >= AccessLevel.PendingMember}>
+      <Show when={role() >= AccessLevel.PendingMember}>
         <button class="nav-button nav-act" onClick={logout}>
           <div class="nav-icon">🔒</div>
           logout
