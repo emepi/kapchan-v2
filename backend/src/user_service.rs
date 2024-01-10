@@ -4,6 +4,7 @@ pub mod session;
 pub mod user;
 
 
+use actix::fut::stream::Collect;
 use actix_web::{web, HttpResponse, Responder, HttpRequest, http::header};
 use chrono::{NaiveDateTime, Utc};
 use diesel::{prelude::*, result::Error};
@@ -284,6 +285,15 @@ async fn update_session(
     }
 }
 
+#[derive(Debug, Serialize)]
+struct UserDataResponse {
+    pub id: u32,
+    pub access_level: u8,
+    pub username: String,
+    pub email: Option<String>,
+    pub created_at: NaiveDateTime,
+}
+
 #[derive(Debug, Deserialize)]
 struct UsersQuery {
    pub offset: Option<u32>,
@@ -373,7 +383,7 @@ async fn users(
                 .get_result(conn)
                 .await?;
 
-                let users = db_query.select((
+                let users: Vec<UserDataResponse> = db_query.select((
                     users::id,
                     users::access_level,
                     users::username,  
@@ -383,7 +393,18 @@ async fn users(
                 .limit(limit.into())
                 .offset(offset.into())
                 .load::<(u32, u8, String, Option<String>, NaiveDateTime)>(conn)
-                .await?;
+                .await?
+                .iter()
+                .map(|data| {
+                    UserDataResponse {
+                        id: data.0,
+                        access_level: data.1,
+                        username: data.2.clone(),
+                        email: data.3.clone(),
+                        created_at: data.4,
+                    }
+                })
+                .collect();
 
                 Ok((total_count, users))
             }.scope_boxed())

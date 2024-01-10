@@ -5,6 +5,7 @@
   --surface: #1a1a1a;
   --surface-container: #1c1b22;
   --secondary: white;
+  --secondary-container: gray;
 }
 
 * {
