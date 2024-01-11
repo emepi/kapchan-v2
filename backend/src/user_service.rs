@@ -372,12 +372,17 @@ async fn update_session(
     let res = match conn_pool.get().await {
         Ok(mut conn) => {
             conn.transaction::<_, Error, _>(|conn| async move {
-                let res: usize = diesel::update(sessions::table.find(curr_sess_id))
+                let _ = diesel::update(sessions::table.find(curr_sess_id))
                 .set(sess_changes)
                 .execute(conn)
                 .await?;
 
-                Ok(res)
+                let session = sessions::table
+                .find(curr_sess_id)
+                .first::<UserSession>(conn)
+                .await?;
+
+                Ok(session)
             }.scope_boxed())
             .await
         },
@@ -390,10 +395,13 @@ async fn update_session(
     };
 
     match res {
-        Ok(res) => {
-            HttpResponse::Ok()
-            .insert_header(("X-Total-Count", res))
-            .finish()
+        Ok(sess) => {
+            match create_authentication_token(sess.id, sess.access_level) {
+                Some(token) => HttpResponse::Created().json(SessionResponse {
+                    access_token: token,
+                }),
+                None => HttpResponse::InternalServerError().finish(),
+            }
         },
 
         Err(err) => {
