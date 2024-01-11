@@ -9,7 +9,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::{applications::{self, accepted, closed_at}, users, application_reviews, invites};
+use crate::schema::{applications::{self, accepted, closed_at}, users, application_reviews};
 
 use super::user::{User, AccessLevel, UserModel};
 
@@ -150,24 +150,6 @@ pub struct ApplicationReview {
 pub struct ApplicationReviewModel {
     pub reviewer_id: u32,
     pub application_id: u32,
-}
-
-#[derive(Queryable, Identifiable, Selectable)]
-#[diesel(table_name = invites)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct Invite {
-    pub id: u32,
-    pub inviter_id: u32,
-    pub application_id: u32,
-    pub code: Option<String>,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = invites)]
-pub struct InviteModel<'a> {
-    pub inviter_id: u32,
-    pub application_id: u32,
-    pub code: Option<&'a str>,
 }
 
 

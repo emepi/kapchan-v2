@@ -16,7 +16,7 @@ use diesel_async::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::schema::{users, sessions};
+use crate::schema::{users, sessions, applications};
 
 use self::{
     authentication::{
@@ -25,7 +25,7 @@ use self::{
         create_authentication_token, hash_password_a2id
     }, 
     user::{AccessLevel, User, UserModel}, 
-    session::{UserSessionModel, UserSession, is_active_session}
+    session::{UserSessionModel, UserSession, is_active_session}, application::ApplicationModel
 };
 
 
@@ -59,10 +59,89 @@ struct CreateApplicationInput {
 }
 
 async fn create_application(
-    application: Option<web::Json<CreateApplicationInput>>,
+    application: web::Json<CreateApplicationInput>,
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
 ) -> impl Responder {
-    HttpResponse::NotFound().finish()
+
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let curr_sess_id = match claims.sub.parse::<u32>() {
+        Ok(id) => id,
+        Err(_) => return HttpResponse::NotAcceptable().finish(),
+    };
+
+    if claims.role < AccessLevel::Registered as u8 || 
+    claims.role >= AccessLevel::PendingMember as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let res = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let session = sessions::table
+                .find(curr_sess_id)
+                .first::<UserSession>(conn)
+                .await?;
+
+                if let Some(user_id) = session.user_id {
+                    let _ = diesel::insert_into(applications::table)
+                    .values(ApplicationModel {
+                        user_id,
+                        accepted: false,
+                        background: &application.background,
+                        motivation: &application.motivation,
+                        other: application.referrer.as_deref(),
+                        closed_at: None,
+                    })
+                    .execute(conn)
+                    .await;
+
+                    let _ = diesel::update(users::table.find(user_id))
+                    .set(users::access_level.eq(AccessLevel::PendingMember as u8))
+                    .execute(conn)
+                    .await;
+
+                    let _ = diesel::update(sessions::table.find(curr_sess_id))
+                    .set(sessions::ended_at.eq(Utc::now().naive_utc()))
+                    .execute(conn)
+                    .await;
+                }
+
+                Ok(())
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match res {
+        Ok(_) => {
+            return HttpResponse::Created().finish();
+        },
+
+        Err(err) => {
+            error!("Error with a database insert for application.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    }
 }
 
 
