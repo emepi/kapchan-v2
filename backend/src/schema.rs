@@ -68,15 +68,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    invites (id) {
-        id -> Unsigned<Integer>,
-        inviter_id -> Unsigned<Integer>,
-        application_id -> Unsigned<Integer>,
-        code -> Nullable<Text>,
-    }
-}
-
-diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
         user_id -> Nullable<Unsigned<Integer>>,
@@ -108,8 +99,6 @@ diesel::joinable!(board_flags -> boards (board_id));
 diesel::joinable!(boards -> board_groups (board_group));
 diesel::joinable!(boards -> users (created_by));
 diesel::joinable!(files -> users (uploaded_by));
-diesel::joinable!(invites -> applications (application_id));
-diesel::joinable!(invites -> users (inviter_id));
 diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -119,7 +108,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     board_groups,
     boards,
     files,
-    invites,
     sessions,
     users,
 );

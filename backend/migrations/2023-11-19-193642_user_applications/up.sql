@@ -19,13 +19,3 @@ CREATE TABLE application_reviews (
     FOREIGN KEY (reviewer_id) REFERENCES users(id),
     FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 );
-
-CREATE TABLE invites (
-    id              INTEGER UNSIGNED  NOT NULL  AUTO_INCREMENT,
-    inviter_id      INTEGER UNSIGNED  NOT NULL,
-    application_id  INTEGER UNSIGNED  NOT NULL,
-    code            TEXT,
-    PRIMARY KEY (id),
-    FOREIGN KEY (inviter_id) REFERENCES users(id),
-    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
-);
