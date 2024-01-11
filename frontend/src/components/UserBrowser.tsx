@@ -38,11 +38,11 @@ export function UserBrowser() {
         </tr>
         <For each={users()}>{(user: UserData) =>
           <tr>
-            <th class="user-brws-tab">{user.id}</th>
-            <th class="user-brws-tab">{user.username}</th>
-            <th class="user-brws-tab">{user.email}</th>
-            <th class="user-brws-tab">{user.access_level}</th>
-            <th class="user-brws-tab">{user.created_at}</th>
+            <td>{user.id}</td>
+            <td>{user.username}</td>
+            <td>{user.email}</td>
+            <td>{user.access_level}</td>
+            <td>{user.created_at}</td>
           </tr>
         }</For>
       </tbody>

@@ -4,7 +4,6 @@ pub mod session;
 pub mod user;
 
 
-use actix::fut::stream::Collect;
 use actix_web::{web, HttpResponse, Responder, HttpRequest, http::header};
 use chrono::{NaiveDateTime, Utc};
 use diesel::{prelude::*, result::Error};
@@ -23,15 +22,19 @@ use self::{
     authentication::{
         validate_claims, 
         validate_password_a2id, 
-        create_authentication_token
+        create_authentication_token, hash_password_a2id
     }, 
-    user::{AccessLevel, User}, 
+    user::{AccessLevel, User, UserModel}, 
     session::{UserSessionModel, UserSession, is_active_session}
 };
 
 
 pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
+    .service(
+        web::resource("/applications")
+        .route(web::post().to(create_application))
+    )
     .service(
         web::resource("/sessions")
         .route(web::post().to(create_session))
@@ -43,7 +46,23 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/users")
         .route(web::get().to(users))
+        .route(web::post().to(create_user))
     );
+}
+
+
+#[derive(Debug, Deserialize)]
+struct CreateApplicationInput {
+    pub background: String,
+    pub motivation: String,
+    pub referrer: Option<String>,
+}
+
+async fn create_application(
+    application: Option<web::Json<CreateApplicationInput>>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+) -> impl Responder {
+    HttpResponse::NotFound().finish()
 }
 
 
@@ -186,6 +205,106 @@ async fn create_session(
         },
     }
 }
+
+
+#[derive(Debug, Deserialize)]
+struct CreateUserInput {
+    pub username: String,
+    pub email: Option<String>,
+    pub password: String,
+}
+
+async fn create_user(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<CreateUserInput>,
+    req: HttpRequest,
+) -> impl Responder {
+
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let curr_sess_id = match claims.sub.parse::<u32>() {
+        Ok(id) => id,
+        Err(_) => return HttpResponse::NotAcceptable().finish(),
+    };
+
+    let session = match UserSession::by_id(curr_sess_id, &conn_pool).await {
+        Some(session) => session,
+        None => return HttpResponse::NotFound().finish(),
+    };
+
+    // Session already belongs to an user.
+    if session.user_id.is_some() {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let password = match hash_password_a2id(&input.password) {
+        Some(password) => password,
+        None => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let user = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+
+                let _ = diesel::insert_into(users::table)
+                .values(UserModel {
+                    access_level: AccessLevel::Registered as u8,
+                    username: &input.username,
+                    email: input.email.as_deref(),
+                    password_hash: &password,
+                })
+                .execute(conn)
+                .await?;
+            
+                let user = users::table
+                .find(last_insert_id())
+                .first::<User>(conn)
+                .await?;
+
+                let _ = diesel::update(sessions::table.find(curr_sess_id))
+                .set((
+                    sessions::user_id.eq(user.id),
+                    sessions::ended_at.eq(Utc::now().naive_utc()),
+                ))
+                .execute(conn)
+                .await;
+        
+                Ok(user)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match user {
+        Ok(_user) => {
+            HttpResponse::Created().finish()
+        },
+
+        Err(err) => {
+            error!("Error with a database update for session.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
+        },
+    }
+}
+
 
 #[derive(Debug, Deserialize)]
 struct SessionOptions {

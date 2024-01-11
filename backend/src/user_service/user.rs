@@ -1,4 +1,3 @@
-use actix_web::HttpResponse;
 use chrono::NaiveDateTime;
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
@@ -11,15 +10,13 @@ use diesel_async::{
 use serde::Serialize;
 use crate::schema::{users, sessions};
 
-use super::{
-    session::{UserSession, UserSessionModel}, 
-    authentication::hash_password_a2id
-};
+use super::session::{UserSession, UserSessionModel};
 
 
 #[derive(Copy, Clone)]
 pub enum AccessLevel {
     Anonymous = 10,
+    Registered = 14,
     PendingMember = 15,
     Member = 20,
     Admin = 100,
