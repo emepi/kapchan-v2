@@ -16,9 +16,9 @@ use super::session::{UserSession, UserSessionModel};
 #[derive(Copy, Clone)]
 pub enum AccessLevel {
     Anonymous = 10,
-    Registered = 14,
-    PendingMember = 15,
-    Member = 20,
+    Registered = 20,
+    PendingMember = 30,
+    Member = 50,
     Admin = 100,
     Owner = 200,
     Root = 255,
