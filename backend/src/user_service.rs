@@ -600,8 +600,8 @@ async fn update_session(
         return HttpResponse::Forbidden().finish();
     }
 
-    // Allow access level modifications only for below access current level.
-    if sess_opt.access_level.is_some() && sess_opt.access_level.unwrap() > claims.role {
+    if sess_opt.access_level.is_some() && sess_opt.access_level.unwrap() > claims.role
+    || claims.role < AccessLevel::Admin as u8 {
         return HttpResponse::Forbidden().finish();
     }
 
