@@ -33,6 +33,7 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
     .service(
         web::resource("/applications")
+        .route(web::get().to(applications))
         .route(web::post().to(create_application))
     )
     .service(
@@ -48,6 +49,171 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
         .route(web::get().to(users))
         .route(web::post().to(create_user))
     );
+}
+
+
+#[derive(Debug, Deserialize)]
+struct ApplicationsQuery {
+   pub offset: Option<u32>,
+   pub limit: Option<u32>,
+   pub accepted: Option<bool>,
+   pub username: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ApplicationsResponse {
+    pub id: u32,
+    pub username: String,
+    pub email: Option<String>,
+    pub accepted: bool,
+    pub background: String,
+    pub motivation: String,
+    pub other: Option<String>,
+    pub created_at: NaiveDateTime,
+    pub closed_at: Option<NaiveDateTime>,
+}
+
+async fn applications(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    query: web::Query<ApplicationsQuery>,
+    req: HttpRequest,
+) -> impl Responder {
+    // Check access level.
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    if claims.role < AccessLevel::Admin as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    // Check query bounds.
+    let offset = match query.offset {
+        Some(offset) => offset,
+        None => 0,
+    };
+
+    let limit = match query.limit {
+        Some(limit) => {
+            // Max page size.
+            if limit > 50 {
+                return HttpResponse::BadRequest().finish();
+            }
+
+            limit
+        },
+        None => 50,
+    };
+
+    let applications = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let mut db_query = applications::table.into_boxed()
+                .inner_join(users::table);
+                let mut count_query = applications::table.into_boxed()
+                .inner_join(users::table);
+
+                if let Some(accepted) = query.accepted {
+                    db_query = db_query.filter(
+                        applications::accepted.eq(accepted)
+                    );
+                    count_query = count_query.filter(
+                        applications::accepted.eq(accepted)
+                    );
+                }
+
+                if let Some(username) = &query.username {
+                    db_query = db_query.filter(
+                        users::username.like(format!("{}%", username))
+                    );
+                    count_query = count_query.filter(
+                        users::username.like(format!("{}%", username))
+                    );
+                }
+
+                let total_count: i64 = count_query.count()
+                .get_result(conn)
+                .await?;
+
+                let applications: Vec<ApplicationsResponse> = db_query.select((
+                    applications::id,
+                    users::username,  
+                    users::email,  
+                    applications::accepted,
+                    applications::background,
+                    applications::motivation,
+                    applications::other,
+                    applications::created_at,
+                    applications::closed_at,
+                ))
+                .limit(limit.into())
+                .offset(offset.into())
+                .load::<(
+                    u32, 
+                    String, 
+                    Option<String>, 
+                    bool, 
+                    String, 
+                    String, 
+                    Option<String>, 
+                    NaiveDateTime, 
+                    Option<NaiveDateTime>)>(conn)
+                .await?
+                .iter()
+                .map(|data| {
+                    ApplicationsResponse {
+                        id: data.0,
+                        username: data.1.clone(),
+                        email: data.2.clone(),
+                        accepted: data.3,
+                        background: data.4.clone(),
+                        motivation: data.5.clone(),
+                        other: data.6.clone(),
+                        created_at: data.7,
+                        closed_at: data.8,
+                    }
+                })
+                .collect();
+
+                Ok((total_count, applications))
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match applications {
+        Ok(applications) => {
+            // Change response code to 404 on no matches.
+            if limit > 0 && applications.1.len() == 0 {
+                return HttpResponse::NotFound().finish();
+            }
+
+            HttpResponse::Ok()
+            .insert_header(("X-Total-Count", applications.0))
+            .json(serde_json::json!(applications.1))
+        },
+
+        Err(err) => {
+            error!("Error with a database query for applications.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
+        },
+    }
 }
 
 
