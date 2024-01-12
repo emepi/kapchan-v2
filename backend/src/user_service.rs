@@ -16,7 +16,7 @@ use diesel_async::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::schema::{users, sessions, applications::{self, accepted}, application_reviews};
+use crate::schema::{users, sessions, applications, application_reviews};
 
 use self::{
     authentication::{
@@ -391,7 +391,10 @@ async fn update_application(
                 .execute(conn)
                 .await?;
 
-                // TODO: invalidate open sessions
+                let _ = diesel::update(sessions::table.filter(sessions::id.eq(application.user_id)))
+                .set(sessions::ended_at.eq(Utc::now().naive_utc()))
+                .execute(conn)
+                .await?;
 
                 Ok(())
             }.scope_boxed())
