@@ -16,7 +16,7 @@ use diesel_async::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::schema::{users, sessions, applications};
+use crate::schema::{users, sessions, applications::{self, accepted}, application_reviews};
 
 use self::{
     authentication::{
@@ -25,7 +25,8 @@ use self::{
         create_authentication_token, hash_password_a2id
     }, 
     user::{AccessLevel, User, UserModel}, 
-    session::{UserSessionModel, UserSession, is_active_session}, application::ApplicationModel
+    session::{UserSessionModel, UserSession, is_active_session}, 
+    application::{ApplicationModel, Application, ApplicationReviewModel}
 };
 
 
@@ -35,6 +36,10 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
         web::resource("/applications")
         .route(web::get().to(applications))
         .route(web::post().to(create_application))
+    )
+    .service(
+        web::resource("/applications/{id}")
+        .route(web::put().to(update_application))
     )
     .service(
         web::resource("/sessions")
@@ -122,12 +127,12 @@ async fn applications(
                 let mut count_query = applications::table.into_boxed()
                 .inner_join(users::table);
 
-                if let Some(accepted) = query.accepted {
+                if let Some(acc) = query.accepted {
                     db_query = db_query.filter(
-                        applications::accepted.eq(accepted)
+                        applications::accepted.eq(acc)
                     );
                     count_query = count_query.filter(
-                        applications::accepted.eq(accepted)
+                        applications::accepted.eq(acc)
                     );
                 }
 
@@ -306,6 +311,108 @@ async fn create_application(
             error!("Error with a database insert for application.\n {:?}", err);
 
             return HttpResponse::InternalServerError().finish();
+        },
+    }
+}
+
+
+#[derive(Debug, Deserialize)]
+struct UpdateApplicationInput {
+    pub accepted: bool,
+}
+
+async fn update_application(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<UpdateApplicationInput>,
+    req: HttpRequest,
+    path: web::Path<u32>,
+) -> impl Responder {
+    // Check access level.
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    if claims.role < AccessLevel::Admin as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let curr_sess_id = match claims.sub.parse::<u32>() {
+        Ok(id) => id,
+        Err(_) => return HttpResponse::NotAcceptable().finish(),
+    };
+
+    let rank = match input.accepted {
+        true => AccessLevel::Member as u8,
+        false => AccessLevel::Registered as u8,
+    };
+
+    let app_id = path.into_inner();
+
+    let res = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let _ = diesel::update(applications::table.find(app_id))
+                .set((
+                    applications::accepted.eq(input.accepted),
+                    applications::closed_at.eq(Utc::now().naive_utc())
+                ))
+                .execute(conn)
+                .await?;
+
+                let application = applications::table
+                .find(app_id)
+                .first::<Application>(conn)
+                .await?;
+
+                let session = sessions::table
+                .find(curr_sess_id)
+                .first::<UserSession>(conn)
+                .await?;
+
+                let _ = diesel::insert_into(application_reviews::table)
+                .values(ApplicationReviewModel {
+                    reviewer_id: session.user_id.unwrap(),
+                    application_id: application.id,
+                })
+                .execute(conn)
+                .await?;
+
+                let _ = diesel::update(users::table.find(application.user_id))
+                .set(users::access_level.eq(rank))
+                .execute(conn)
+                .await?;
+
+                // TODO: invalidate open sessions
+
+                Ok(())
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match res {
+        Ok(_) => {
+            HttpResponse::Created().finish()
+        },
+        Err(err) => {
+            error!("Error with a database update for application.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
         },
     }
 }
