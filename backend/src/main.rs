@@ -49,6 +49,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
         .app_data(web::Data::new(conn_pool.clone()))
         .configure(user_service::endpoints)
+        .configure(board_service::endpoints)
         //.app_data(web::Data::new(server.clone()))
         //.route("/ws", web::get().to(websocket_connect))
         .service(
