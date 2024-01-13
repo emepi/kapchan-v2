@@ -392,6 +392,7 @@ async fn update_application(
                 .await?;
 
                 let _ = diesel::update(sessions::table.filter(sessions::id.eq(application.user_id)))
+                .filter(sessions::ended_at.is_null())
                 .set(sessions::ended_at.eq(Utc::now().naive_utc()))
                 .execute(conn)
                 .await?;
