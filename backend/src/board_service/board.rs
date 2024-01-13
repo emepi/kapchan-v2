@@ -29,7 +29,7 @@ pub struct BoardModel<'a> {
     pub board_group: Option<u32>,
     pub handle: &'a str,
     pub title: &'a str,
-    pub description: &'a str,
+    pub description: Option<&'a str>,
 }
 
 impl BoardModel<'_> {
