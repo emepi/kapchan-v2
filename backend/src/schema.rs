@@ -31,7 +31,7 @@ diesel::table! {
 diesel::table! {
     boards (id) {
         id -> Unsigned<Integer>,
-        board_group -> Nullable<Unsigned<Integer>>,
+        board_group_id -> Unsigned<Integer>,
         #[max_length = 8]
         handle -> Varchar,
         title -> Tinytext,
@@ -85,7 +85,7 @@ diesel::table! {
 diesel::joinable!(application_reviews -> applications (application_id));
 diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
-diesel::joinable!(boards -> board_groups (board_group));
+diesel::joinable!(boards -> board_groups (board_group_id));
 diesel::joinable!(files -> users (uploaded_by));
 diesel::joinable!(sessions -> users (user_id));
 

@@ -2,7 +2,7 @@ use actix_web::{web, HttpResponse, HttpRequest, Responder, http::header};
 use diesel::{sql_function, result::Error, prelude::*};
 use diesel_async::{RunQueryDsl, AsyncMysqlConnection, pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection};
 use log::error;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{user_service::{user::AccessLevel, authentication::validate_claims}, schema::{board_groups, boards}};
 
@@ -15,6 +15,7 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
     .service(
         web::resource("/boards")
+        .route(web::get().to(boards))
         .route(web::post().to(create_boards))
     )
     .service(
@@ -92,10 +93,82 @@ async fn create_groups(
     }
 }
 
+#[derive(Serialize)]
+struct Category{
+    id: u32,
+    category: String,
+    boards: Vec<CategoryBoard>,
+}
+
+#[derive(Serialize)]
+struct CategoryBoard {
+    id: u32,
+    name: String,
+    handle: String,
+}
+
+async fn boards(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+
+    let catalog = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let groups = board_groups::table
+                .select(BoardGroup::as_select())
+                .load(conn)
+                .await?;
+    
+                let boards = Board::belonging_to(&groups)
+                .select(Board::as_select())
+                .load(conn)
+                .await?;
+
+                let catalog = boards
+                .grouped_by(&groups)
+                .into_iter()
+                .zip(groups)
+                .map(|(boards, group)| Category {
+                    id: group.id,
+                    category: group.name,
+                    boards: boards.into_iter().map(|board| CategoryBoard {
+                        id: board.id,
+                        name: board.title,
+                        handle: board.handle,
+                    }).collect(),
+                })
+                .collect::<Vec<Category>>();
+
+                Ok(catalog)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match catalog {
+        Ok(catalog) => {
+            HttpResponse::Created().json(catalog)
+        },
+
+        Err(err) => {
+            error!("Error with a database get for boards.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
+        },
+    }
+}
+
 
 #[derive(Debug, Deserialize)]
 struct BoardOptions {
-    pub group: Option<u32>,
+    pub group: u32,
     pub handle: String,
     pub title: String,
     pub description: Option<String>,
@@ -129,7 +202,7 @@ async fn create_boards(
             conn.transaction::<_, Error, _>(|conn| async move {
                 let _ = diesel::insert_into(boards::table)
                 .values(BoardModel {
-                    board_group: input.group,
+                    board_group_id: input.group,
                     handle: &input.handle,
                     title: &input.title,
                     description: input.description.as_deref(),

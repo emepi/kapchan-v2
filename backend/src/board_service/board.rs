@@ -11,12 +11,13 @@ use serde::Serialize;
 use crate::schema::{boards, board_groups};
 
 
-#[derive(Queryable, Identifiable, Selectable, Serialize)]
+#[derive(Queryable, Identifiable, Associations, Selectable, Serialize)]
+#[diesel(belongs_to(BoardGroup))]
 #[diesel(table_name = boards)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Board {
     pub id: u32,
-    pub board_group: Option<u32>,
+    pub board_group_id: u32,
     pub handle: String,
     pub title: String,
     pub description: Option<String>,
@@ -26,7 +27,7 @@ pub struct Board {
 #[derive(Insertable)]
 #[diesel(table_name = boards)]
 pub struct BoardModel<'a> {
-    pub board_group: Option<u32>,
+    pub board_group_id: u32,
     pub handle: &'a str,
     pub title: &'a str,
     pub description: Option<&'a str>,
