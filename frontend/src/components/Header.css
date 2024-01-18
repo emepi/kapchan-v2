@@ -1,11 +1,13 @@
 h1 {
   font-size: 40px;
+  color: var(--secondary);
 }
 
 .main-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 15px;
 }
 
 .main-header-nav {

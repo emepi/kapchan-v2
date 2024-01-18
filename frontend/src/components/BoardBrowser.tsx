@@ -1,9 +1,6 @@
 import { JSX, Show } from "solid-js";
-import { state } from "..";
-import { UserRole } from "../scripts/user";
+//import { state } from "..";
 import './BoardBrowser.css';
-import { BoardServiceType } from "../scripts/board_service";
-import { Service, serviceRequest } from "../scripts/connection_manager";
 
 export function BoardBrowser() {
 
@@ -11,22 +8,12 @@ export function BoardBrowser() {
     e.preventDefault();
       
     let data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
-
-    serviceRequest(Service.BoardService, {
-      t: BoardServiceType.CreateBoard,
-      b: JSON.stringify({
-        handle: data.bshort,
-        title: data.bname,
-        description: data.bdesc,
-        flags: [],
-      }),
-    });
   }
 
   return (
     <div class="board-brwsr">
       <h3>Board Browser</h3>
-      <Show when={state.user.role >= UserRole.Owner}>
+      <Show when={true}>
         <form class="board-crt" onSubmit={boardHandler}>
 
           <input

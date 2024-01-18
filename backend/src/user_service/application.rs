@@ -9,7 +9,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::{applications::{self, accepted, closed_at}, users, application_reviews, invites};
+use crate::schema::{applications::{self, accepted, closed_at}, users, application_reviews};
 
 use super::user::{User, AccessLevel, UserModel};
 
@@ -152,24 +152,6 @@ pub struct ApplicationReviewModel {
     pub application_id: u32,
 }
 
-#[derive(Queryable, Identifiable, Selectable)]
-#[diesel(table_name = invites)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct Invite {
-    pub id: u32,
-    pub inviter_id: u32,
-    pub application_id: u32,
-    pub code: Option<String>,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = invites)]
-pub struct InviteModel<'a> {
-    pub inviter_id: u32,
-    pub application_id: u32,
-    pub code: Option<&'a str>,
-}
-
 
 pub async fn list_applications(
     approved: bool,
@@ -207,58 +189,6 @@ pub async fn list_applications(
             .unwrap_or(Vec::new())
         },
         Err(_) => Vec::new(),
-    }
-}
-
-pub async fn close_application(
-    reviewer_id: u32,
-    user_id: u32,
-    application_id: u32,
-    resolution: bool,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> Option<()> {
-    let review = ApplicationReviewModel {
-        reviewer_id,
-        application_id,
-    };
-
-    let n_rank = match resolution {
-        true => AccessLevel::Member,
-        false => AccessLevel::Anonymous,
-    };
-
-    let n_usr_rank = UserModel {
-        access_level: n_rank as u8,
-        username: None,
-        email: None,
-        password_hash: None,
-    };
-
-    match conn_pool.get().await {
-        Ok(mut conn) => {
-            conn.transaction::<_, Error, _>(|conn| async move {
-                let _ = diesel::insert_into(application_reviews::table)
-                .values(review)
-                .execute(conn)
-                .await?;
-
-                let _ = diesel::update(applications::table.find(application_id))
-                .set((
-                    applications::accepted.eq(resolution),
-                    applications::closed_at.eq(Utc::now().naive_utc()),
-                ))
-                .execute(conn)
-                .await?;
-
-                User::modify_by_id(user_id, n_usr_rank, &conn_pool)
-                .await;
-
-                Ok(())
-            }.scope_boxed())
-            .await
-            .ok()
-        },
-        Err(_) => None,
     }
 }
 

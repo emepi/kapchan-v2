@@ -1,26 +1,34 @@
 import { JSX, Show } from 'solid-js'
-import { serviceRequest } from '../scripts/connection_manager';
 import space from "../assets/12397866.435000004_space.jpg";
 import './Login.css'
-import { state } from '..';
-import { UserRole } from '../scripts/user';
-import { Navigate } from '@solidjs/router';
+import { A, Navigate } from '@solidjs/router';
+import { AccessLevel } from '../scripts/user';
+import { startSession, userSession } from '../scripts/session';
+import { setRole, role } from '..';
 
 export function Login() {
-  const loginHandler: JSX.EventHandlerUnion<HTMLFormElement, Event> = (e) => {
+  const loginHandler: JSX.EventHandlerUnion<HTMLFormElement, Event> = async (e) => {
     e.preventDefault();
 
-    let data = new FormData(e.target as HTMLFormElement);
+    let data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
 
-    serviceRequest(1, {
-      t: 1,
-      b: JSON.stringify(Object.fromEntries(data)),
+    // TODO: handle emails
+    await startSession({
+      username: data.username.toString(),
+      password: data.password.toString(),
+    })
+    .then((res) => {
+      const session = userSession();
+
+      if (session) {
+        setRole(session.role);
+      }
     });
   }
 
   return (
     <Show
-      when={state.user.role === UserRole.Anonymous}
+      when={role() === AccessLevel.Anonymous}
       fallback={ //TODO: redirect to last page
         <Navigate href={"/"} />
       }
@@ -29,7 +37,8 @@ export function Login() {
       <div class="login-wrap">
         <header class="login-page-header">
           <h2>Login</h2>
-          <p>todo...</p>
+          <p>Kapchan user login. Available automatically after 
+          <A href="/apply">applying</A>.</p>
         </header>
       
         <form class="login-form" onSubmit={loginHandler}>

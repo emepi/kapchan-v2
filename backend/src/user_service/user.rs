@@ -10,17 +10,15 @@ use diesel_async::{
 use serde::Serialize;
 use crate::schema::{users, sessions};
 
-use super::{
-    session::{UserSession, UserSessionModel}, 
-    authentication::hash_password_a2id
-};
+use super::session::{UserSession, UserSessionModel};
 
 
 #[derive(Copy, Clone)]
 pub enum AccessLevel {
     Anonymous = 10,
-    PendingMember = 15,
-    Member = 20,
+    Registered = 20,
+    PendingMember = 30,
+    Member = 50,
     Admin = 100,
     Owner = 200,
     Root = 255,
@@ -33,9 +31,9 @@ pub enum AccessLevel {
 pub struct User {
     pub id: u32,
     pub access_level: u8,
-    pub username: Option<String>,
+    pub username: String,
     pub email: Option<String>,
-    pub password_hash: Option<String>,
+    pub password_hash: String,
     pub created_at: NaiveDateTime,
 }
 
@@ -69,17 +67,13 @@ impl User {
 
     pub async fn create_session(
         &self,
-        ip_address: Option<&str>,
-        user_agent: Option<&str>,
         db: &Pool<AsyncMysqlConnection>,
     ) -> Option<UserSession> {
 
         let session_model = UserSessionModel {
-            user_id: self.id,
+            user_id: Some(self.id),
             access_level: self.access_level,
             mode: 1,
-            ip_address: ip_address,
-            user_agent: user_agent,
             ended_at: None,
         };
 
@@ -149,20 +143,9 @@ impl User {
 #[diesel(table_name = users)]
 pub struct UserModel<'a> {
     pub access_level: u8,
-    pub username: Option<&'a str>,
+    pub username: &'a str,
     pub email: Option<&'a str>,
-    pub password_hash: Option<&'a str>,
-}
-
-impl Default for UserModel<'_> {
-    fn default() -> Self {
-        Self {
-            access_level: AccessLevel::Anonymous as u8, 
-            username: None,
-            email: None,
-            password_hash: None,
-        }
-    }
+    pub password_hash: &'a str,
 }
 
 impl UserModel<'_> {

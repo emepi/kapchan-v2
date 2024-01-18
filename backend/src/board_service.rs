@@ -1,158 +1,244 @@
+use actix_web::{web, HttpResponse, HttpRequest, Responder, http::header};
+use diesel::{sql_function, result::Error, prelude::*};
+use diesel_async::{RunQueryDsl, AsyncMysqlConnection, pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection};
+use log::error;
+use serde::{Deserialize, Serialize};
+
+use crate::{user_service::{user::AccessLevel, authentication::validate_claims}, schema::{board_groups, boards}};
+
+use self::board::{BoardGroupModel, BoardGroup, BoardModel, Board};
+
 mod board;
 
 
-use std::sync::{Arc, Mutex};
-
-use async_trait::async_trait;
-use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-use serde::Deserialize;
-
-use crate::{
-    server::service::{
-        WebsocketService, 
-        WebsocketServiceManager, 
-        ServiceRequestFrame, 
-        ServiceResponseFrame, 
-        INVALID_SERVICE_TYPE, 
-        NOT_ALLOWED, 
-        MALFORMATTED, 
-        SUCCESS
-    }, 
-    user_service::{session::UserSession, user::AccessLevel}, 
-    board_service::board::BoardFlagModel, 
-    BOARD_SERVICE_ID
-};
-
-use self::board::{BoardModel, query_boards};
-
-
-// Service types (t) for input ServiceFrame
-pub const CREATE_BOARD_REQUEST: u32 = 1;
-pub const FETCH_BOARDS_REQUEST: u32 = 2;
-
-
-pub struct BoardService {
-    srvc_mgr: Arc<Mutex<WebsocketServiceManager>>,
-    conn_pool: Pool<AsyncMysqlConnection>,
-}
-
-#[async_trait]
-impl WebsocketService for BoardService {
-    fn new(
-        srvc_mgr: Arc<Mutex<WebsocketServiceManager>>,
-        conn_pool: Pool<AsyncMysqlConnection>,
-    ) -> Self where Self: Sized {
-
-        BoardService { 
-            srvc_mgr, 
-            conn_pool, 
-        }
-    }
-
-    async fn user_request(
-        &self,
-        sess: &Arc<UserSession>,
-        req: ServiceRequestFrame, 
-    ) -> ServiceResponseFrame {
-
-        match req.t {
-
-            CREATE_BOARD_REQUEST => {
-                create_board(sess, req, &self.conn_pool).await
-            },
-
-            FETCH_BOARDS_REQUEST => {
-                fetch_boards(sess, req, &self.conn_pool).await
-            }
-
-            unknown_type => ServiceResponseFrame {
-                t: unknown_type,
-                c: INVALID_SERVICE_TYPE,
-                b: String::default(),
-            },
-        }
-    }
-
-    fn id(&self) -> u32 {
-        BOARD_SERVICE_ID
-    }
+pub fn endpoints(cfg: &mut web::ServiceConfig) {
+    cfg
+    .service(
+        web::resource("/boards")
+        .route(web::get().to(boards))
+        .route(web::post().to(create_boards))
+    )
+    .service(
+        web::resource("/groups")
+        .route(web::post().to(create_groups))
+    );
 }
 
 
-async fn create_board(
-    sess: &Arc<UserSession>,
-    req: ServiceRequestFrame,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> ServiceResponseFrame {
+#[derive(Debug, Deserialize)]
+struct GroupOptions {
+    pub name: String,
+}
 
-    if sess.access_level < AccessLevel::Owner as u8 {
-        return ServiceResponseFrame {
-            t: CREATE_BOARD_REQUEST,
-            c: NOT_ALLOWED,
-            b: String::default(),
-        }
+async fn create_groups(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<GroupOptions>,
+    req: HttpRequest,
+) -> impl Responder {
+    // Check access level.
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    if claims.role < AccessLevel::Owner as u8 {
+        return HttpResponse::Forbidden().finish();
     }
 
-    let input = match serde_json::from_str::<BoardCreationInput>(&req.b) {
-        Ok(input) => input,
-        Err(_) => return ServiceResponseFrame {
-            t: CREATE_BOARD_REQUEST,
-            c: MALFORMATTED,
-            b: String::default(),
+    let group = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let _ = diesel::insert_into(board_groups::table)
+                .values(BoardGroupModel {
+                    name: &input.name,
+                })
+                .execute(conn)
+                .await?;
+
+                let group = board_groups::table
+                .find(last_insert_id())
+                .first::<BoardGroup>(conn)
+                .await?;
+
+                Ok(group)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
         },
     };
 
-    let board = BoardModel {
-        handle: &input.handle,
-        title: &input.title,
-        description: &input.description,
-        created_by: sess.user_id,
-    };
-
-    let board = board.insert(conn_pool).await;
-
-    match board {
-        Some(board) => {
-            for flag in input.flags.iter() {
-                BoardFlagModel {
-                    board_id: board.id,
-                    flag: *flag,
-                }
-                .insert(conn_pool)
-                .await;
-            }
+    match group {
+        Ok(group) => {
+            HttpResponse::Created().json(group)
         },
 
-        None => (),
-    }
+        Err(err) => {
+            error!("Error with a database insert for board group.\n {:?}", err);
 
-    ServiceResponseFrame {
-        t: CREATE_BOARD_REQUEST,
-        c: SUCCESS,
-        b: String::default(),
+            HttpResponse::InternalServerError().finish()
+        },
     }
 }
 
-#[derive(Deserialize)]
-pub struct BoardCreationInput {
+#[derive(Serialize)]
+struct Category{
+    id: u32,
+    category: String,
+    boards: Vec<CategoryBoard>,
+}
+
+#[derive(Serialize)]
+struct CategoryBoard {
+    id: u32,
+    name: String,
+    handle: String,
+}
+
+async fn boards(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+
+    let catalog = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let groups = board_groups::table
+                .select(BoardGroup::as_select())
+                .load(conn)
+                .await?;
+    
+                let boards = Board::belonging_to(&groups)
+                .select(Board::as_select())
+                .load(conn)
+                .await?;
+
+                let catalog = boards
+                .grouped_by(&groups)
+                .into_iter()
+                .zip(groups)
+                .map(|(boards, group)| Category {
+                    id: group.id,
+                    category: group.name,
+                    boards: boards.into_iter().map(|board| CategoryBoard {
+                        id: board.id,
+                        name: board.title,
+                        handle: board.handle,
+                    }).collect(),
+                })
+                .collect::<Vec<Category>>();
+
+                Ok(catalog)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match catalog {
+        Ok(catalog) => {
+            HttpResponse::Created().json(catalog)
+        },
+
+        Err(err) => {
+            error!("Error with a database get for boards.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
+        },
+    }
+}
+
+
+#[derive(Debug, Deserialize)]
+struct BoardOptions {
+    pub group: u32,
     pub handle: String,
     pub title: String,
-    pub description: String,
-    pub flags: Vec<u8>,
+    pub description: Option<String>,
 }
 
-pub async fn fetch_boards (
-    sess: &Arc<UserSession>,
-    req: ServiceRequestFrame,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> ServiceResponseFrame {
-    // TODO: implement user filters & display by rank.
+async fn create_boards(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<BoardOptions>,
+    req: HttpRequest,
+) -> impl Responder {
+    // Check access level.
+    let auth_token = match req.headers().get(header::AUTHORIZATION) {
+        Some(token) => match token.to_str() {
+                Ok(token) => token,
+                Err(_) => return HttpResponse::NotAcceptable().finish(),
+            },
+        None => return HttpResponse::Unauthorized().finish(),
+    };
 
-    let boards = query_boards(conn_pool).await;
+    let claims = match validate_claims(auth_token) {
+        Some(claims) => claims,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
 
-    ServiceResponseFrame {
-        t: FETCH_BOARDS_REQUEST,
-        c: SUCCESS,
-        b: serde_json::json!(boards).to_string(),
+    if claims.role < AccessLevel::Owner as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let board = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let _ = diesel::insert_into(boards::table)
+                .values(BoardModel {
+                    board_group_id: input.group,
+                    handle: &input.handle,
+                    title: &input.title,
+                    description: input.description.as_deref(),
+                })
+                .execute(conn)
+                .await?;
+
+                let board = boards::table
+                .find(last_insert_id())
+                .first::<Board>(conn)
+                .await?;
+
+                Ok(board)
+            }.scope_boxed())
+            .await
+        },
+
+        Err(err) => {
+            error!("Connection pool reported an error.\n {:?}", err);
+
+            return HttpResponse::InternalServerError().finish();
+        },
+    };
+
+    match board {
+        Ok(board) => {
+            HttpResponse::Created().json(board)
+        },
+
+        Err(err) => {
+            error!("Error with a database insert for board.\n {:?}", err);
+
+            HttpResponse::InternalServerError().finish()
+        },
     }
 }
+
+
+sql_function!(fn last_insert_id() -> Unsigned<Integer>);

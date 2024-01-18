@@ -1,0 +1,24 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--secondary);
+  text-align: center;
+}
+
+.home-title-section {
+  margin: 50px;
+}
+
+.home-title {
+  font-size: 100px;
+}
+
+.home-title-desc {
+  font-size: 30px;
+}
+
+.bold-text {
+  font-size: 40px;
+  font-weight: 900;
+}

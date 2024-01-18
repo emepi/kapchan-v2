@@ -17,11 +17,9 @@ use super::authentication::validate_session_id;
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct UserSession {
     pub id: u32,
-    pub user_id: u32,
+    pub user_id: Option<u32>,
     pub access_level: u8,
     pub mode: u8,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
     pub created_at: NaiveDateTime,
     pub ended_at: Option<NaiveDateTime>,
 }
@@ -88,14 +86,12 @@ impl UserSession {
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = sessions)]
 pub struct UserSessionModel<'a> {
-    pub user_id: u32,
+    pub user_id: Option<u32>,
     pub access_level: u8,
     pub mode: u8,
-    pub ip_address: Option<&'a str>,
-    pub user_agent: Option<&'a str>,
     pub ended_at: Option<&'a NaiveDateTime>,
 }
 
@@ -121,6 +117,16 @@ pub async fn active_sessions_by_user_id(
         },
 
         Err(_) => Vec::new(),
+    }
+}
+
+pub async fn is_active_session(
+    sess_id: u32,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+) -> bool {
+    match UserSession::by_id(sess_id, conn_pool).await {
+        Some(sess) => sess.valid(),
+        None => false,
     }
 }
 
