@@ -6,17 +6,7 @@
 import { A } from "@solidjs/router";
 import kapakkaLogo from '/src/assets/misaki2.jpeg'
 import './Sidebar.css'
-import { createStore } from "solid-js/store";
-import { For } from "solid-js";
 
-interface Board {
-  created_at: string,
-  created_by: number,
-  description: string,
-  handle: string,
-  id: number,
-  title: string,
-};
 
 function Sidebar() {
 

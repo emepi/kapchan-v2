@@ -6,7 +6,7 @@ export function Application() {
     const applyHandler: JSX.EventHandlerUnion<HTMLFormElement, Event> = (e) => {
       e.preventDefault();
     
-      let data = new FormData(e.target as HTMLFormElement);
+      //let data = new FormData(e.target as HTMLFormElement);
     }
 
     return (

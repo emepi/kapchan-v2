@@ -2,7 +2,7 @@
  * Kapchan header bar with top navigation.
  */
 import { A } from '@solidjs/router'
-import { Show, useContext } from 'solid-js'
+import { Show } from 'solid-js'
 import './Header.css'
 import { endSession, startSession, userSession } from '../scripts/session';
 import { AccessLevel } from '../scripts/user';
@@ -15,7 +15,7 @@ export function Header() {
     await endSession();
 
     await startSession()
-    .then((res) => {
+    .then((_res) => {
       const session = userSession();
 
       if (session) {

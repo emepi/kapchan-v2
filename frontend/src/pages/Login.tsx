@@ -17,7 +17,7 @@ export function Login() {
       username: data.username.toString(),
       password: data.password.toString(),
     })
-    .then((res) => {
+    .then((_res) => {
       const session = userSession();
 
       if (session) {

@@ -1,4 +1,4 @@
-import { For, JSX } from "solid-js";
+import { For } from "solid-js";
 import { createStore } from "solid-js/store";
 import './ApplicationBrowser.css';
 
@@ -14,7 +14,7 @@ interface Application {
 }
 
 export function ApplicationBrowser() {
-  const [applications, setApplications] = createStore([]);
+  const [applications, _setApplications] = createStore([]);
 
   return (
     <div class="apli-browser">

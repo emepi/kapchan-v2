@@ -23,7 +23,7 @@ export function UserBrowser() {
     .then((res) => res.json());
   };
 
-  const [page, setPage] = createSignal(0);
+  const [page, _setPage] = createSignal(0);
   const [users] = createResource(page, fetchUsers);
 
   return (

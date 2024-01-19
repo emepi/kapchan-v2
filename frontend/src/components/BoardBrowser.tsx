@@ -7,7 +7,7 @@ export function BoardBrowser() {
   const boardHandler: JSX.EventHandlerUnion<HTMLFormElement, Event> = (e) => {
     e.preventDefault();
       
-    let data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
+    //let data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
   }
 
   return (
