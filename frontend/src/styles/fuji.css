@@ -1,0 +1,100 @@
+:root {
+  font-family: system-ui;
+  font-weight: 400;
+}
+
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+a {
+  text-decoration: inherit;
+  color: inherit;
+}
+
+body {
+  background-color: #0f0f0f;
+}
+
+button {
+  all: unset;
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: #1c1b22;
+  color: white;
+}
+
+.content {
+  padding: 10px;
+}
+
+.board-selector,
+.navbar {
+  display: flex;
+  gap: 10px;
+}
+
+.board-selector {
+  justify-content: space-between;
+}
+
+.svg-a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading {
+  animation: spin 2s linear infinite;
+}
+
+.vr {
+  width: 0;
+  border-left: 1px solid;
+}
+
+.radio-lbl {
+  color: white;
+  cursor: pointer;
+}
+
+.radio-lck {
+  color: gray;
+}
+
+.radio-lbl,
+.radio-lck {
+  display: inline-block;
+  padding: 6px 10px 6px 10px;
+  background-color:#212121;
+  border-radius: 7px;
+}
+
+.radio-in {
+  appearance: none;
+}
+
+.radio-in:checked + .radio-lbl {
+  color: #0f0f0f;
+  background-color: white;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.frontpage {
+  display: flex;
+  justify-content: center;
+}
+
+.logo {
+  width: 500px;
+  height: auto;
+}
