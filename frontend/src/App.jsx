@@ -2,7 +2,7 @@ import { Show } from 'solid-js'
 import { SvgAnchor } from './components/SvgAnchor'
 import { AccessLevel } from './scripts/user'
 import { session } from '.'
-import logo  from"./assets/logo.png"
+import logo  from"./assets/logo5.png"
 import './styles/fuji.css'
 
 export const App = (props) => (

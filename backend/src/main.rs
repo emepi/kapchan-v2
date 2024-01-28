@@ -1,7 +1,5 @@
 pub mod schema;
-mod server;
 mod user_service;
-mod board_service;
 
 
 use std::env;
@@ -15,14 +13,11 @@ use diesel_async::{
 use dotenvy::dotenv;
 use log::info;
 use user_service::{
-    user::{UserModel, AccessLevel, User}, 
-    authentication::hash_password_a2id,
+    user::{UserModel, User}, 
+    authentication::{AccessLevel},
 };
 
-
-// Websocket service identifiers for message routing.
-pub const USER_SERVICE_ID: u32  = 1;
-pub const BOARD_SERVICE_ID: u32 = 2;
+use crate::user_service::authentication::hash_password_pbkdf2;
 
 
 #[actix_web::main]
@@ -35,23 +30,10 @@ async fn main() -> std::io::Result<()> {
 
     setup_root_user(&conn_pool).await;
 
-    //let server = WebsocketServer::new(
-    //    ServerSettings {
-    //        max_sessions: 100,
-    //        database: conn_pool.clone(),
-    //    }
-    //)
-    //.service::<UserService>(USER_SERVICE_ID)
-    //.service::<BoardService>(BOARD_SERVICE_ID)
-    //.start();
-
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(conn_pool.clone()))
         .configure(user_service::endpoints)
-        .configure(board_service::endpoints)
-        //.app_data(web::Data::new(server.clone()))
-        //.route("/ws", web::get().to(websocket_connect))
         .service(
             Files::new("/", "../frontend/dist")
                 .show_files_listing()
@@ -91,38 +73,33 @@ async fn setup_root_user(conn_pool: &Pool<AsyncMysqlConnection>) {
 
             let mut root_mdl = UserModel {
                 access_level: AccessLevel::Root as u8,
-                username: "root",
+                username: Some("root"),
                 email: None,
-                password_hash: &root_pwd,
+                password_hash: Some(&root_pwd),
             };
 
             let root = User::by_username("root", &conn_pool).await;
 
             match root {
                 
-                Some(root) => {
-                    let pwd_hash = match hash_password_a2id(&root_pwd) {
-                        Some(hash) => hash,
-                        None => return,
-                    };
+                Ok(root) => {
+                    let pwd_hash = hash_password_pbkdf2(&root_pwd);
 
-                    root_mdl.password_hash = &pwd_hash;
+                    root_mdl.password_hash = Some(&pwd_hash);
                     
-                    User::modify_by_id(root.id, root_mdl, conn_pool).await;
+                    let _ = User::modify_by_id(root.id, root_mdl, conn_pool)
+                    .await;
                     info!("Root user updated.");
                 },
 
-                None => {
-                    let pwd_hash = match hash_password_a2id(&root_pwd) {
-                        Some(hash) => hash,
-                        None => return,
-                    };
+                Err(_) => {
+                    let pwd_hash = hash_password_pbkdf2(&root_pwd);
 
-                    root_mdl.password_hash = &pwd_hash;
+                    root_mdl.password_hash = Some(&pwd_hash);
 
                     let res = root_mdl.insert(conn_pool).await;
 
-                    if res.is_some() {
+                    if res.is_ok() {
                         info!("Root successfully created.");
                     }
                 },
