@@ -1,6 +1,7 @@
 pub mod application;
 pub mod authentication;
 pub mod user;
+pub mod session;
 
 
 use actix_web::{web, HttpResponse, Responder, HttpRequest, http::header};
@@ -18,8 +19,7 @@ use serde::{Deserialize, Serialize};
 use self::{
     authentication::{
         create_access_token, validate_claims, validate_password_pbkdf2, AccessLevel
-    }, 
-    user::{User, UserModel},
+    }, session::SessionModel, user::{User, UserModel}
 };
 
 
@@ -104,7 +104,20 @@ async fn create_session(
         }
     }
 
-    // Create access token.
+    // Create a session.
+    let session = SessionModel {
+        user_id: user.id,
+        ended_at: None,
+    }
+    .insert(&conn_pool)
+    .await;
+
+    let session = match session {
+        Ok(session) => session,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    // Create an access token.
     let role = AccessLevel::try_from((&user).access_level).unwrap();
 
     let exp = match &input {
@@ -115,7 +128,7 @@ async fn create_session(
         None => role.default_exp(),
     };
 
-    let token = create_access_token(role, exp, user.id);
+    let token = create_access_token(role, exp, session.id);
 
     HttpResponse::Created().json(CreateSessionOutput {
         access_token: token,

@@ -3,14 +3,23 @@ import { credentials } from "./credentials"
 import { parseJWT } from "./utils"
 
 
-export const loadSession = async () => {
+/**
+ * Loads the previous session from the storage and checks expiry.
+ * @returns {boolean} True if a valid session was found
+ */
+export const loadSession = () => {
   const token = localStorage.getItem("session")
 
   if (token) {
-    credentials.auth_token = token;
-  } else {
-    await startSession()
+    const timestamp = new Date().getTime();
+    const session = userSession();
+
+    if (timestamp < session.exp) {
+      credentials.auth_token = token;
+      return true;
+    }
   }
+  return false;
 }
 
 export const startSession = async (user) => {

@@ -27,7 +27,7 @@ pub struct Claims {
     pub exp: usize,
     /// Issued at as UTC timestamp.
     pub iat: usize,
-    /// Subject (user id).
+    /// Subject (session id).
     pub sub: String,
     /// Access level.
     pub role: u8,
@@ -134,7 +134,7 @@ pub fn validate_claims(token: &str) -> Option<Claims> {
 pub fn create_access_token(
     access_level: AccessLevel,
     exp: i64,
-    user_id: u32, 
+    session_id: u32, 
 ) -> String {
     let jwt_secret = env::var("JWT_SECRET")
     .expect(".env variable `JWT_SECRET` must be set");
@@ -142,7 +142,7 @@ pub fn create_access_token(
     let user_claims = Claims {
         exp: exp as usize,
         iat: Utc::now().timestamp() as usize,
-        sub: user_id.to_string(),
+        sub: session_id.to_string(),
         role: access_level as u8,
     };
 
