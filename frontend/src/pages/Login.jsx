@@ -1,8 +1,10 @@
 import { Show, createSignal } from 'solid-js';
 import s_img from '../assets/12397866.435000004_space.jpg'
 import { validateEmail } from '../scripts/utils';
-import { updateSession } from '..';
+import { session, updateSession } from '..';
 import { replaceSession, userSession } from '../scripts/session';
+import { AccessLevel } from '../scripts/user';
+import { Navigate } from '@solidjs/router';
 
 export const Login = () => {
   const [error, setError] = createSignal(false)
@@ -49,6 +51,9 @@ export const Login = () => {
 
   return (
     <div class="login">
+      <Show when={session() && session().role > AccessLevel.Anonymous}>
+        <Navigate href="/" />
+      </Show>
       <div class="login-cont">
         <div class="login-side">
           <h2>Kirjaudu</h2>
