@@ -82,29 +82,6 @@ impl TryFrom<u8> for AccessLevel {
     }
 }
 
-pub fn validate_session_id(token: &str) -> Option<u32> {
-    
-    let jwt_secret = env::var("JWT_SECRET")
-    .expect(".env variable `JWT_SECRET` must be set");
-
-    let claims = match decode::<Claims>(
-        token, 
-        &DecodingKey::from_secret(jwt_secret.as_ref()), 
-        &Validation::default(),
-    ) {
-        Ok(data) =>  Some(data.claims),
-
-        Err(err) => {
-            // TODO: match specific errors
-            match err.kind() {
-                _ => None,
-            }
-        },
-    }?;
-
-    claims.sub.parse::<u32>().ok()
-}
-
 pub fn validate_claims(token: &str) -> Option<Claims> {
     let jwt_secret = env::var("JWT_SECRET")
     .expect(".env variable `JWT_SECRET` must be set");

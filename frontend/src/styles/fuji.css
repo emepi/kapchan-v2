@@ -14,7 +14,10 @@ a {
 }
 
 body {
+  display: grid;
+  grid-template-rows: min-content 1fr;
   background-color: #0f0f0f;
+  height: 100vh;
 }
 
 button {
@@ -176,4 +179,74 @@ button {
 .post-board:focus,
 .post-body:focus {
   outline: 1px solid lightsalmon;
+}
+
+.login {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  height: 100%;
+}
+
+.login-cont {
+  display: flex;
+  padding: 10px;
+  background-color: #212121;
+  border-radius: 3px;
+  min-width: 800px;
+}
+
+.login-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 50px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 300px;
+}
+
+.login-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.text-field {
+  padding: 10px;
+  appearance: none;
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+.text-field:focus {
+  outline: 1px solid lightsalmon;
+}
+
+.login-select {
+  display: flex;
+  justify-content: space-between;
+}
+
+.forgot-btn {
+  color: gray;
+}
+
+.forgot-btn,
+.login-btn {
+  display: flex;
+}
+
+.forgot-btn:hover,
+.login-btn:hover {
+  color: lightsalmon;
+}
+
+.error-msg {
+  color: red;
 }

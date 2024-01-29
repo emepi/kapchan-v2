@@ -6,6 +6,7 @@ import { loadSession, userSession } from './scripts/session';
 import { AccessLevel } from './scripts/user';
 import { App } from './App'
 import { Board } from './pages/Board';
+import { Login } from './pages/Login';
 
 
 /* UI session state: updated on credentials.auth_token change */
@@ -20,6 +21,7 @@ render(
   () => (
     <Router root={App}>
       <Route path="/" component={Board} />
+      <Route path="/login" component={Login} />
     </Router>
   ), 
   document.body

@@ -11,10 +11,10 @@ export const loadSession = () => {
   const token = localStorage.getItem("session")
 
   if (token) {
-    const timestamp = new Date().getTime();
+    const timestamp = new Date().getUTCSeconds()
     const session = userSession();
 
-    if (timestamp < session.exp) {
+    if (timestamp < parseJWT(token).exp) {
       credentials.auth_token = token;
       return true;
     }
@@ -41,15 +41,15 @@ export const startSession = async (user) => {
   })
 }
 
-const replaceSession = (token) => {
+export const replaceSession = (token) => {
   credentials.auth_token = token
   localStorage.setItem("session", token)
 }
 
 export const userSession = () => {
-    if (credentials.auth_token) {
-      return parseJWT(credentials.auth_token)
-    }
-    
-    return undefined;
+  if (credentials.auth_token) {
+    return parseJWT(credentials.auth_token)
   }
+    
+  return undefined;
+}
