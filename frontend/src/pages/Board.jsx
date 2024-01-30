@@ -3,20 +3,41 @@ import { RadioButton } from "../components/RadioButton"
 import { AccessLevel } from "../scripts/user"
 import { boards } from "../scripts/boards"
 import { session } from ".."
+import logo from"../assets/logo5.png"
 
 
 export const Board = () => {
+  const [view, changeView] = createSignal("");
+
+  const selectView = (e) => {
+    const input = e.target
+    changeView(input.value)
+  }
+
   return (
     <>
       <nav class="board-selector">
         <div class="navbar">
-          <RadioButton name="board" accessLevel={AccessLevel.Anonymous} value="" checked>etusivu</RadioButton>
+          <RadioButton name="board" onChange={selectView} accessLevel={AccessLevel.Anonymous} value="" checked>etusivu</RadioButton>
           <For each={boards}>
-            { (board) => <RadioButton name="board" accessLevel={board.accessLevel} value={board.handle}>{board.name}</RadioButton> }
+            { (board) => <RadioButton name="board" onChange={selectView} accessLevel={board.accessLevel} value={board.handle}>{board.name}</RadioButton> }
           </For>
         </div>
         <PostingModalButton />
       </nav>
+      <Show when={view() === ""}>
+        <div class="banner">
+          <div class="banner-cont">
+            <img class="logo" src={logo} />
+            <h1 class="intro-h">Avaruuskapakka</h1>
+            <div class="intro">
+              <span class="ward">„eirum aum aurum . . . normot poistum"</span>
+              <p>Kapakka on kuvalauta/chat syrjäytyneille ja muille normaalista poikkeaville ihmisille.</p>
+              <p>Sisäänkirjautuneena pääset useammalle alueelle ja saat muita ominaisuuksisa käyttöösi. <a>Rekisteröidy tästä.</a></p>
+            </div>
+          </div>
+        </div>
+      </Show>
     </>
   )
 }

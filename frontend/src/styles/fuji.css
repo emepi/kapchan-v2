@@ -15,7 +15,7 @@ a {
 
 body {
   display: grid;
-  grid-template-rows: min-content 1fr;
+  grid-template-rows: min-content 1fr min-content;
   background-color: #0f0f0f;
   height: 100vh;
 }
@@ -33,8 +33,13 @@ button {
   color: white;
 }
 
-.content {
-  padding: 10px;
+.footer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  color: gray;
+  margin: 10px;
+  font-size: 14px;
 }
 
 .navbar {
@@ -51,6 +56,11 @@ button {
 .modal-head,
 .board-selector {
   justify-content: space-between;
+}
+
+.board-selector {
+  color: white;
+  padding: 10px;
 }
 
 .svg-a {
@@ -249,4 +259,33 @@ button {
 
 .error-msg {
   color: red;
+}
+
+.banner {
+  display: flex;
+  justify-content: center;
+  color: white;
+}
+
+.banner-cont {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #212121;
+  border-radius: 3px;
+  padding: 10px;
+  margin: 10px;
+}
+
+.ward {
+  padding: 10px;
+  text-align: center;
+  color: gray;
+  font-style: italic;
 }
