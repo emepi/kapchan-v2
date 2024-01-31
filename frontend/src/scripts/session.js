@@ -8,14 +8,14 @@ import { parseJWT } from "./utils"
  * @returns {boolean} True if a valid session was found.
  */
 export const loadSession = () => {
-  const token = localStorage.getItem("session")
+  const token = localStorage.getItem("access_token")
 
   if (token) {
     const timestamp = new Date().getUTCSeconds()
     const session = userSession();
 
     if (timestamp < parseJWT(token).exp) {
-      credentials.auth_token = token;
+      credentials.access_token = token;
       return true;
     }
   }

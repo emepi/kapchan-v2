@@ -7,8 +7,8 @@ import { credentials } from './scripts/credentials'
 
 export const App = (props) => {
   const logout = () => {
-    credentials.auth_token = undefined
-    localStorage.removeItem("session")
+    credentials.access_token = undefined
+    localStorage.removeItem("access_token")
     updateSession({role: AccessLevel.Anonymous})
   }
 

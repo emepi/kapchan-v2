@@ -4,6 +4,8 @@ import { AccessLevel } from "../scripts/user"
 import { boards } from "../scripts/boards"
 import { session } from ".."
 import logo from"../assets/logo5.png"
+import { credentials } from "../scripts/credentials"
+import { startSession } from "../scripts/session"
 
 
 export const Board = () => {
@@ -49,13 +51,18 @@ const PostingModalButton = (props) => {
   const post = async (e) => {
     e.preventDefault()
     const data = new FormData(e.target)
-    const res = await fetch("/posts", {
-      method: "POST",
-      body: data,
-    }, true)
-    .catch((err) => {
-      console.log(err)
-    })
+
+    if (!credentials.access_token) {
+      await startSession()
+    }
+
+    if (credentials.access_token) {
+      fetch("/posts", {
+        method: "POST",
+        headers: [["Authorization", "bearer " + credentials.access_token]],
+        body: data,
+      })
+    }
   }
 
   return(
