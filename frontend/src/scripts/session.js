@@ -1,11 +1,11 @@
-import { apiFetch } from "./connection"
 import { credentials } from "./credentials"
 import { parseJWT } from "./utils"
 
 
 /**
  * Loads the previous session from the storage and checks expiry.
- * @returns {boolean} True if a valid session was found
+ * 
+ * @returns {boolean} True if a valid session was found.
  */
 export const loadSession = () => {
   const token = localStorage.getItem("session")
@@ -22,33 +22,42 @@ export const loadSession = () => {
   return false;
 }
 
-export const startSession = async (user) => {
-  return apiFetch("/sessions", {
+/**
+ * Attempts to start a session with the server.
+ * On success (201), updates the access_token in credentials & localStorage.
+ *  
+ * @param {Object} [user] Login information for user session. Malformatted user 
+ *                        data is interpreted as undefined by server.
+ * @param {string} [user.username] Use username to identify user.
+ * @param {string} [user.email] Use email to identify user.
+ * @param {string} user.password 
+ * @returns {number} HTTP response status code.
+ */
+export const startSession = async (user, polling = false) => {
+  const res = await fetch("/sessions", {
     method: "POST",
+    headers: [[ "Content-Type", "application/json" ]],
     body: user ? JSON.stringify(user) : undefined,
   })
-  .then(async (res) => {
-    if (res.ok) {
-      const sess = await res.json()
-      replaceSession(sess.access_token)
-    }
 
-    return res.status
-  })
-  .catch((err) => {
-    console.log(err);
-    return 503; // Service unavailable (503) due to a network error.
-  })
-}
+  let access_token
 
-export const replaceSession = (token) => {
-  credentials.auth_token = token
-  localStorage.setItem("session", token)
+  if (res.ok) {
+    const data = await res.json()
+    access_token = data.access_token
+  }
+
+  if (access_token) {
+    credentials.access_token = access_token
+    localStorage.setItem("access_token", access_token)
+  }
+
+  return res.status
 }
 
 export const userSession = () => {
-  if (credentials.auth_token) {
-    return parseJWT(credentials.auth_token)
+  if (credentials.access_token) {
+    return parseJWT(credentials.access_token)
   }
     
   return undefined;

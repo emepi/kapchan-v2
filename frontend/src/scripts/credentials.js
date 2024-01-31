@@ -1,3 +1,3 @@
 export const credentials = {
-  auth_token: undefined,
+  access_token: undefined,
 }

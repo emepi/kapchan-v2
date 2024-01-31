@@ -2,7 +2,7 @@ import { Show, createSignal } from 'solid-js';
 import s_img from '../assets/12397866.435000004_space.jpg'
 import { validateEmail } from '../scripts/utils';
 import { session, updateSession } from '..';
-import { replaceSession, userSession } from '../scripts/session';
+import { startSession, userSession } from '../scripts/session';
 import { AccessLevel } from '../scripts/user';
 import { Navigate } from '@solidjs/router';
 
@@ -17,36 +17,43 @@ export const Login = () => {
     const id = data.id.toString()
     const password = data.password.toString()
 
-    const login = validateEmail(id) ?  {
-      email: id,
-      password: password,
-    } : {
-      username: id,
-      password: password,
-    }
-
-    fetch("/sessions", {
-      method: "POST",
-      headers: [['Content-Type', 'application/json']],
-      body: JSON.stringify(login),
-    })
-    .then(async (res) => {
-      if (res.ok) {
-        const data = await res.json()
-        replaceSession(data.access_token)
-        updateSession(userSession())
-      } else if (res.status === 404) {
-        setMsg("User not found")
-        setError(true)
-      } else if (res.status === 401) {
-        setMsg("Password was incorrect.")
-        setError(true)
+    if (!id) {
+      showErr("Syötä käyttäjänimi tai sähköpostiosoite")
+    } 
+    else if (!password) {
+      showErr("syötä salasana")
+    } 
+    else {
+      const login = validateEmail(id) ?  {
+        email: id,
+        password: password,
+      } : {
+        username: id,
+        password: password,
       }
-    })
-    .catch(_ => {
-      setMsg("Network error")
-      setError(true)
-    })
+
+      startSession(login)
+      .then(status => {
+        switch (status) {
+          case 201:
+            updateSession(userSession())
+            break;
+          case 404:
+            showErr("Käyttäjää ei löydy")
+            break;
+          case 401:
+            showErr("Salasana on virheellinen")
+            break;
+          default:
+            showErr("Yhteys ongelma")
+        }
+      })
+    }
+  }
+
+  const showErr = (error_msg) => {
+    setError(true)
+    setMsg(error_msg)
   }
 
   return (

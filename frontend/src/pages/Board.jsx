@@ -46,6 +46,18 @@ const PostingModalButton = (props) => {
 
   const [open, setOpen] = createSignal(false)
 
+  const post = async (e) => {
+    e.preventDefault()
+    const data = new FormData(e.target)
+    const res = await fetch("/posts", {
+      method: "POST",
+      body: data,
+    }, true)
+    .catch((err) => {
+      console.log(err)
+    })
+  }
+
   return(
     <div>
       <button onClick={() => setOpen(true)} class="radio-lbl">
@@ -60,7 +72,7 @@ const PostingModalButton = (props) => {
                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
               </button>
             </header>
-            <form class="post-form">
+            <form class="post-form" onSubmit={post}>
               <label>
                 <input class="post-subject" type="text" name="subject" placeholder="Otsikko" maxLength="100" />
               </label>
