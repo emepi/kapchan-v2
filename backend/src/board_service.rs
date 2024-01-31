@@ -2,12 +2,13 @@ pub mod board;
 
 
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use diesel::result::{DatabaseErrorKind, Error::{DatabaseError, NotFound}};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::Deserialize;
 
 use crate::user_service::authentication::{authenticate_user, AccessLevel};
 
-use self::board::BoardModel;
+use self::board::{Board, BoardModel};
 
 
 /// API endpoints exposed by the board service.
@@ -15,10 +16,26 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
     .service(
         web::resource("/boards")
+        .route(web::get().to(boards))
         .route(web::post().to(create_board))
     );
 }
 
+
+/// Handler for `GET /boards` request.
+async fn boards(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+) -> impl Responder {
+    let boards = Board::fetch_boards(&conn_pool).await;
+
+    match boards {
+        Ok(boards) => HttpResponse::Ok().json(boards),
+        Err(err) => match err {
+            NotFound => HttpResponse::NotFound().finish(),
+            _ => HttpResponse::InternalServerError().finish(),
+        },
+    }
+}
 
 /// JSON body accepted by `POST /boards` method.
 #[derive(Debug, Deserialize)]
@@ -58,7 +75,13 @@ async fn create_board(
     .await;
 
     match board {
-        Ok(_) => HttpResponse::Created().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Ok(board) => HttpResponse::Created().json(board),
+        Err(err) => match err {
+            DatabaseError(db_err, _) => match db_err {
+                DatabaseErrorKind::UniqueViolation => HttpResponse::BadRequest().finish(),
+                _ => HttpResponse::InternalServerError().finish(),
+            },
+            _ => HttpResponse::InternalServerError().finish(),
+        },
     }
 }
