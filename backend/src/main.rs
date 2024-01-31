@@ -1,5 +1,6 @@
 pub mod schema;
 mod user_service;
+mod board_service;
 
 
 use std::env;
@@ -34,6 +35,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
         .app_data(web::Data::new(conn_pool.clone()))
         .configure(user_service::endpoints)
+        .configure(board_service::endpoints)
         .service(
             Files::new("/", "../frontend/dist")
                 .show_files_listing()

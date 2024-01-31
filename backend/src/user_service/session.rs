@@ -22,6 +22,31 @@ pub struct Session {
     pub ended_at: Option<NaiveDateTime>,
 }
 
+impl Session {
+    /// Fetches `Session` by id from the database.
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Session, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let session = sessions::table
+                    .find(id)
+                    .first::<Session>(conn)
+                    .await?;
+            
+                    Ok(session)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
+}
+
 /// Database insertion model for a session.
 #[derive(Insertable)]
 #[diesel(table_name = sessions)]

@@ -33,7 +33,7 @@ export const loadSession = () => {
  * @param {string} user.password 
  * @returns {number} HTTP response status code.
  */
-export const startSession = async (user, polling = false) => {
+export const startSession = async (user) => {
   const res = await fetch("/sessions", {
     method: "POST",
     headers: [[ "Content-Type", "application/json" ]],

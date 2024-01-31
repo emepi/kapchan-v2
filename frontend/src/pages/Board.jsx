@@ -59,7 +59,7 @@ const PostingModalButton = (props) => {
     if (credentials.access_token) {
       fetch("/posts", {
         method: "POST",
-        headers: [["Authorization", "bearer " + credentials.access_token]],
+        headers: [["Authorization", "Bearer " + credentials.access_token]],
         body: data,
       })
     }
