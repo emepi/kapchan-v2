@@ -1,7 +1,7 @@
 use std::env;
 
 use actix_web::{http::header, HttpRequest, HttpResponse, HttpResponseBuilder};
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use jsonwebtoken::{
     decode, 
@@ -53,17 +53,17 @@ pub enum AccessLevel {
 impl AccessLevel {
     /// Default access token expiration time as UTC timestamp from the current
     /// moment.
-    pub fn default_exp(&self) -> i64 {
+    pub fn default_exp(&self) -> DateTime<Utc> {
         let now = Utc::now();
 
         match self {
-            AccessLevel::Anonymous => (now + Duration::days(365)).timestamp(),
-            AccessLevel::Registered => (now + Duration::days(30)).timestamp(),
-            AccessLevel::PendingMember => (now + Duration::days(30)).timestamp(),
-            AccessLevel::Member => (now + Duration::days(30)).timestamp(),
-            AccessLevel::Admin => (now + Duration::days(7)).timestamp(),
-            AccessLevel::Owner => (now + Duration::days(1)).timestamp(),
-            AccessLevel::Root => (now + Duration::hours(1)).timestamp(),
+            AccessLevel::Anonymous => now + Duration::days(365),
+            AccessLevel::Registered => now + Duration::days(30),
+            AccessLevel::PendingMember => now + Duration::days(30),
+            AccessLevel::Member => now + Duration::days(30),
+            AccessLevel::Admin => now + Duration::days(7),
+            AccessLevel::Owner => now + Duration::days(1),
+            AccessLevel::Root => now + Duration::hours(1),
         }
     }
 }
@@ -114,13 +114,13 @@ pub async fn authenticate_user(
         None => return Err(HttpResponse::Unauthorized()),
     };
 
-    // Check if session has been ended.
+    // Check if session has ended.
     let session = match Session::by_id(claims.sub, &conn_pool).await {
         Ok(session) => session,
         Err(_) => return Err(HttpResponse::InternalServerError()),
     };
 
-    if session.ended_at.is_some() {
+    if session.ended_at.timestamp() <= Utc::now().timestamp() {
         return Err(HttpResponse::Unauthorized());
     }
 

@@ -56,7 +56,7 @@ diesel::table! {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Integer>,
         created_at -> Datetime,
-        ended_at -> Nullable<Datetime>,
+        ended_at -> Datetime,
     }
 }
 
