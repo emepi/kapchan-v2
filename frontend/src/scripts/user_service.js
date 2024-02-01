@@ -1,6 +1,38 @@
+import { createSignal } from "solid-js"
 import { credentials } from "./credentials"
 import { parseJWT } from "./utils"
+import { AccessLevel } from "./user"
 
+
+/**
+ * Attempts to prematurely end session and to discard user's access token.
+ */
+export const endSession = () => {
+  // End server session.
+  if (credentials.access_token) {
+    const session = userSession()
+
+    fetch("/sessions/" + session.sub, {
+      method: "PUT",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Authorization", "Bearer " + credentials.access_token]
+      ],
+      body: JSON.stringify({
+        exp: Math.round(Date.now() / 1000)
+      }),
+    })
+  }
+
+  // Discard access token.
+  credentials.access_token = undefined
+  localStorage.removeItem("access_token")
+
+  // Update UI.
+  updateSession({ 
+    role: AccessLevel.Anonymous 
+  })
+}
 
 /**
  * Loads the previous session from the storage and checks expiry.
@@ -11,7 +43,7 @@ export const loadSession = () => {
   const token = localStorage.getItem("access_token")
 
   if (token) {
-    const timestamp = new Date().getUTCSeconds()
+    const timestamp = Math.round(Date.now() / 1000)
     const session = userSession();
 
     if (timestamp < parseJWT(token).exp) {
@@ -50,6 +82,7 @@ export const startSession = async (user) => {
   if (access_token) {
     credentials.access_token = access_token
     localStorage.setItem("access_token", access_token)
+    updateSession(userSession())
   }
 
   return res.status
@@ -62,3 +95,11 @@ export const userSession = () => {
     
   return undefined;
 }
+
+/* UI session state */
+export const [session, updateSession] = createSignal(
+  loadSession() ? userSession() : {
+    // Defaulted to anon placeholder to save a session request.
+    role: AccessLevel.Anonymous,
+  }
+)

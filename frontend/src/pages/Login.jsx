@@ -1,8 +1,7 @@
 import { Show, createSignal } from 'solid-js';
 import s_img from '../assets/12397866.435000004_space.jpg'
 import { validateEmail } from '../scripts/utils';
-import { session, updateSession } from '..';
-import { startSession, userSession } from '../scripts/session';
+import { session, updateSession, startSession, userSession } from '../scripts/user_service';
 import { AccessLevel } from '../scripts/user';
 import { Navigate } from '@solidjs/router';
 
@@ -35,9 +34,6 @@ export const Login = () => {
       startSession(login)
       .then(status => {
         switch (status) {
-          case 201:
-            updateSession(userSession())
-            break;
           case 404:
             showErr("Käyttäjää ei löydy")
             break;

@@ -1,5 +1,5 @@
-import { session } from ".."
 import { formatClass } from "../scripts/utils"
+import { session } from "../scripts/user_service"
 
 
 export const RadioButton = (props) => (

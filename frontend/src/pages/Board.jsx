@@ -1,11 +1,12 @@
-import { Show, createSignal } from "solid-js"
+import { Show, createResource, createSignal } from "solid-js"
 import { RadioButton } from "../components/RadioButton"
 import { AccessLevel } from "../scripts/user"
-import { boards } from "../scripts/boards"
-import { session } from ".."
-import logo from"../assets/logo5.png"
 import { credentials } from "../scripts/credentials"
-import { startSession } from "../scripts/session"
+import { session, startSession } from "../scripts/user_service"
+import logo from"../assets/logo5.png"
+
+
+const [boards] = createResource(async () => (await fetch("/boards")).json())
 
 
 export const Board = () => {
@@ -21,8 +22,8 @@ export const Board = () => {
       <nav class="board-selector">
         <div class="navbar">
           <RadioButton name="board" onChange={selectView} accessLevel={AccessLevel.Anonymous} value="" checked>etusivu</RadioButton>
-          <For each={boards}>
-            { (board) => <RadioButton name="board" onChange={selectView} accessLevel={board.accessLevel} value={board.handle}>{board.name}</RadioButton> }
+          <For each={boards()}>
+            { (board) => <RadioButton name="board" onChange={selectView} accessLevel={board.access_level} value={board.handle}>{board.title}</RadioButton> }
           </For>
         </div>
         <PostingModalButton />
@@ -86,13 +87,13 @@ const PostingModalButton = (props) => {
               <label class="dropdown">
                 <select class="post-board" name="board">
                   <option value="" disabled selected>Valitse lauta</option>
-                  <For each={boards}>
+                  <For each={boards()}>
                     { (board) => 
                     <Show 
-                      when={session() && session().role >= board.accessLevel}
-                      fallback={<option disabled>{board.name}</option>}
+                      when={session() && session().role >= board.access_level}
+                      fallback={<option disabled>{board.title}</option>}
                     >
-                      <option value={board.handle}>{board.name}</option>
+                      <option value={board.handle}>{board.title}</option>
                     </Show>
                     }
                   </For>
