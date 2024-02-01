@@ -120,7 +120,7 @@ button {
   height: auto;
 }
 
-.post-modal-bg {
+.modal-bg {
   z-index: 2;
   position: absolute;
   left: 0;
@@ -133,7 +133,7 @@ button {
   background-color: rgba(0, 0, 0, 0.5);
 }
 
-.post-modal {
+.modal {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -300,4 +300,27 @@ button {
 
 th, td {
   padding: 0 10px 0  10px;
+}
+
+.cb-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.input {
+  padding: 10px;
+  appearance: none;
+  border: 1px solid;
+  border-radius: 3px;
+  width: 100%;
+}
+
+.input:focus {
+  outline: 1px solid lightsalmon;
+}
+
+.end {
+  display: flex;
+  justify-content: end;
 }

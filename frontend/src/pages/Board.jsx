@@ -72,8 +72,8 @@ const PostingModalButton = (props) => {
         luo lanka
       </button>
       <Show when={open()}>
-        <div class="post-modal-bg">
-          <div class="post-modal">
+        <div class="modal-bg">
+          <div class="modal">
             <header class="modal-head">
               <h3>Luo lanka</h3>
               <button class="close-btn" onClick={() => setOpen(false)}>
