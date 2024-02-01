@@ -289,3 +289,15 @@ button {
   color: gray;
   font-style: italic;
 }
+
+.container {
+  padding: 10px;
+  margin: 0 10px 10px 10px;
+  background-color: #212121;
+  border-radius: 3px;
+  color: white;
+}
+
+th, td {
+  padding: 0 10px 0  10px;
+}

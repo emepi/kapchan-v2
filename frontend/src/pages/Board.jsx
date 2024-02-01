@@ -6,7 +6,7 @@ import { session, startSession } from "../scripts/user_service"
 import logo from"../assets/logo5.png"
 
 
-const [boards] = createResource(async () => (await fetch("/boards")).json())
+export const [boards] = createResource(async () => (await fetch("/boards")).json())
 
 
 export const Board = () => {
