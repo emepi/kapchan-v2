@@ -89,6 +89,7 @@ impl TryFrom<u8> for AccessLevel {
     }
 }
 
+#[derive(Debug)]
 /// User information extracted from an http request.
 pub struct UserInfo {
     pub user_id: u32,

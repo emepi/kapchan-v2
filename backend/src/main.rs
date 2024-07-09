@@ -6,6 +6,7 @@ mod board_service;
 use std::env;
 
 use actix_files::Files;
+use actix_multipart::form::MultipartFormConfig;
 use actix_web::{HttpServer, App, web};
 use diesel_async::{
     AsyncMysqlConnection,
@@ -34,6 +35,10 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(conn_pool.clone()))
+        .app_data(
+            MultipartFormConfig::default()
+            .total_limit(21_076_377)
+        )
         .configure(user_service::endpoints)
         .configure(board_service::endpoints)
         .service(

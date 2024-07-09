@@ -1,9 +1,11 @@
 pub mod board;
 
 
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use diesel::result::{DatabaseErrorKind, Error::{DatabaseError, NotFound}};
-use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use diesel::result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}};
+use diesel_async::{pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection, AsyncMysqlConnection};
+use log::info;
 use serde::Deserialize;
 
 use crate::user_service::authentication::{authenticate_user, AccessLevel};
@@ -18,6 +20,10 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
         web::resource("/boards")
         .route(web::get().to(boards))
         .route(web::post().to(create_board))
+    )
+    .service(
+        web::resource("/threads")
+        .route(web::post().to(create_thread))
     );
 }
 
@@ -84,4 +90,47 @@ async fn create_board(
             _ => HttpResponse::InternalServerError().finish(),
         },
     }
+}
+
+/// Multipart form accepted by `POST /threads` method.
+#[derive(Debug, MultipartForm)]
+struct CreateThreadInput {
+    pub title: Option<Text<String>>,
+    pub body: Option<Text<String>>,
+    pub board: Text<String>,
+    pub attachment: Option<TempFile>,
+}
+
+/// Handler for `POST /threads` request.
+async fn create_thread(
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    MultipartForm(input): MultipartForm<CreateThreadInput>,
+    req: HttpRequest,
+) -> impl Responder {
+    // Fetch board info
+    let handle = input.board.into_inner();
+    let board = Board::by_handle(&handle, &conn_pool).await;
+
+    let board = match board {
+        Ok(board) => board,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+
+    // Check permissions
+    if board.access_level > AccessLevel::Anonymous as u8 {
+        let conn_info = match authenticate_user(&conn_pool, req).await {
+            Ok(conn_info) => conn_info,
+            Err(mut err_res) => return err_res.finish(),
+        };
+    
+        if conn_info.access_level < board.access_level {
+            return HttpResponse::Forbidden().finish();
+        }
+    }
+
+
+    
+
+    HttpResponse::Created().finish()
 }

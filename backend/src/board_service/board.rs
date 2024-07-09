@@ -45,6 +45,29 @@ impl Board {
             Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn by_handle(
+        handle: &String,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Board, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let board = boards::table
+                    .filter(boards::handle.eq(handle))
+                    .select(Board::as_select())
+                    .first(conn)
+                    .await?;
+            
+                    Ok(board)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
 }
 
 /// Model for inserting a new board into the database.

@@ -53,12 +53,14 @@ const PostingModalButton = (props) => {
     e.preventDefault()
     const data = new FormData(e.target)
 
+    console.log(data)
+
     if (!credentials.access_token) {
       await startSession()
     }
 
     if (credentials.access_token) {
-      fetch("/posts", {
+      fetch("/threads", {
         method: "POST",
         headers: [["Authorization", "Bearer " + credentials.access_token]],
         body: data,
@@ -82,7 +84,7 @@ const PostingModalButton = (props) => {
             </header>
             <form class="post-form" onSubmit={post}>
               <label>
-                <input class="post-subject" type="text" name="subject" placeholder="Otsikko" maxLength="100" />
+                <input class="post-subject" type="text" name="title" placeholder="Otsikko" maxLength="100" />
               </label>
               <label class="dropdown">
                 <select class="post-board" name="board">
