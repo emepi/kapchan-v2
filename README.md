@@ -4,42 +4,6 @@
 
 ## Build
 
-### Frontend
-
-#### Install dependencies
-
-- [Bun](https://bun.sh/) (or [Node.js](https://nodejs.org))
-
-Next, install packages in */frontend* directory:
-
-```bash
-$ bun install # or npm install
-```
-
-#### Development
-
-Run frontend from **development server**:
-
-```bash
-$ bun run dev # or npm run dev
-```
-
-Development server automatically picks up changes made to the frontend and 
-performs HMR for real time browser updates. <br>
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
-
-#### Deployment
-
-Kapchan is using [vite](https://vitejs.dev/guide/static-deploy.html) build 
-tools for frontend optimization:
-
-```bash
-$ bun vite build # or npm run build
-```
-
-The minified build of the frontend should now appear in */dist* directory 
-and is ready to be served from backend.
-
 ### Backend
 
 #### dependencies
