@@ -1,9 +1,9 @@
 use std::env;
 
 use actix_web::{web, App, HttpServer};
-use diesel_async::{
-    AsyncMysqlConnection,
-    pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager}
+use diesel_async::pooled_connection::{
+    deadpool::Pool, 
+    AsyncDieselConnectionManager
 };
 use dotenvy::dotenv;
 
