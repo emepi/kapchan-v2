@@ -4,6 +4,7 @@ CREATE TABLE users (
     username      VARCHAR(16)      UNIQUE,
     email         VARCHAR(128)     UNIQUE,
     password_hash VARCHAR(128),
+    pk_hash       VARCHAR(128)     UNIQUE,
     created_at    DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
