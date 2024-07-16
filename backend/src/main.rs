@@ -1,4 +1,6 @@
+pub mod users;
 pub mod utils;
+pub mod schema;
 
 
 use std::env;
