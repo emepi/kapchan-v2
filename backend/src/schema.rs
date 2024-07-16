@@ -104,7 +104,7 @@ diesel::table! {
         #[max_length = 128]
         password_hash -> Nullable<Varchar>,
         #[max_length = 128]
-        pk_hash -> Nullable<Varchar>,
+        pk_hash -> Varchar,
         created_at -> Datetime,
     }
 }

@@ -1,3 +1,6 @@
+pub mod utils;
+
+
 use std::env;
 
 use actix_web::{web, App, HttpServer};
@@ -30,8 +33,16 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(mysql_connection_pool.clone()))
+        .configure(routes)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
+}
+
+fn routes(app: &mut web::ServiceConfig) {
+    app
+    .service(web::scope("/api/v1")
+        
+    );
 }
