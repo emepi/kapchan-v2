@@ -34,11 +34,42 @@ diesel::table! {
 }
 
 diesel::table! {
+    files (id) {
+        id -> Unsigned<Integer>,
+        file_name -> Tinytext,
+        #[max_length = 512]
+        thumbnail -> Varchar,
+        #[max_length = 512]
+        file_path -> Varchar,
+    }
+}
+
+diesel::table! {
+    posts (id) {
+        id -> Unsigned<Integer>,
+        op_id -> Nullable<Unsigned<Integer>>,
+        body -> Text,
+        access_level -> Unsigned<Tinyint>,
+        created_at -> Datetime,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Integer>,
         created_at -> Datetime,
         ended_at -> Datetime,
+    }
+}
+
+diesel::table! {
+    threads (id) {
+        id -> Unsigned<Integer>,
+        board -> Unsigned<Integer>,
+        title -> Tinytext,
+        pinned -> Bool,
+        bump_date -> Datetime,
     }
 }
 
@@ -59,12 +90,18 @@ diesel::table! {
 diesel::joinable!(application_reviews -> applications (application_id));
 diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
+diesel::joinable!(files -> posts (id));
 diesel::joinable!(sessions -> users (user_id));
+diesel::joinable!(threads -> boards (board));
+diesel::joinable!(threads -> posts (id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     application_reviews,
     applications,
     boards,
+    files,
+    posts,
     sessions,
+    threads,
     users,
 );

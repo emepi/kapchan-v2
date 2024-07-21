@@ -1,11 +1,15 @@
 pub mod board;
+pub mod post;
 
+
+use std::{fs, str::FromStr};
 
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}};
 use diesel_async::{pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection, AsyncMysqlConnection};
 use log::info;
+use post::{FileModel, PostModel, ThreadModel};
 use serde::Deserialize;
 
 use crate::user_service::authentication::{authenticate_user, AccessLevel};
@@ -20,6 +24,9 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
         web::resource("/boards")
         .route(web::get().to(boards))
         .route(web::post().to(create_board))
+    )
+    .service(
+        web::resource("/boards/{id}/threads")
     )
     .service(
         web::resource("/threads")
@@ -95,8 +102,8 @@ async fn create_board(
 /// Multipart form accepted by `POST /threads` method.
 #[derive(Debug, MultipartForm)]
 struct CreateThreadInput {
-    pub title: Option<Text<String>>,
-    pub body: Option<Text<String>>,
+    pub title: Text<String>,
+    pub body: Text<String>,
     pub board: Text<String>,
     pub attachment: Option<TempFile>,
 }
@@ -129,7 +136,74 @@ async fn create_thread(
         }
     }
 
+    // Create a thread
+    let op_post = PostModel {
+        op_id: None,
+        body: input.body.into_inner(),
+        access_level: board.access_level,
+    }
+    .insert(&conn_pool)
+    .await;
 
+    let op_post = match op_post {
+        Ok(op_post) => op_post,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let thread = ThreadModel {
+        id: op_post.id,
+        board: board.id,
+        title: input.title.into_inner(),
+        pinned: false,
+    };
+
+    match thread.insert(&conn_pool).await {
+        Ok(_) => (),
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    }
+
+    // Process attachment
+    if let Some(attachment) = input.attachment {
+        let dir_path = format!("target/files/{}", op_post.id);
+
+        // TODO: tokio async v
+        match fs::create_dir_all(&dir_path) {
+            Ok(_) => (),
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        }
+
+        let file = attachment.file;
+        let file_name = match attachment.file_name {
+            Some(name) => name,
+            None => String::from("file"),
+        };
+
+        let mime = match attachment.content_type {
+            Some(mime) => mime,
+            None => return HttpResponse::UnprocessableEntity().finish(),
+        };
+
+        let file_path = format!("{}/file.{}", dir_path, mime.subtype().as_str()); // TODO
+
+        match file.persist(&file_path) {
+            Ok(_) => (),
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        }
+
+        // TODO: create a thumbnail
+
+        let file_model = FileModel {
+            id: op_post.id,
+            file_name,
+            thumbnail: String::default(),
+            file_path,
+        };
+
+        match file_model.insert(&conn_pool).await {
+            Ok(_) => (),
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        }
+    }
     
 
     HttpResponse::Created().finish()
