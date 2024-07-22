@@ -1,4 +1,4 @@
-import { Show, createResource, createSignal } from "solid-js"
+import { Show, createMemo, createResource, createSignal } from "solid-js"
 import { RadioButton } from "../components/RadioButton"
 import { AccessLevel } from "../scripts/user"
 import { credentials } from "../scripts/credentials"
@@ -44,14 +44,17 @@ export const Board = () => {
         </div>
       </Show>
       <Show when={Number.isInteger(parseInt(view()))}>
-        <Threads board={view()} />
+        {createMemo(() => {
+          view()
+          return <Threads board={view()} />
+        })}
       </Show>
     </>
   )
 }
 
 const Threads = (props) => {
-  const [threads] = createResource(async () => (await fetch("/boards/" + props.board + "/threads")).json())
+  let [threads] = createResource(async () => (await fetch("/boards/" + props.board + "/threads")).json())
 
   return (
     <div class="thread-selector">
