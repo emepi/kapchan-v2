@@ -26,3 +26,4 @@ regex = "1.10.2"
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 sha2 = "0.10.8"
+tokio = "1.38.1"

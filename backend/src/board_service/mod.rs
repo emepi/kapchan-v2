@@ -2,8 +2,9 @@ pub mod board;
 pub mod post;
 
 
-use std::{fs, str::FromStr};
+use std::{fs, path::PathBuf, str::FromStr};
 
+use actix_files::NamedFile;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use chrono::NaiveDateTime;
@@ -21,6 +22,10 @@ use self::board::{Board, BoardModel};
 /// API endpoints exposed by the board service.
 pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
+    .service(
+        web::resource("/files/{id}")
+        .route(web::get().to(serve_files))
+    )
     .service(
         web::resource("/boards")
         .route(web::get().to(boards))
@@ -122,7 +127,10 @@ async fn create_thread(
 
     let board = match board {
         Ok(board) => board,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => {
+            println!("board errored");
+            return HttpResponse::InternalServerError().finish()
+        },
     };
 
 
@@ -149,7 +157,10 @@ async fn create_thread(
 
     let op_post = match op_post {
         Ok(op_post) => op_post,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            println!("Op post errored {:?}",e);
+            return HttpResponse::InternalServerError().finish()
+        },
     };
 
     let thread = ThreadModel {
@@ -161,20 +172,25 @@ async fn create_thread(
 
     match thread.insert(&conn_pool).await {
         Ok(_) => (),
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            println!("thread errored {:?}",e);
+            return HttpResponse::InternalServerError().finish()
+        },
     }
 
     let mime = match input.attachment.content_type {
         Some(mime) => mime,
-        None => return HttpResponse::InternalServerError().finish(),
+        None => {
+            println!("Mime errored");
+            return HttpResponse::InternalServerError().finish()
+        },
     };
 
     match mime.type_() {
         mime::IMAGE => {
             let dir_path = format!("target/files/{}", op_post.id);
 
-            // TODO: tokio async v
-            match fs::create_dir_all(&dir_path) {
+            match tokio::fs::create_dir_all(&dir_path).await {
                 Ok(_) => (),
                 Err(_) => return HttpResponse::InternalServerError().finish(),
             }
@@ -278,4 +294,24 @@ async fn fetch_threads(
     };
 
     HttpResponse::Ok().json(threads)
+}
+
+async fn serve_files(
+    file: web::Path<(u32,)>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> actix_web::Result<NamedFile> {
+    let file_id = file.into_inner().0;
+
+    let file_info = match File::by_id(file_id, &conn_pool).await {
+        Ok(info) => info,
+        Err(err) => return Err(actix_web::error::ErrorInternalServerError(err)),
+    };
+
+    let path: PathBuf = match file_info.file_path.parse() {
+        Ok(path) => path,
+        Err(err) => return Err(actix_web::error::ErrorInternalServerError(err)),
+    };
+
+    Ok(NamedFile::open(path)?)
 }

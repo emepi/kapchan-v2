@@ -92,7 +92,7 @@ impl ThreadModel {
     pub async fn insert(
         &self, 
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Result<Thread, Error> {
+    ) -> Result<(), Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
@@ -100,13 +100,8 @@ impl ThreadModel {
                     .values(self)
                     .execute(conn)
                     .await?;
-                
-                    let thread = threads::table
-                    .find(last_insert_id())
-                    .first::<Thread>(conn)
-                    .await?;
             
-                    Ok(thread)
+                    Ok(())
                 }.scope_boxed())
                 .await
             },
@@ -127,6 +122,30 @@ pub struct File {
     pub file_path: String,
 }
 
+impl File {
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<File, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let file = files::table
+                    .find(id)
+                    .first::<File>(conn)
+                    .await?;
+            
+                    Ok(file)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
+}
+
 /// Model for inserting a new file into the database.
 #[derive(Insertable)]
 #[diesel(table_name = files)]
@@ -143,7 +162,7 @@ impl FileModel {
     pub async fn insert(
         &self, 
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Result<File, Error> {
+    ) -> Result<(), Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
@@ -151,13 +170,8 @@ impl FileModel {
                     .values(self)
                     .execute(conn)
                     .await?;
-                
-                    let file = files::table
-                    .find(last_insert_id())
-                    .first::<File>(conn)
-                    .await?;
             
-                    Ok(file)
+                    Ok(())
                 }.scope_boxed())
                 .await
             },

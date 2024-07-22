@@ -54,8 +54,20 @@ const Threads = (props) => {
   const [threads] = createResource(async () => (await fetch("/boards/" + props.board + "/threads")).json())
 
   return (
-    <div>
-      Lauta {props.board}
+    <div class="thread-selector">
+      <For each={threads()}>
+        {(thread) => 
+        <div class="thread">
+          <div class="img-frame">
+            <Show when={thread.op_post.attachment}>
+              <img class="post-img" src={"files/" + thread.op_post.post_id}></img>
+            </Show>
+          </div>
+          <p class="post-info">No. {thread.op_post.post_id} Created: {(new Date(thread.op_post.created_at)).toLocaleString("fi-FI")}</p>
+          <h3>{thread.title}</h3>
+          <p>{thread.op_post.body}</p>
+        </div>}
+      </For>
     </div>
   )
 }

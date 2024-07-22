@@ -324,3 +324,34 @@ th, td {
   display: flex;
   justify-content: end;
 }
+
+.thread-selector {
+  display: flex;
+  padding: 10px;
+  color: white;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.thread {
+  background-color: #212121;
+  padding: 10px;
+  border-radius: 3px;
+}
+
+.img-frame {
+  color: gray;
+  width: 500px;
+  height: 300px;
+}
+
+.post-info {
+  font-size: 12px;
+  color: aquamarine;
+}
+
+.post-img {
+  height: 300px;
+  width: auto;
+  max-width: 500px;
+}
