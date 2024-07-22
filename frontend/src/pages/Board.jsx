@@ -15,6 +15,8 @@ export const Board = () => {
   const selectView = (e) => {
     const input = e.target
     changeView(input.value)
+
+    console.log(view())
   }
 
   return (
@@ -23,7 +25,7 @@ export const Board = () => {
         <div class="navbar">
           <RadioButton name="board" onChange={selectView} accessLevel={AccessLevel.Anonymous} value="" checked>etusivu</RadioButton>
           <For each={boards()}>
-            { (board) => <RadioButton name="board" onChange={selectView} accessLevel={board.access_level} value={board.handle}>{board.title}</RadioButton> }
+            { (board) => <RadioButton name="board" onChange={selectView} accessLevel={board.access_level} value={board.id}>{board.title}</RadioButton> }
           </For>
         </div>
         <PostingModalButton />
@@ -41,7 +43,20 @@ export const Board = () => {
           </div>
         </div>
       </Show>
+      <Show when={Number.isInteger(parseInt(view()))}>
+        <Threads board={view()} />
+      </Show>
     </>
+  )
+}
+
+const Threads = (props) => {
+  const [threads] = createResource(async () => (await fetch("/boards/" + props.board + "/threads")).json())
+
+  return (
+    <div>
+      Lauta {props.board}
+    </div>
   )
 }
 

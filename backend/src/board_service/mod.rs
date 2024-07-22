@@ -6,13 +6,14 @@ use std::{fs, str::FromStr};
 
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use diesel::result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}};
-use diesel_async::{pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection, AsyncMysqlConnection};
+use chrono::NaiveDateTime;
+use diesel::{result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}}, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel_async::{pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection, AsyncMysqlConnection, RunQueryDsl};
 use log::info;
-use post::{FileModel, PostModel, ThreadModel};
-use serde::Deserialize;
+use post::{File, FileModel, Post, PostModel, Thread, ThreadModel};
+use serde::{Deserialize, Serialize};
 
-use crate::user_service::authentication::{authenticate_user, AccessLevel};
+use crate::{schema::{files, posts::{self, op_id}, threads::{self, bump_date, pinned}}, user_service::authentication::{authenticate_user, AccessLevel}};
 
 use self::board::{Board, BoardModel};
 
@@ -27,6 +28,7 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     )
     .service(
         web::resource("/boards/{id}/threads")
+        .route(web::get().to(fetch_threads))
     )
     .service(
         web::resource("/threads")
@@ -105,7 +107,7 @@ struct CreateThreadInput {
     pub title: Text<String>,
     pub body: Text<String>,
     pub board: Text<String>,
-    pub attachment: Option<TempFile>,
+    pub attachment: TempFile,
 }
 
 /// Handler for `POST /threads` request.
@@ -162,49 +164,118 @@ async fn create_thread(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     }
 
-    // Process attachment
-    if let Some(attachment) = input.attachment {
-        let dir_path = format!("target/files/{}", op_post.id);
+    let mime = match input.attachment.content_type {
+        Some(mime) => mime,
+        None => return HttpResponse::InternalServerError().finish(),
+    };
 
-        // TODO: tokio async v
-        match fs::create_dir_all(&dir_path) {
-            Ok(_) => (),
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        }
+    match mime.type_() {
+        mime::IMAGE => {
+            let dir_path = format!("target/files/{}", op_post.id);
 
-        let file = attachment.file;
-        let file_name = match attachment.file_name {
-            Some(name) => name,
-            None => String::from("file"),
-        };
+            // TODO: tokio async v
+            match fs::create_dir_all(&dir_path) {
+                Ok(_) => (),
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            }
 
-        let mime = match attachment.content_type {
-            Some(mime) => mime,
-            None => return HttpResponse::UnprocessableEntity().finish(),
-        };
+            let file = input.attachment.file;
+            let file_name = match input.attachment.file_name {
+                Some(name) => name,
+                None => String::from("file"),
+            };
 
-        let file_path = format!("{}/file.{}", dir_path, mime.subtype().as_str()); // TODO
+            let file_path = format!("{}/file.{}", dir_path, mime.subtype().as_str()); // TODO
 
-        match file.persist(&file_path) {
-            Ok(_) => (),
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        }
+            match file.persist(&file_path) {
+                Ok(_) => (),
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            }
 
-        // TODO: create a thumbnail
+            // TODO: create a thumbnail
 
-        let file_model = FileModel {
-            id: op_post.id,
-            file_name,
-            thumbnail: String::default(),
-            file_path,
-        };
+            let file_model = FileModel {
+                id: op_post.id,
+                file_name,
+                thumbnail: String::default(),
+                file_path,
+            };
 
-        match file_model.insert(&conn_pool).await {
-            Ok(_) => (),
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        }
-    }
+            match file_model.insert(&conn_pool).await {
+                Ok(_) => (),
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            }
+        },
+        _ => ()
+    };
     
 
     HttpResponse::Created().finish()
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThreadOutput {
+    pub title: String,
+    pub pinned: bool,
+    pub op_post: PostOutput,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostOutput{
+    post_id: u32,
+    body: String,
+    attachment: bool,
+    created_at: NaiveDateTime,
+}
+
+/// Handler for `GET /boards/{id}/threads` request.
+async fn fetch_threads(
+    board: web::Path<(u32,)>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+
+    let board_id = board.into_inner().0;
+    println!("Requested threads for the board id: {}", board_id);
+
+    //TODO: check permissions
+
+    let threads = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let thread: Vec<(Thread, (Post, Option<File>))> = threads::table
+                .filter(threads::board.eq(board_id))
+                .order((pinned.eq(true), bump_date.desc()))
+                .inner_join((posts::table).left_join(files::table))
+                .select((Thread::as_select(), (Post::as_select(), Option::<File>::as_select())))
+                .load::<(Thread, (Post, Option<File>))>(conn)
+                .await?;
+        
+                Ok(thread)
+            }.scope_boxed())
+            .await
+        },
+
+        // Failed to get a connection from the pool.
+        Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+    };
+
+    let threads = match threads {
+        Ok(threads) => threads.into_iter()
+        .map(|db_res| {
+            ThreadOutput {
+                title: db_res.0.title,
+                pinned: db_res.0.pinned,
+                op_post: PostOutput {
+                    post_id: db_res.1.0.id,
+                    body: db_res.1.0.body,
+                    attachment: db_res.1.1.is_some(),
+                    created_at: db_res.1.0.created_at,
+                },
+            }
+        }).collect::<Vec<ThreadOutput>>(),
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    HttpResponse::Ok().json(threads)
 }

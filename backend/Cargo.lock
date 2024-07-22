@@ -421,6 +421,7 @@ dependencies = [
  "env_logger",
  "jsonwebtoken",
  "log",
+ "mime",
  "password-hash",
  "pbkdf2",
  "rand_core",
