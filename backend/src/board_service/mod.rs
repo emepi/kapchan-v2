@@ -14,7 +14,7 @@ use log::info;
 use post::{File, FileModel, Post, PostModel, Thread, ThreadModel};
 use serde::{Deserialize, Serialize};
 
-use crate::{schema::{files, posts::{self, op_id}, threads::{self, bump_date, pinned}}, user_service::authentication::{authenticate_user, AccessLevel}};
+use crate::{schema::{files, posts::{self, created_at, op_id}, threads::{self, bump_date, pinned}}, user_service::authentication::{authenticate_user, AccessLevel}};
 
 use self::board::{Board, BoardModel};
 
@@ -38,6 +38,10 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/threads")
         .route(web::post().to(create_thread))
+    )
+    .service(
+        web::resource("/threads/{id}")
+        .route(web::get().to(serve_thread))
     );
 }
 
@@ -314,4 +318,94 @@ async fn serve_files(
     };
 
     Ok(NamedFile::open(path)?)
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThreadResponseOutput {
+    pub title: String,
+    pub pinned: bool,
+    pub op_post: PostOutput,
+    pub responses: Vec<PostOutput>,
+}
+
+async fn serve_thread(
+    thread: web::Path<(u32,)>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let thread_id = thread.into_inner().0;
+
+    let thread = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let thread: (Thread, (Post, Option<File>)) = threads::table
+                .find(thread_id)
+                .inner_join((posts::table).left_join(files::table))
+                .select((Thread::as_select(), (Post::as_select(), Option::<File>::as_select())))
+                .first::<(Thread, (Post, Option<File>))>(conn)
+                .await?;
+        
+                Ok(thread)
+            }.scope_boxed())
+            .await
+        },
+
+        // Failed to get a connection from the pool.
+        Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+    };
+
+    // TODO: check not found
+    let thread = match thread {
+        Ok(thread) => thread,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    //TODO check permissions
+
+    let responses = match conn_pool.get().await {
+        Ok(mut conn) => {
+            conn.transaction::<_, Error, _>(|conn| async move {
+                let thread: Vec<(Post, Option<File>)> = posts::table
+                .filter(op_id.eq(thread.0.id))
+                .order(created_at.asc())
+                .left_join(files::table)
+                .select((Post::as_select(), Option::<File>::as_select()))
+                .load::<(Post, Option<File>)>(conn)
+                .await?;
+        
+                Ok(thread)
+            }.scope_boxed())
+            .await
+        },
+
+        // Failed to get a connection from the pool.
+        Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+    };
+
+    let responses = match responses {
+        Ok(responses) => responses,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    }
+    .into_iter()
+    .map(|db_res| {
+        PostOutput {
+            post_id: db_res.0.id,
+            body: db_res.0.body,
+            attachment: db_res.1.is_some(),
+            created_at: db_res.0.created_at,
+        }
+    })
+    .collect::<Vec<PostOutput>>();
+
+    HttpResponse::Ok().json(ThreadResponseOutput {
+        title: thread.0.title,
+        pinned: thread.0.pinned,
+        op_post: PostOutput {
+            post_id: thread.1.0.id,
+            body: thread.1.0.body,
+            attachment: thread.1.1.is_some(),
+            created_at: thread.1.0.created_at,
+        },
+        responses,
+    })
 }

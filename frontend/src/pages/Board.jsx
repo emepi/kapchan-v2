@@ -4,6 +4,7 @@ import { AccessLevel } from "../scripts/user"
 import { credentials } from "../scripts/credentials"
 import { session, startSession } from "../scripts/user_service"
 import logo from"../assets/logo5.png"
+import { A } from "@solidjs/router"
 
 
 export const [boards] = createResource(async () => (await fetch("/boards")).json())
@@ -15,8 +16,6 @@ export const Board = () => {
   const selectView = (e) => {
     const input = e.target
     changeView(input.value)
-
-    console.log(view())
   }
 
   return (
@@ -60,6 +59,7 @@ const Threads = (props) => {
     <div class="thread-selector">
       <For each={threads()}>
         {(thread) => 
+        <A href={"thread/" + thread.op_post.post_id}>
         <div class="thread">
           <div class="img-frame">
             <Show when={thread.op_post.attachment}>
@@ -69,7 +69,8 @@ const Threads = (props) => {
           <p class="post-info">No. {thread.op_post.post_id} Created: {(new Date(thread.op_post.created_at)).toLocaleString("fi-FI")}</p>
           <h3>{thread.title}</h3>
           <p>{thread.op_post.body}</p>
-        </div>}
+        </div>
+        </A>}
       </For>
     </div>
   )
