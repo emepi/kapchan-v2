@@ -431,6 +431,8 @@ async fn create_post(
         Err(_) => return HttpResponse::InternalServerError().finish(), //TODO: check not found
     };
 
+    let _ = Thread::bump_by_id(thread_id, &conn_pool).await;
+
     let post = PostModel {
         op_id: Some(op_post.id),
         body: input.body.into_inner(),

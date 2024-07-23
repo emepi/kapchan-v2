@@ -1,6 +1,6 @@
 use std::os::windows::thread;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
@@ -11,7 +11,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::{files, posts, threads};
+use crate::schema::{files, posts, threads::{self, bump_date}};
 
 
 #[derive(Debug, Queryable, Selectable, Serialize)]
@@ -89,7 +89,7 @@ impl PostModel {
     }
 }
 
-#[derive(Debug, Queryable, Selectable, Serialize)]
+#[derive(Debug, Queryable, Selectable, Serialize, Identifiable)]
 #[diesel(table_name = threads)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Thread {
@@ -98,6 +98,33 @@ pub struct Thread {
     pub title: String,
     pub pinned: bool,
     pub bump_date: NaiveDateTime,
+}
+
+impl Thread {
+    pub async fn bump_by_id(
+        id: u32, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<(), Error> {
+        let timestamp = NaiveDateTime::from_timestamp_opt(Utc::now().timestamp(), 0).unwrap();
+
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::update(threads::table)
+                    .filter(threads::id.eq(id))
+                    .set(bump_date.eq(timestamp))
+                    .execute(conn)
+                    .await?;
+            
+                    Ok(())
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
 }
 
 /// Model for inserting a new thread into the database.
