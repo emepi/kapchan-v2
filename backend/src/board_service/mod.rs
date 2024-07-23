@@ -42,6 +42,7 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/threads/{id}")
         .route(web::get().to(serve_thread))
+        .route(web::post().to(create_post))
     );
 }
 
@@ -408,4 +409,87 @@ async fn serve_thread(
         },
         responses,
     })
+}
+
+/// Multipart form accepted by `POST /threads/{id}` method.
+#[derive(Debug, MultipartForm)]
+struct CreatePostInput {
+    pub body: Text<String>,
+    pub attachment: TempFile,
+}
+
+async fn create_post(
+    thread: web::Path<(u32,)>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    MultipartForm(input): MultipartForm<CreatePostInput>,
+    req: HttpRequest,
+) -> impl Responder {
+    let thread_id = thread.into_inner().0;
+
+    let op_post = match Post::by_id(thread_id, &conn_pool).await {
+        Ok(post) => post,
+        Err(_) => return HttpResponse::InternalServerError().finish(), //TODO: check not found
+    };
+
+    let post = PostModel {
+        op_id: Some(op_post.id),
+        body: input.body.into_inner(),
+        access_level: op_post.access_level,
+    }
+    .insert(&conn_pool)
+    .await;
+
+    let post = match post {
+        Ok(post) => post,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let mime = match input.attachment.content_type {
+        Some(mime) => mime,
+        None => {
+            println!("Mime errored");
+            return HttpResponse::InternalServerError().finish()
+        },
+    };
+
+    match mime.type_() {
+        mime::IMAGE => {
+            let dir_path = format!("target/files/{}", post.id);
+
+            match tokio::fs::create_dir_all(&dir_path).await {
+                Ok(_) => (),
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            }
+
+            let file = input.attachment.file;
+            let file_name = match input.attachment.file_name {
+                Some(name) => name,
+                None => String::from("file"),
+            };
+
+            let file_path = format!("{}/file.{}", dir_path, mime.subtype().as_str()); // TODO
+
+            match file.persist(&file_path) {
+                Ok(_) => (),
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            }
+
+            // TODO: create a thumbnail
+
+            let file_model = FileModel {
+                id: post.id,
+                file_name,
+                thumbnail: String::default(),
+                file_path,
+            };
+
+            match file_model.insert(&conn_pool).await {
+                Ok(_) => (),
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            }
+        },
+        _ => ()
+    };
+
+    HttpResponse::Created().finish()
 }

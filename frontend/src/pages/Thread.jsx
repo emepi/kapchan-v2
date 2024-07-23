@@ -40,6 +40,19 @@ export const Thread = () => {
           </div>
         </div>
 
+        <For each={posts().responses}>
+          { (post) => 
+          <div class="post">
+            <Show when={post.attachment}>
+              <img class="post-img" src={"/files/" + post.post_id}></img>
+            </Show>
+            <div>
+              <p class="post-info">No. {post.post_id} Created: {(new Date(post.created_at)).toLocaleString("fi-FI")}</p>
+              <p>{post.body}</p>
+            </div>
+          </div> }
+        </For>
+
         <div class="reply-box">
           <form class="reply-form" onSubmit={post}>
             <textarea class="post-body" name="body" placeholder="Reply..." rows="1" cols="150" maxLength="40000"/>

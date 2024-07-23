@@ -362,8 +362,10 @@ th, td {
   padding: 10px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
+.post,
 .op-post {
   display: flex;
   flex-direction: row;

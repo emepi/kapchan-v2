@@ -25,6 +25,30 @@ pub struct Post {
     pub created_at: NaiveDateTime,
 }
 
+impl Post {
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Post, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let post = posts::table
+                    .find(id)
+                    .first::<Post>(conn)
+                    .await?;
+            
+                    Ok(post)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
+}
+
 /// Model for inserting a new post into the database.
 #[derive(Insertable)]
 #[diesel(table_name = posts)]
