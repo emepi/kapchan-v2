@@ -1,81 +1,115 @@
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
-    RunQueryDsl,
     pooled_connection::deadpool::Pool, 
-    AsyncMysqlConnection, 
+    scoped_futures::ScopedFutureExt, 
     AsyncConnection, 
-    scoped_futures::ScopedFutureExt
+    AsyncMysqlConnection,
+    RunQueryDsl,
 };
 use serde::Serialize;
 
-use crate::schema::{boards, board_groups};
+use crate::schema::boards;
 
 
-#[derive(Queryable, Identifiable, Associations, Selectable, Serialize)]
-#[diesel(belongs_to(BoardGroup))]
+#[derive(Debug, Queryable, Selectable, Serialize)]
 #[diesel(table_name = boards)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Board {
     pub id: u32,
-    pub board_group_id: u32,
     pub handle: String,
     pub title: String,
-    pub description: Option<String>,
+    pub access_level: u8,
+    pub bump_limit: u32,
+    pub nsfw: bool,
 }
 
-
-#[derive(Insertable)]
-#[diesel(table_name = boards)]
-pub struct BoardModel<'a> {
-    pub board_group_id: u32,
-    pub handle: &'a str,
-    pub title: &'a str,
-    pub description: Option<&'a str>,
-}
-
-impl BoardModel<'_> {
-    pub async fn insert(
-        &self, 
+impl Board {
+    /// Returns all the boards from the database.
+    pub async fn fetch_boards(
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Option<Board> {
-
+    ) -> Result<Vec<Board>, diesel::result::Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
-        
-                    let _ = diesel::insert_into(boards::table)
-                    .values(self)
-                    .execute(conn)
+                    let boards = boards::table
+                    .select(Board::as_select())
+                    .load(conn)
                     .await?;
-        
+            
+                    Ok(boards)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn by_handle(
+        handle: &String,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Board, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
                     let board = boards::table
-                    .find(last_insert_id())
-                    .first::<Board>(conn)
+                    .filter(boards::handle.eq(handle))
+                    .select(Board::as_select())
+                    .first(conn)
                     .await?;
-                    
+            
                     Ok(board)
                 }.scope_boxed())
                 .await
-                .ok()
             },
 
-            Err(_) => None,
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
         }
     }
 }
 
-#[derive(Queryable, Identifiable, Selectable, Serialize)]
-#[diesel(table_name = board_groups)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct BoardGroup {
-    pub id: u32,
-    pub name: String,
+/// Model for inserting a new board into the database.
+#[derive(Insertable)]
+#[diesel(table_name = boards)]
+pub struct BoardModel<'a> {
+    pub handle: &'a str,
+    pub title: &'a str,
+    pub access_level: u8,
+    pub bump_limit: u32,
+    pub nsfw: bool,
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = board_groups)]
-pub struct BoardGroupModel<'a> {
-    pub name: &'a str,
+impl BoardModel<'_> {
+    /// Inserts `BoardModel` into the database and returns the resulting 
+    /// `Board`.
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Board, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(boards::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let board = boards::table
+                    .find(last_insert_id())
+                    .first::<Board>(conn)
+                    .await?;
+            
+                    Ok(board)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
 }
 
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);

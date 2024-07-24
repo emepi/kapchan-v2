@@ -3,5 +3,8 @@
 debug/
 target/
 
+# File storage directory
+files/
+
 # Environment variables must not be shared
 *.env

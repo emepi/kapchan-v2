@@ -22,49 +22,55 @@ diesel::table! {
 }
 
 diesel::table! {
-    board_groups (id) {
-        id -> Unsigned<Integer>,
-        name -> Tinytext,
-    }
-}
-
-diesel::table! {
     boards (id) {
         id -> Unsigned<Integer>,
-        board_group_id -> Unsigned<Integer>,
         #[max_length = 8]
         handle -> Varchar,
         title -> Tinytext,
-        description -> Nullable<Text>,
+        access_level -> Unsigned<Tinyint>,
+        bump_limit -> Unsigned<Integer>,
+        nsfw -> Bool,
     }
 }
 
 diesel::table! {
     files (id) {
         id -> Unsigned<Integer>,
-        access_level -> Unsigned<Tinyint>,
-        #[max_length = 64]
-        name -> Varchar,
-        #[max_length = 32]
-        hash -> Varchar,
-        #[sql_name = "type"]
-        type_ -> Unsigned<Smallint>,
-        size -> Unsigned<Integer>,
+        file_name -> Tinytext,
+        file_type -> Tinytext,
         #[max_length = 512]
-        location -> Varchar,
+        thumbnail -> Varchar,
+        #[max_length = 512]
+        file_path -> Varchar,
+    }
+}
+
+diesel::table! {
+    posts (id) {
+        id -> Unsigned<Integer>,
+        op_id -> Nullable<Unsigned<Integer>>,
+        body -> Text,
+        access_level -> Unsigned<Tinyint>,
         created_at -> Datetime,
-        uploaded_by -> Unsigned<Integer>,
     }
 }
 
 diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
-        user_id -> Nullable<Unsigned<Integer>>,
-        access_level -> Unsigned<Tinyint>,
-        mode -> Unsigned<Tinyint>,
+        user_id -> Unsigned<Integer>,
         created_at -> Datetime,
-        ended_at -> Nullable<Datetime>,
+        ended_at -> Datetime,
+    }
+}
+
+diesel::table! {
+    threads (id) {
+        id -> Unsigned<Integer>,
+        board -> Unsigned<Integer>,
+        title -> Tinytext,
+        pinned -> Bool,
+        bump_date -> Datetime,
     }
 }
 
@@ -73,11 +79,11 @@ diesel::table! {
         id -> Unsigned<Integer>,
         access_level -> Unsigned<Tinyint>,
         #[max_length = 16]
-        username -> Varchar,
+        username -> Nullable<Varchar>,
         #[max_length = 128]
         email -> Nullable<Varchar>,
         #[max_length = 128]
-        password_hash -> Varchar,
+        password_hash -> Nullable<Varchar>,
         created_at -> Datetime,
     }
 }
@@ -85,16 +91,18 @@ diesel::table! {
 diesel::joinable!(application_reviews -> applications (application_id));
 diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
-diesel::joinable!(boards -> board_groups (board_group_id));
-diesel::joinable!(files -> users (uploaded_by));
+diesel::joinable!(files -> posts (id));
 diesel::joinable!(sessions -> users (user_id));
+diesel::joinable!(threads -> boards (board));
+diesel::joinable!(threads -> posts (id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     application_reviews,
     applications,
-    board_groups,
     boards,
     files,
+    posts,
     sessions,
+    threads,
     users,
 );

@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use crate::schema::{applications::{self, accepted, closed_at}, users, application_reviews};
 
-use super::user::{User, AccessLevel, UserModel};
+use super::user::{User, UserModel};
 
 
 #[derive(Queryable, Identifiable, Selectable, Serialize)]

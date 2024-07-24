@@ -1,134 +1,129 @@
-use chrono::{NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use diesel::{prelude::*, result::Error};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
-    AsyncMysqlConnection, 
+    scoped_futures::ScopedFutureExt, 
     AsyncConnection, 
-    scoped_futures::ScopedFutureExt,
+    AsyncMysqlConnection,
     RunQueryDsl,
 };
+use serde::Serialize;
 
 use crate::schema::sessions;
 
-use super::authentication::validate_session_id;
 
-#[derive(Queryable, Selectable)]
+/// Database model for a session.
+#[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = sessions)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct UserSession {
+pub struct Session {
     pub id: u32,
-    pub user_id: Option<u32>,
-    pub access_level: u8,
-    pub mode: u8,
+    pub user_id: u32,
     pub created_at: NaiveDateTime,
-    pub ended_at: Option<NaiveDateTime>,
+    pub ended_at: NaiveDateTime,
 }
 
-impl UserSession {
-
+impl Session {
+    /// Fetches `Session` by id from the database.
     pub async fn by_id(
-        sess_id: u32, 
+        id: u32,
         conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Option<UserSession> {
-        let mut conn = conn_pool.get().await.ok()?;
-        
-        conn.transaction::<_, Error, _>(|conn| async move {
-            
-            let sess = sessions::table
-            .find(sess_id)
-            .first::<UserSession>(conn)
-            .await?;
-        
-            Ok(sess)
-        }.scope_boxed())
-        .await
-        .ok()
-    }
-
-    pub async fn by_token(
-        token: &str,
-        conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Option<UserSession> {
-        let sess_id = validate_session_id(token)?;
-
-        UserSession::by_id(sess_id, conn_pool)
-        .await
-    }
-
-    pub async fn end_session(
-        &self, 
-        conn_pool: &Pool<AsyncMysqlConnection>
-    ) {
-        let conn = conn_pool.get().await;
-
-        match conn {
-
+    ) -> Result<Session, diesel::result::Error> {
+        match conn_pool.get().await {
             Ok(mut conn) => {
-                let _ = conn.transaction::<_, Error, _>(|conn| async move {
-                    let time = Utc::now().naive_utc();
-
-                    let _ = diesel::update(sessions::table.find(self.id))
-                    .set(sessions::ended_at.eq(time))
-                    .execute(conn)
-                    .await;
-                
-                    Ok(())
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let session = sessions::table
+                    .find(id)
+                    .first::<Session>(conn)
+                    .await?;
+            
+                    Ok(session)
                 }.scope_boxed())
-                .await;
+                .await
             },
 
-            Err(_) => (),
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
         }
-    }
-
-    pub fn valid(&self) -> bool {
-        self.ended_at.is_none()
     }
 }
 
+/// Database insertion model for a session.
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = sessions)]
-pub struct UserSessionModel<'a> {
+pub struct SessionModel<'a> {
+    pub user_id: u32,
+    pub ended_at: &'a NaiveDateTime,
+}
+
+impl SessionModel<'_> {
+    /// Inserts `SessionModel` into the database and returns the resulting 
+    /// `Session`.
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Session, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(sessions::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let session = sessions::table
+                    .find(last_insert_id())
+                    .first::<Session>(conn)
+                    .await?;
+            
+                    Ok(session)
+                }.scope_boxed())
+                .await
+            },
+
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
+    }
+}
+
+/// Database update model for a session.
+#[derive(AsChangeset)]
+#[diesel(table_name = sessions)]
+pub struct SessionModificationModel<'a> {
     pub user_id: Option<u32>,
-    pub access_level: u8,
-    pub mode: u8,
     pub ended_at: Option<&'a NaiveDateTime>,
 }
 
+impl SessionModificationModel<'_> {
+    /// Updates existing session by id and returns the resulting `Session`.
+    pub async fn modify(
+        &self,
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Session, diesel::result::Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::update(sessions::table.find(id))
+                    .set(self)
+                    .execute(conn)
+                    .await?;
 
-pub async fn active_sessions_by_user_id(
-    user_id: u32,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> Vec<UserSession> {
-    match conn_pool.get().await {
-        Ok(mut conn) => {
-            conn.transaction::<_, Error, _>(|conn| async move {
-                let sess: Vec<UserSession> = sessions::table
-                .filter(sessions::user_id.eq(user_id).and(sessions::ended_at.is_null()))
-                .select(UserSession::as_select())
-                .load::<UserSession>(conn)
+                    let updated_session = sessions::table
+                    .find(id)
+                    .first::<Session>(conn)
+                    .await?;
+            
+                    Ok(updated_session)
+                }.scope_boxed())
                 .await
-                .unwrap_or(Vec::new());
+            },
 
-                Ok(sess)
-            }.scope_boxed())
-            .await
-            .unwrap_or(Vec::new())
-        },
-
-        Err(_) => Vec::new(),
+            // Failed to get a connection from the pool.
+            Err(_) => Err(diesel::result::Error::BrokenTransactionManager),
+        }
     }
 }
-
-pub async fn is_active_session(
-    sess_id: u32,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> bool {
-    match UserSession::by_id(sess_id, conn_pool).await {
-        Some(sess) => sess.valid(),
-        None => false,
-    }
-}
-
 
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);
