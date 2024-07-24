@@ -2,7 +2,6 @@ pub mod authentication {
     use password_hash::{Output, PasswordHash, PasswordVerifier, Salt, SaltString};
     use pbkdf2::{pbkdf2_hmac, Algorithm, Params, Pbkdf2};
     use rand_core::{OsRng, RngCore};
-    use serde::{Deserialize, Serialize};
     use sha2::{Digest, Sha256};
 
     /// Hashes passwords with PBKDF2 key derivation function.

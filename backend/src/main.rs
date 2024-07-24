@@ -1,4 +1,5 @@
 pub mod users;
+pub mod sessions;
 pub mod utils;
 pub mod schema;
 
