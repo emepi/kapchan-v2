@@ -220,6 +220,7 @@ async fn create_thread(
                 file_name,
                 thumbnail: String::default(),
                 file_path,
+                file_type: mime.type_().to_string(),
             };
 
             match file_model.insert(&conn_pool).await {
@@ -245,7 +246,7 @@ pub struct ThreadOutput {
 pub struct PostOutput{
     post_id: u32,
     body: String,
-    attachment: bool,
+    attachment: Option<String>,
     created_at: NaiveDateTime,
 }
 
@@ -290,7 +291,7 @@ async fn fetch_threads(
                 op_post: PostOutput {
                     post_id: db_res.1.0.id,
                     body: db_res.1.0.body,
-                    attachment: db_res.1.1.is_some(),
+                    attachment: db_res.1.1.map(|file| file.file_type),
                     created_at: db_res.1.0.created_at,
                 },
             }
@@ -392,7 +393,7 @@ async fn serve_thread(
         PostOutput {
             post_id: db_res.0.id,
             body: db_res.0.body,
-            attachment: db_res.1.is_some(),
+            attachment: db_res.1.map(|file| file.file_type),
             created_at: db_res.0.created_at,
         }
     })
@@ -404,7 +405,7 @@ async fn serve_thread(
         op_post: PostOutput {
             post_id: thread.1.0.id,
             body: thread.1.0.body,
-            attachment: thread.1.1.is_some(),
+            attachment: thread.1.1.map(|file| file.file_type),
             created_at: thread.1.0.created_at,
         },
         responses,
@@ -430,8 +431,6 @@ async fn create_post(
         Ok(post) => post,
         Err(_) => return HttpResponse::InternalServerError().finish(), //TODO: check not found
     };
-
-    let _ = Thread::bump_by_id(thread_id, &conn_pool).await;
 
     let post = PostModel {
         op_id: Some(op_post.id),
@@ -483,6 +482,7 @@ async fn create_post(
                 file_name,
                 thumbnail: String::default(),
                 file_path,
+                file_type: mime.type_().to_string(),
             };
 
             match file_model.insert(&conn_pool).await {
@@ -492,6 +492,8 @@ async fn create_post(
         },
         _ => ()
     };
+
+    let _ = Thread::bump_by_id(thread_id, &conn_pool).await;
 
     HttpResponse::Created().finish()
 }

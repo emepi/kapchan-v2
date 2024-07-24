@@ -62,7 +62,7 @@ const Threads = (props) => {
         <A href={"thread/" + thread.op_post.post_id}>
         <div class="thread">
           <div class="img-frame">
-            <Show when={thread.op_post.attachment}>
+            <Show when={thread.op_post.attachment && thread.op_post.attachment == "image"}>
               <img class="post-img" src={"files/" + thread.op_post.post_id}></img>
             </Show>
           </div>

@@ -37,6 +37,7 @@ diesel::table! {
     files (id) {
         id -> Unsigned<Integer>,
         file_name -> Tinytext,
+        file_type -> Tinytext,
         #[max_length = 512]
         thumbnail -> Varchar,
         #[max_length = 512]

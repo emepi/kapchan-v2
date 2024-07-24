@@ -30,7 +30,7 @@ export const Thread = () => {
     <Show when={!posts.loading}>
       <div class="thread-page">
         <div class="op-post">
-          <Show when={posts().op_post.attachment}>
+          <Show when={posts().op_post.attachment && posts().op_post.attachment == "image"}>
             <img class="post-img" src={"/files/" + posts().op_post.post_id}></img>
           </Show>
           <div>
@@ -43,7 +43,7 @@ export const Thread = () => {
         <For each={posts().responses}>
           { (post) => 
           <div class="post">
-            <Show when={post.attachment}>
+            <Show when={post.attachment && post.attachment == "image"}>
               <img class="post-img" src={"/files/" + post.post_id}></img>
             </Show>
             <div>

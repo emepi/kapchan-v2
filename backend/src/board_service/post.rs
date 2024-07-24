@@ -169,6 +169,7 @@ impl ThreadModel {
 pub struct File {
     pub id: u32,
     pub file_name: String,
+    pub file_type: String,
     pub thumbnail: String,
     pub file_path: String,
 }
@@ -203,6 +204,7 @@ impl File {
 pub struct FileModel {
     pub id: u32,
     pub file_name: String,
+    pub file_type: String,
     pub thumbnail: String,
     pub file_path: String,
 }

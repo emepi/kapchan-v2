@@ -11,6 +11,7 @@ CREATE TABLE posts (
 CREATE TABLE files (
     id           INTEGER UNSIGNED NOT NULL,
     file_name    TINYTEXT         NOT NULL,
+    file_type    TINYTEXT         NOT NULL,
     thumbnail    VARCHAR(512)     NOT NULL,
     file_path    VARCHAR(512)     NOT NULL,
     PRIMARY KEY (id),
