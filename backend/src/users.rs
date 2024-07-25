@@ -18,7 +18,7 @@ pub mod routes {
 
 pub mod database {
     use actix_web::HttpResponse;
-    use diesel::{result::Error, sql_function, QueryDsl};
+    use diesel::{result::Error, sql_function, ExpressionMethods, QueryDsl};
     use diesel_async::{
         pooled_connection::deadpool::Pool, 
         scoped_futures::ScopedFutureExt, 
@@ -27,9 +27,10 @@ pub mod database {
         RunQueryDsl
     };
 
-    use crate::schema::users;
+    use crate::{schema::users, utils::{authentication::{hash_password_pbkdf2, validate_password_pbkdf2}, models::ErrorOutput}};
 
     use super::{models::{User, UserModel}, AccessLevel};
+
 
     pub async fn create_anonymous_user(
         conn_pool: &Pool<AsyncMysqlConnection>,
@@ -42,6 +43,58 @@ pub mod database {
         .insert(conn_pool)
         .await
         .map_err(|_| HttpResponse::InternalServerError().finish())
+    }
+
+    pub async fn login_user(
+        username: &str,
+        password: &str,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<User, HttpResponse> {
+        let user = match User::by_username(username, conn_pool).await {
+            Ok(user) => user,
+            Err(err) => match err {
+                Error::NotFound => return Err(HttpResponse::NotFound().json(ErrorOutput {
+                    err: "User doesn't exist.",
+                })),
+                _ => return Err(HttpResponse::InternalServerError().finish()),
+            },
+        };
+
+        let pwd_hash = match &user.password_hash {
+            Some(hash) => hash,
+            None => return Err(HttpResponse::InternalServerError().finish()), // Illegal state
+        };
+
+        match validate_password_pbkdf2(&pwd_hash, password) {
+            true => Ok(user),
+            false => Err(HttpResponse::Unauthorized().json(ErrorOutput {
+                err: "Invalid password.",
+            })),
+        }
+    }
+
+
+    impl User {
+        pub async fn by_username(
+            username: &str,
+            conn_pool: &Pool<AsyncMysqlConnection>,
+        ) -> Result<User, Error> {
+            match conn_pool.get().await {
+                Ok(mut conn) => {
+                    conn.transaction::<_, Error, _>(|conn| async move {
+                        let user = users::table
+                        .filter(users::username.eq(username))
+                        .first::<User>(conn)
+                        .await?;
+            
+                        Ok(user)
+                    }.scope_boxed())
+                    .await
+                },
+
+                Err(_) => Err(Error::BrokenTransactionManager),
+            }
+        }
     }
 
 
@@ -69,7 +122,6 @@ pub mod database {
                     .await
                 },
     
-                // Failed to get a connection from the pool.
                 Err(_) => Err(Error::BrokenTransactionManager),
             }
         }

@@ -75,10 +75,6 @@ diesel::table! {
     sessions (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Integer>,
-        #[max_length = 45]
-        ip_address -> Varchar,
-        #[max_length = 512]
-        user_agent -> Varchar,
         created_at -> Datetime,
         ended_at -> Datetime,
     }

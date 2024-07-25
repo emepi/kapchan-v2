@@ -45,7 +45,9 @@ async fn main() -> std::io::Result<()> {
 
 fn routes(app: &mut web::ServiceConfig) {
     app
-    .service(web::scope("/api/v1")
-        
+    .service(web::scope("/api")
+        .service(web::resource("/sessions")
+            .route(web::post().to(sessions::routes::create_session))
+        )
     );
 }

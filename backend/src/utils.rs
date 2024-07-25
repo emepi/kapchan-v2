@@ -1,8 +1,42 @@
 pub mod authentication {
+    use std::env;
+
+    use chrono::Utc;
+    use jsonwebtoken::{encode, EncodingKey, Header};
     use password_hash::{Output, PasswordHash, PasswordVerifier, Salt, SaltString};
     use pbkdf2::{pbkdf2_hmac, Algorithm, Params, Pbkdf2};
     use rand_core::{OsRng, RngCore};
     use sha2::{Digest, Sha256};
+
+    use super::models::Claims;
+
+    /// Creates JSON web tokens for user authentication.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if private key is not found in the environment.
+    pub fn create_access_token(
+        access_level: u8,
+        exp: i64,
+        session_id: u32, 
+    ) -> Result<String, jsonwebtoken::errors::Error> {
+        let jwt_secret = env::var("JWT_SECRET")
+        .expect(".env variable `JWT_SECRET` must be set");
+
+        let user_claims = Claims {
+            exp: exp as usize,
+            iat: Utc::now().timestamp() as usize,
+            sub: session_id,
+            role: access_level,
+        };
+
+        encode(
+            &Header::default(), 
+            &user_claims, 
+            &EncodingKey::from_secret(jwt_secret.as_ref())
+        )
+    }
+
 
     /// Hashes passwords with PBKDF2 key derivation function.
     /// 
@@ -56,5 +90,31 @@ pub mod authentication {
         Pbkdf2
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok()
+    }
+}
+
+pub mod models {
+    use serde::{Deserialize, Serialize};
+
+
+    #[derive(Debug, Serialize)]
+    pub struct ErrorOutput<'a> {
+        pub err: &'a str,
+    }
+
+    /// Access token claim set.
+    /// 
+    /// Forms JSON web token payload fully readable by the client in Base64Url 
+    /// encoding.
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Claims {
+        /// Expiration time as UTC timestamp.
+        pub exp: usize,
+        /// Issued at as UTC timestamp.
+        pub iat: usize,
+        /// Subject (session id).
+        pub sub: u32,
+        /// Access level.
+        pub role: u8,
     }
 }
