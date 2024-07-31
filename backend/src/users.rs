@@ -17,6 +17,8 @@ pub mod routes {
 }
 
 pub mod database {
+    use std::env;
+
     use actix_web::HttpResponse;
     use diesel::{result::Error, sql_function, ExpressionMethods, QueryDsl};
     use diesel_async::{
@@ -26,8 +28,12 @@ pub mod database {
         AsyncMysqlConnection, 
         RunQueryDsl
     };
+    use log::{error, info};
 
-    use crate::{schema::users, utils::{authentication::{hash_password_pbkdf2, validate_password_pbkdf2}, models::ErrorOutput}};
+    use crate::{
+        schema::users, 
+        utils::{authentication::{hash_password_pbkdf2, validate_password_pbkdf2}, models::ErrorOutput}
+    };
 
     use super::{models::{User, UserModel}, AccessLevel};
 
@@ -43,6 +49,59 @@ pub mod database {
         .insert(conn_pool)
         .await
         .map_err(|_| HttpResponse::InternalServerError().finish())
+    }
+
+    pub async fn create_root_user(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) {
+        let root_pwd = env::var("ROOT_PASSWORD");
+
+        match root_pwd {
+            Ok(pwd) => match User::by_username("root", conn_pool).await {
+                Ok(root_user) => {
+                    // Update root user
+                    let res = UserModel {
+                        access_level: AccessLevel::Root as u8,
+                        username: Some("root"),
+                        password_hash: Some(&hash_password_pbkdf2(&pwd)),
+                    }
+                    .update_by_id(root_user.id, conn_pool)
+                    .await;
+
+                    match res {
+                        Ok(_) => info!("Root user updated."),
+                        Err(db_err) => error!(
+                            "Root user was not set or updated due to an database error: {:?}.", 
+                            db_err
+                        ),
+                    }
+                },
+                Err(db_err) => match db_err {
+                    Error::NotFound => {
+                        let res = UserModel {
+                            access_level: AccessLevel::Root as u8,
+                            username: Some("root"),
+                            password_hash: Some(&hash_password_pbkdf2(&pwd)),
+                        }
+                        .insert(conn_pool)
+                        .await;
+
+                        match res {
+                            Ok(_) => info!("Root user created."),
+                            Err(db_err) => error!(
+                                "Root user was not set or updated due to an database error: {:?}.", 
+                                db_err
+                            ),
+                        }
+                    },
+                    _ => error!(
+                        "Root user was not set or updated due to an database error: {:?}.", 
+                        db_err
+                    ),
+                },
+            },
+            Err(_) => info!("Root user was not set or updated."),
+        }
     }
 
     pub async fn login_user(
@@ -118,6 +177,28 @@ pub mod database {
                         .await?;
                 
                         Ok(user)
+                    }.scope_boxed())
+                    .await
+                },
+    
+                Err(_) => Err(Error::BrokenTransactionManager),
+            }
+        }
+
+        pub async fn update_by_id(
+            &self,
+            user_id: u32,
+            conn_pool: &Pool<AsyncMysqlConnection>,
+        ) -> Result<(), Error> {
+            match conn_pool.get().await {
+                Ok(mut conn) => {
+                    conn.transaction::<_, Error, _>(|conn| async move {
+                        let _ = diesel::update(users::table.find(user_id))
+                        .set(self)
+                        .execute(conn)
+                        .await;
+                
+                        Ok(())
                     }.scope_boxed())
                     .await
                 },

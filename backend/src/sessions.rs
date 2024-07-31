@@ -1,6 +1,6 @@
 pub mod routes {
     use actix_web::{web, HttpResponse, Responder};
-    use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+    use chrono::{DateTime, Duration, Utc};
     use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
     use regex::Regex;
     use serde::{Deserialize, Serialize};
@@ -132,6 +132,30 @@ pub mod database {
     use crate::schema::sessions;
 
     use super::models::{SessionModel, Session};
+
+
+    impl Session {
+        pub async fn by_id(
+            id: u32,
+            conn_pool: &Pool<AsyncMysqlConnection>,
+        ) -> Result<Session, Error> {
+            match conn_pool.get().await {
+                Ok(mut conn) => {
+                    conn.transaction::<_, Error, _>(|conn| async move {
+                        let session = sessions::table
+                        .find(id)
+                        .first::<Session>(conn)
+                        .await?;
+                
+                        Ok(session)
+                    }.scope_boxed())
+                    .await
+                },
+
+                Err(_) => Err(Error::BrokenTransactionManager),
+            }
+        }
+    }
 
 
     impl SessionModel<'_> {

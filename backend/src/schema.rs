@@ -33,16 +33,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    board_groups (id) {
-        id -> Unsigned<Integer>,
-        group_name -> Tinytext,
-    }
-}
-
-diesel::table! {
     boards (id) {
         id -> Unsigned<Integer>,
-        group_id -> Nullable<Unsigned<Integer>>,
         #[max_length = 8]
         handle -> Varchar,
         title -> Tinytext,
@@ -105,7 +97,6 @@ diesel::joinable!(application_reviews -> applications (application_id));
 diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
 diesel::joinable!(attachments -> posts (id));
-diesel::joinable!(boards -> board_groups (group_id));
 diesel::joinable!(posts -> sessions (session_id));
 diesel::joinable!(posts -> threads (thread_id));
 diesel::joinable!(sessions -> users (user_id));
@@ -115,7 +106,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     application_reviews,
     applications,
     attachments,
-    board_groups,
     boards,
     posts,
     replies,

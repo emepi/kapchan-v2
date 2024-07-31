@@ -1,3 +1,4 @@
+pub mod boards;
 pub mod users;
 pub mod sessions;
 pub mod utils;
@@ -12,6 +13,7 @@ use diesel_async::pooled_connection::{
     AsyncDieselConnectionManager
 };
 use dotenvy::dotenv;
+use users::database::create_root_user;
 
 
 #[actix_web::main]
@@ -33,6 +35,9 @@ async fn main() -> std::io::Result<()> {
     .build()
     .expect("failed to establish connection pooling");
 
+    // Create or update the root user
+    create_root_user(&mysql_connection_pool).await;
+
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(mysql_connection_pool.clone()))
@@ -46,6 +51,9 @@ async fn main() -> std::io::Result<()> {
 fn routes(app: &mut web::ServiceConfig) {
     app
     .service(web::scope("/api")
+        .service(web::resource("/boards")
+            .route(web::post().to(boards::routes::create_board))
+        )
         .service(web::resource("/sessions")
             .route(web::post().to(sessions::routes::create_session))
         )
