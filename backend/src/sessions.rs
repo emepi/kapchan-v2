@@ -120,7 +120,7 @@ pub mod routes {
 }
 
 pub mod database {
-    use diesel::{result::Error, sql_function, QueryDsl};
+    use diesel::{result::Error, prelude::*};
     use diesel_async::{
         pooled_connection::deadpool::Pool, 
         scoped_futures::ScopedFutureExt, 

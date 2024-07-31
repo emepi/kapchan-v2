@@ -20,7 +20,7 @@ pub mod database {
     use std::env;
 
     use actix_web::HttpResponse;
-    use diesel::{result::Error, sql_function, ExpressionMethods, QueryDsl};
+    use diesel::{result::Error, prelude::*};
     use diesel_async::{
         pooled_connection::deadpool::Pool, 
         scoped_futures::ScopedFutureExt, 

@@ -52,6 +52,7 @@ fn routes(app: &mut web::ServiceConfig) {
     app
     .service(web::scope("/api")
         .service(web::resource("/boards")
+            .route(web::get().to(boards::routes::boards))
             .route(web::post().to(boards::routes::create_board))
         )
         .service(web::resource("/sessions")

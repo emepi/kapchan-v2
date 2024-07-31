@@ -7,7 +7,7 @@ pub mod routes {
 
     use crate::{users::AccessLevel, utils::{authentication::authenticate_user, models::ErrorOutput}};
 
-    use super::models::BoardModel;
+    use super::models::{Board, BoardModel};
 
     
     #[derive(Debug, Deserialize, Validate)]
@@ -40,6 +40,18 @@ pub mod routes {
         pub nsfw: bool,
     }
 
+
+    pub async fn boards(
+        conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+        req: HttpRequest,
+    ) -> impl Responder {
+        let boards = Board::fetch_boards(&conn_pool).await;
+
+        match boards {
+            Ok(boards) => HttpResponse::Ok().json(boards),
+            Err(_) => HttpResponse::InternalServerError().finish(),
+        }
+    }
 
     pub async fn create_board(
         conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
@@ -91,7 +103,7 @@ pub mod routes {
 
 
 pub mod database {
-    use diesel::{result::Error, sql_function, QueryDsl};
+    use diesel::{result::Error, prelude::*};
     use diesel_async::{
         pooled_connection::deadpool::Pool, 
         scoped_futures::ScopedFutureExt, 
@@ -104,6 +116,28 @@ pub mod database {
 
     use super::models::{Board, BoardModel};
 
+
+    impl Board {
+        pub async fn fetch_boards(
+            conn_pool: &Pool<AsyncMysqlConnection>,
+        ) -> Result<Vec<Board>, Error> {
+            match conn_pool.get().await {
+                Ok(mut conn) => {
+                    conn.transaction::<_, Error, _>(|conn| async move {
+                        let boards = boards::table
+                        .select(Board::as_select())
+                        .load(conn)
+                        .await?;
+                
+                        Ok(boards)
+                    }.scope_boxed())
+                    .await
+                },
+    
+                Err(_) => Err(Error::BrokenTransactionManager),
+            }
+        }
+    }
 
     impl BoardModel<'_> {
         pub async fn insert(
