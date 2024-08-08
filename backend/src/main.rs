@@ -1,8 +1,11 @@
 pub mod boards;
+pub mod files;
 pub mod users;
+pub mod posts;
 pub mod sessions;
 pub mod utils;
 pub mod schema;
+pub mod threads;
 
 
 use std::env;

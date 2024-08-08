@@ -24,11 +24,11 @@ diesel::table! {
 diesel::table! {
     attachments (id) {
         id -> Unsigned<Integer>,
-        file_name -> Nullable<Tinytext>,
+        file_name -> Tinytext,
         #[max_length = 512]
-        file_location -> Nullable<Varchar>,
+        file_location -> Varchar,
         #[max_length = 512]
-        thumbnail_location -> Nullable<Varchar>,
+        thumbnail_location -> Varchar,
     }
 }
 
@@ -46,12 +46,11 @@ diesel::table! {
 diesel::table! {
     posts (id) {
         id -> Unsigned<Integer>,
-        session_id -> Unsigned<Integer>,
+        user_id -> Unsigned<Integer>,
         thread_id -> Unsigned<Integer>,
         access_level -> Unsigned<Tinyint>,
-        #[max_length = 10]
-        tripcode -> Varchar,
-        message -> Nullable<Text>,
+        username -> Bool,
+        message -> Text,
         created_at -> Datetime,
     }
 }
@@ -75,9 +74,10 @@ diesel::table! {
 diesel::table! {
     threads (id) {
         id -> Unsigned<Integer>,
-        board_id -> Nullable<Unsigned<Integer>>,
+        board_id -> Unsigned<Integer>,
         title -> Tinytext,
         pinned -> Bool,
+        bump_time -> Datetime,
     }
 }
 
@@ -97,8 +97,8 @@ diesel::joinable!(application_reviews -> applications (application_id));
 diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
 diesel::joinable!(attachments -> posts (id));
-diesel::joinable!(posts -> sessions (session_id));
 diesel::joinable!(posts -> threads (thread_id));
+diesel::joinable!(posts -> users (user_id));
 diesel::joinable!(sessions -> users (user_id));
 diesel::joinable!(threads -> boards (board_id));
 
