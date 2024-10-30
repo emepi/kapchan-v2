@@ -2,8 +2,6 @@ pub mod boards;
 pub mod files;
 pub mod users;
 pub mod posts;
-pub mod sessions;
-pub mod utils;
 pub mod schema;
 pub mod threads;
 
@@ -55,11 +53,14 @@ fn routes(app: &mut web::ServiceConfig) {
     app
     .service(web::scope("/api")
         .service(web::resource("/boards")
-            .route(web::get().to(boards::routes::boards))
-            .route(web::post().to(boards::routes::create_board))
+         //   .route(web::get().to(boards::routes::boards))
+         //   .route(web::post().to(boards::routes::create_board))
+        )
+        .service(web::resource("/register")
+            .route(web::post().to(users::routes::register_user))
         )
         .service(web::resource("/sessions")
-            .route(web::post().to(sessions::routes::create_session))
+            .route(web::post().to(users::routes::create_session))
         )
     );
 }

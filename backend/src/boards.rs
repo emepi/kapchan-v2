@@ -5,7 +5,7 @@ pub mod routes {
     use serde::Deserialize;
     use validator::Validate;
 
-    use crate::{users::AccessLevel, utils::{authentication::authenticate_user, models::ErrorOutput}};
+    use crate::users::{authentication::authenticate_user, models::AccessLevel};
 
     use super::models::{Board, BoardModel};
 
@@ -71,9 +71,7 @@ pub mod routes {
         // Validate input data
         match input.validate() {
             Ok(_) => (),
-            Err(e) => return HttpResponse::UnprocessableEntity().json(ErrorOutput {
-                err: &e.to_string(),
-            }),
+            Err(e) => return HttpResponse::UnprocessableEntity().json(&e.to_string()),
         }
 
         let board = BoardModel {
@@ -90,9 +88,9 @@ pub mod routes {
             Err(err) => match err {
                 diesel::result::Error::DatabaseError(db_err, _) => match db_err {
                     diesel::result::DatabaseErrorKind::UniqueViolation => 
-                        HttpResponse::UnprocessableEntity().json(ErrorOutput {
-                            err: "Board handle is not unique.",
-                        }),
+                        HttpResponse::UnprocessableEntity().json(
+                            String::from("Board handle is not unique.")
+                        ),
                     _ => HttpResponse::InternalServerError().finish(),
                 },
                 _ => HttpResponse::InternalServerError().finish(),
