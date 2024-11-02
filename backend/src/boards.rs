@@ -1,11 +1,12 @@
 pub mod routes {
+    use actix_multipart::form::MultipartForm;
     use actix_web::{web, HttpRequest, HttpResponse, Responder};
     use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
     use validator::Validate;
 
     use crate::users::{authentication::authenticate_user, models::AccessLevel};
 
-    use super::models::{Board, BoardModel, CreateBoardInput};
+    use super::models::{Board, BoardModel, CreateBoardInput, CreateThreadInput};
 
 
     pub async fn boards(
@@ -62,6 +63,14 @@ pub mod routes {
                 _ => HttpResponse::InternalServerError().finish(),
             },
         }
+    }
+
+    async fn create_thread(
+        conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+        MultipartForm(input): MultipartForm<CreateThreadInput>,
+        req: HttpRequest,
+    ) -> impl Responder {
+        HttpResponse::Created()
     }
 }
 
@@ -164,6 +173,7 @@ pub mod database {
 
 
 pub mod models {
+    use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
     use chrono::NaiveDateTime;
     use diesel::prelude::*;
     use regex::Regex;
@@ -281,5 +291,13 @@ pub mod models {
         pub handle: String,
         pub access_level: u8,
         pub nsfw: bool,
+    }
+
+    #[derive(Debug, MultipartForm)]
+    pub struct CreateThreadInput {
+        pub title: Text<String>,
+        pub body: Text<String>,
+        pub board: Text<String>,
+        pub attachment: TempFile,
     }
 }
