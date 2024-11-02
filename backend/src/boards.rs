@@ -1,49 +1,15 @@
 pub mod routes {
     use actix_web::{web, HttpRequest, HttpResponse, Responder};
     use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
-    use regex::Regex;
-    use serde::Deserialize;
     use validator::Validate;
 
     use crate::users::{authentication::authenticate_user, models::AccessLevel};
 
-    use super::models::{Board, BoardModel};
-
-    
-    #[derive(Debug, Deserialize, Validate)]
-    pub struct CreateBoardInput {
-        #[validate(
-            length(
-                min = "1",
-                max = "100",
-                message = "fails validation - must be 1-100 characters long"
-            ),
-            regex(
-                path = Regex::new(r"^[a-zA-Z0-9]+$").unwrap(),
-                message = "fails validation - is not only alphanumeric"
-            )
-        )]
-        pub title: String,
-        #[validate(
-            length(
-                min = "1",
-                max = "8",
-                message = "fails validation - must be 1-8 characters long"
-            ),
-            regex(
-                path = Regex::new(r"^[a-zA-Z0-9]+$").unwrap(),
-                message = "fails validation - is not only alphanumeric"
-            )
-        )]
-        pub handle: String,
-        pub access_level: u8,
-        pub nsfw: bool,
-    }
+    use super::models::{Board, BoardModel, CreateBoardInput};
 
 
     pub async fn boards(
         conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
-        req: HttpRequest,
     ) -> impl Responder {
         let boards = Board::fetch_boards(&conn_pool).await;
 
@@ -110,9 +76,9 @@ pub mod database {
         RunQueryDsl,
     };
 
-    use crate::schema::boards;
+    use crate::schema::{boards, threads};
 
-    use super::models::{Board, BoardModel};
+    use super::models::{Board, BoardModel, Thread, ThreadModel};
 
 
     impl Board {
@@ -165,15 +131,46 @@ pub mod database {
         }
     }
 
+    impl ThreadModel<'_> {
+        pub async fn insert(
+            &self,
+            conn_pool: &Pool<AsyncMysqlConnection>,
+        ) -> Result<Thread, Error> {
+            match conn_pool.get().await {
+                Ok(mut conn) => {
+                    conn.transaction::<_, Error, _>(|conn| async move {
+                        let _ = diesel::insert_into(threads::table)
+                        .values(self)
+                        .execute(conn)
+                        .await?;
+                    
+                        let thread = threads::table
+                        .find(last_insert_id())
+                        .first::<Thread>(conn)
+                        .await?;
+                
+                        Ok(thread)
+                    }.scope_boxed())
+                    .await
+                },
+
+                Err(_) => Err(Error::BrokenTransactionManager),
+            }
+        }
+    }
+
     sql_function!(fn last_insert_id() -> Unsigned<Integer>);
 }
 
 
 pub mod models {
+    use chrono::NaiveDateTime;
     use diesel::prelude::*;
-    use serde::Serialize;
+    use regex::Regex;
+    use serde::{Deserialize, Serialize};
+    use validator::Validate;
 
-    use crate::schema::boards;
+    use crate::schema::{attachments, boards, threads, posts};
 
 
     #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
@@ -192,6 +189,96 @@ pub mod models {
     pub struct BoardModel<'a> {
         pub handle: &'a str,
         pub title: &'a str,
+        pub access_level: u8,
+        pub nsfw: bool,
+    }
+
+    #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+    #[diesel(table_name = threads)]
+    #[diesel(check_for_backend(diesel::mysql::Mysql))]
+    pub struct Thread {
+        pub id: u32,
+        pub board_id: u32,
+        pub title: String,
+        pub pinned: bool,
+        pub bump_time: NaiveDateTime,
+    }
+
+    #[derive(Insertable, AsChangeset)]
+    #[diesel(table_name = threads)]
+    pub struct ThreadModel<'a> {
+        pub board_id: u32,
+        pub title: &'a str,
+        pub pinned: bool,
+    }
+
+    #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+    #[diesel(table_name = posts)]
+    #[diesel(check_for_backend(diesel::mysql::Mysql))]
+    pub struct Post {
+        pub id: u32,
+        pub user_id: u32,
+        pub thread_id: u32,
+        pub access_level: u8,
+        pub username: bool,
+        pub message: String,
+        pub created_at: NaiveDateTime,
+    }
+
+    #[derive(Insertable, AsChangeset)]
+    #[diesel(table_name = posts)]
+    pub struct PostModel<'a> {
+        pub user_id: u32,
+        pub thread_id: u32,
+        pub access_level: u8,
+        pub username: bool,
+        pub message: &'a str,
+    }
+
+    #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+    #[diesel(table_name = attachments)]
+    #[diesel(check_for_backend(diesel::mysql::Mysql))]
+    pub struct Attachment {
+        pub id: u32,
+        pub file_name: String,
+        pub file_location: String,
+        pub thumbnail_location: String,
+    }
+
+    #[derive(Insertable, AsChangeset)]
+    #[diesel(table_name = attachments)]
+    pub struct AttachmentModel<'a> {
+        pub file_name: &'a str,
+        pub file_location: &'a str,
+        pub thumbnail_location: &'a str,
+    }
+
+    #[derive(Debug, Deserialize, Validate)]
+    pub struct CreateBoardInput {
+        #[validate(
+            length(
+                min = "1",
+                max = "100",
+                message = "Title must be 1-100 characters long"
+            ),
+            regex(
+                path = Regex::new(r"^[a-zA-Z0-9]+$").unwrap(),
+                message = "Title must be alphanumeric"
+            )
+        )]
+        pub title: String,
+        #[validate(
+            length(
+                min = "1",
+                max = "8",
+                message = "Handle must be 1-8 characters long"
+            ),
+            regex(
+                path = Regex::new(r"^[a-zA-Z0-9]+$").unwrap(),
+                message = "Handle must be alphanumeric"
+            )
+        )]
+        pub handle: String,
         pub access_level: u8,
         pub nsfw: bool,
     }

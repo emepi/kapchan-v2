@@ -71,7 +71,7 @@ pub mod routes {
         }
 
         // End current session as anonymous user
-        let res = SessionModel {
+        let _ = SessionModel {
             user_id: conn_info.user_id,
             ended_at: &Utc::now().naive_utc(),
         }
@@ -668,6 +668,8 @@ pub mod authentication {
         if session.ended_at.and_utc().timestamp() <= Utc::now().timestamp() {
             return Err(HttpResponse::Unauthorized().finish());
         }
+
+        // TODO: check for bans
 
         Ok(UserInfo {
             user_id: session.user_id,
