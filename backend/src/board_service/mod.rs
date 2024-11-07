@@ -2,7 +2,7 @@ pub mod board;
 pub mod post;
 
 
-use std::{fs, path::PathBuf, str::FromStr};
+use std::{fs, io::{Cursor, Read}, path::PathBuf, str::FromStr};
 
 use actix_files::NamedFile;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
@@ -10,6 +10,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use chrono::NaiveDateTime;
 use diesel::{dsl::count, result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}}, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::{pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection, AsyncMysqlConnection, RunQueryDsl};
+use image::ImageReader;
 use log::info;
 use post::{File, FileModel, Post, PostModel, Thread, ThreadModel};
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,10 @@ pub fn endpoints(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/files/{id}")
         .route(web::get().to(serve_files))
+    )
+    .service(
+        web::resource("/thumbnails/{id}")
+        .route(web::get().to(serve_thumbnails))
     )
     .service(
         web::resource("/boards")
@@ -214,12 +219,24 @@ async fn create_thread(
                 Err(_) => return HttpResponse::InternalServerError().finish(),
             }
 
-            // TODO: create a thumbnail
+            // create thumbnail
+            let img = match ImageReader::open(file_path.clone()) {
+                Ok(i) => match i.decode() {
+                    Ok(decoded) => decoded,
+                    Err(_) => return HttpResponse::InternalServerError().finish(),
+                }
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            };
+
+            let thumbnail = img.thumbnail(300, 300);
+
+            let thumbnail_path = format!("{}/thumbnail.{}", dir_path, mime.subtype().as_str());
+            let _ = thumbnail.save(thumbnail_path.clone());
 
             let file_model = FileModel {
                 id: op_post.id,
                 file_name,
-                thumbnail: String::default(),
+                thumbnail: thumbnail_path,
                 file_path,
                 file_type: mime.type_().to_string(),
             };
@@ -317,6 +334,26 @@ async fn serve_files(
     };
 
     let path: PathBuf = match file_info.file_path.parse() {
+        Ok(path) => path,
+        Err(err) => return Err(actix_web::error::ErrorInternalServerError(err)),
+    };
+
+    Ok(NamedFile::open(path)?)
+}
+
+async fn serve_thumbnails(
+    file: web::Path<(u32,)>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> actix_web::Result<NamedFile> {
+    let file_id = file.into_inner().0;
+
+    let file_info = match File::by_id(file_id, &conn_pool).await {
+        Ok(info) => info,
+        Err(err) => return Err(actix_web::error::ErrorInternalServerError(err)),
+    };
+
+    let path: PathBuf = match file_info.thumbnail.parse() {
         Ok(path) => path,
         Err(err) => return Err(actix_web::error::ErrorInternalServerError(err)),
     };
@@ -477,12 +514,24 @@ async fn create_post(
                 Err(_) => return HttpResponse::InternalServerError().finish(),
             }
 
-            // TODO: create a thumbnail
+            // create thumbnail
+            let img = match ImageReader::open(file_path.clone()) {
+                Ok(i) => match i.decode() {
+                    Ok(decoded) => decoded,
+                    Err(_) => return HttpResponse::InternalServerError().finish(),
+                }
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            };
+
+            let thumbnail = img.thumbnail(300, 300);
+
+            let thumbnail_path = format!("{}/thumbnail.{}", dir_path, mime.subtype().as_str());
+            let _ = thumbnail.save(thumbnail_path.clone());
 
             let file_model = FileModel {
                 id: post.id,
                 file_name,
-                thumbnail: String::default(),
+                thumbnail: thumbnail_path,
                 file_path,
                 file_type: mime.type_().to_string(),
             };

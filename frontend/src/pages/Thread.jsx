@@ -25,13 +25,28 @@ export const Thread = () => {
       })
     }
   }
+
+  const resizeImage = (id) => {
+    let img = document.getElementById("img-" + id)
+    
+    img.src = "/files/" + id
+
+    if (img.classList.contains("post-img")) {
+      img.classList.remove("post-img")
+      img.classList.add("post-img-large")
+    }
+    else {
+      img.classList.remove("post-img-large")
+      img.classList.add("post-img")
+    }
+  }
   
   return (
     <Show when={!posts.loading}>
       <div class="thread-page">
         <div class="op-post">
           <Show when={posts().op_post.attachment && posts().op_post.attachment == "image"}>
-            <img class="post-img" src={"/files/" + posts().op_post.post_id}></img>
+            <img id={"img-"+posts().op_post.post_id} class="post-img" src={"/thumbnails/" + posts().op_post.post_id } onClick={() => resizeImage(posts().op_post.post_id)}></img>
           </Show>
           <div>
             <p class="post-info">No. {posts().op_post.post_id} Created: {(new Date(posts().op_post.created_at)).toLocaleString("fi-FI")}</p>
@@ -44,7 +59,7 @@ export const Thread = () => {
           { (post) => 
           <div class="post">
             <Show when={post.attachment && post.attachment == "image"}>
-              <img class="post-img" src={"/files/" + post.post_id}></img>
+              <img id={"img-"+post.post_id} class="post-img" src={"/thumbnails/" + post.post_id} onClick={() => resizeImage(post.post_id)}></img>
             </Show>
             <div>
               <p class="post-info">No. {post.post_id} Created: {(new Date(post.created_at)).toLocaleString("fi-FI")}</p>

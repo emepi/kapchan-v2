@@ -63,7 +63,7 @@ const Threads = (props) => {
         <div class="thread">
           <div class="img-frame">
             <Show when={thread.op_post.attachment && thread.op_post.attachment == "image"}>
-              <img class="post-img" src={"files/" + thread.op_post.post_id}></img>
+              <img class="post-img" src={"thumbnails/" + thread.op_post.post_id}></img>
             </Show>
           </div>
           <p class="post-info">No. {thread.op_post.post_id} Created: {(new Date(thread.op_post.created_at)).toLocaleString("fi-FI")}</p>

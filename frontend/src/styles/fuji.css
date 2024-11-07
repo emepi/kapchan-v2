@@ -357,6 +357,11 @@ th, td {
   max-width: 500px;
 }
 
+.post-img-large {
+  height: 100%;
+  width: auto;
+}
+
 .thread-page {
   color: white;
   padding: 10px;
