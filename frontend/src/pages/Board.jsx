@@ -69,6 +69,7 @@ const Threads = (props) => {
           <p class="post-info">No. {thread.op_post.post_id} Created: {(new Date(thread.op_post.created_at)).toLocaleString("fi-FI")}</p>
           <h3>{thread.title}</h3>
           <p>{thread.op_post.body}</p>
+          <p>replies: {thread.replies}</p>
         </div>
         </A>}
       </For>

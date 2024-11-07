@@ -71,6 +71,7 @@ diesel::table! {
         title -> Tinytext,
         pinned -> Bool,
         bump_date -> Datetime,
+        replies -> Unsigned<Integer>,
     }
 }
 

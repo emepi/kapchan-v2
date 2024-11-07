@@ -11,7 +11,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::{files, posts, threads::{self, bump_date}};
+use crate::schema::{files, posts, threads::{self, bump_date, replies}};
 
 
 #[derive(Debug, Queryable, Selectable, Serialize)]
@@ -98,6 +98,7 @@ pub struct Thread {
     pub title: String,
     pub pinned: bool,
     pub bump_date: NaiveDateTime,
+    pub replies: u32,
 }
 
 impl Thread {
@@ -112,7 +113,7 @@ impl Thread {
                 conn.transaction::<_, Error, _>(|conn| async move {
                     let _ = diesel::update(threads::table)
                     .filter(threads::id.eq(id))
-                    .set(bump_date.eq(timestamp))
+                    .set((bump_date.eq(timestamp), replies.eq(replies + 1)))
                     .execute(conn)
                     .await?;
             
@@ -135,6 +136,7 @@ pub struct ThreadModel {
     pub board: u32,
     pub title: String,
     pub pinned: bool,
+    pub replies: u32,
 }
 
 impl ThreadModel {

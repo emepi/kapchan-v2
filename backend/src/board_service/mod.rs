@@ -8,7 +8,7 @@ use actix_files::NamedFile;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use chrono::NaiveDateTime;
-use diesel::{result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}}, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{dsl::count, result::{DatabaseErrorKind, Error::{self, DatabaseError, NotFound}}, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::{pooled_connection::deadpool::Pool, scoped_futures::ScopedFutureExt, AsyncConnection, AsyncMysqlConnection, RunQueryDsl};
 use log::info;
 use post::{File, FileModel, Post, PostModel, Thread, ThreadModel};
@@ -173,6 +173,7 @@ async fn create_thread(
         board: board.id,
         title: input.title.into_inner(),
         pinned: false,
+        replies: 0,
     };
 
     match thread.insert(&conn_pool).await {
@@ -240,6 +241,7 @@ pub struct ThreadOutput {
     pub title: String,
     pub pinned: bool,
     pub op_post: PostOutput,
+    pub replies: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -258,7 +260,6 @@ async fn fetch_threads(
 ) -> impl Responder {
 
     let board_id = board.into_inner().0;
-    println!("Requested threads for the board id: {}", board_id);
 
     //TODO: check permissions
 
@@ -294,6 +295,7 @@ async fn fetch_threads(
                     attachment: db_res.1.1.map(|file| file.file_type),
                     created_at: db_res.1.0.created_at,
                 },
+                replies: db_res.0.replies,
             }
         }).collect::<Vec<ThreadOutput>>(),
         Err(_) => return HttpResponse::InternalServerError().finish(),
