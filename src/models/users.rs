@@ -25,3 +25,15 @@ pub struct UserModel<'a> {
     pub email: Option<&'a str>,
     pub password_hash: Option<&'a str>,
 }
+
+#[derive(Copy, Clone)]
+pub enum AccessLevel {
+    Anonymous = 10,
+    Registered = 20,
+    PendingMember = 30,
+    Member = 40,
+    Moderator = 50,
+    Admin = 100,
+    Owner = 200,
+    Root = 255,
+}
