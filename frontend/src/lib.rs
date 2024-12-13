@@ -1,18 +1,15 @@
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
+use handlers::index::index_view;
 
 
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+mod handlers {
+    pub mod index;
 }
 
 pub fn endpoints(cfg: &mut web::ServiceConfig) {
     cfg
     .service(
         web::resource("/")
-            .route(web::get().to(hello)
-    ))
-    .service(
-        web::resource("/test")
-            .route(web::get().to(hello))
+            .route(web::get().to(index_view))
     );
 }

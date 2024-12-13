@@ -1,0 +1,5 @@
+<html>
+  <body>
+    <% for board in self.boards { %>
+      <a href="/<%= board %>"><%= board %></a>
+    <% } %>
