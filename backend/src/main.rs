@@ -5,6 +5,21 @@ use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManag
 use dotenvy::dotenv;
 
 
+mod database {
+    pub mod users;
+}
+
+mod models {
+    pub mod users;
+}
+
+mod services {
+    pub mod authentication;
+}
+
+mod schema;
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Load environment variables.
