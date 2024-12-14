@@ -1,4 +1,4 @@
-<html>
+<% include!("../metadata/root.stpl"); %>
   <body>
     <% for board in self.boards { %>
       <a href="/<%= board %>"><%= board %></a>

@@ -1,5 +1,6 @@
 use std::env;
 
+use actix_files::Files;
 use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
@@ -98,6 +99,11 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(register_view))
                     .route(web::post().to(handle_register))
             )
+            .service(
+                Files::new("/static", "./static")
+                    .show_files_listing()
+                    .use_last_modified(true),
+        )
     })
     .bind(("127.0.0.1", 8080))?
     .run()

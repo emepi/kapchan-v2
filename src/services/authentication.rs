@@ -1,14 +1,11 @@
 use actix_identity::Identity;
-use actix_web::{http::StatusCode, HttpMessage, HttpRequest, HttpResponse, HttpResponseBuilder};
-use argon2::{
-    password_hash::{rand_core::OsRng, SaltString}, 
-    Argon2, 
-    PasswordHash, 
-    PasswordHasher, 
-    PasswordVerifier
-};
+use actix_web::{http::StatusCode, HttpMessage, HttpRequest};
 use diesel::result::Error;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use password_hash::{Output, PasswordHash, PasswordVerifier, Salt, SaltString};
+use pbkdf2::{pbkdf2_hmac, Algorithm, Params, Pbkdf2};
+use rand_core::{OsRng, RngCore};
+use sha2::{Digest, Sha256};
 
 use crate::models::users::{User, UserData};
 
@@ -62,7 +59,7 @@ pub async fn login_by_username(
         None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
-    match validate_password_argon2id(&hash, password) {
+    match validate_password_pbkdf2(&hash, password) {
         true => {
             Identity::login(&request.extensions(), user.id.to_string()).unwrap();
             Ok(())
@@ -90,7 +87,7 @@ pub async fn login_by_email(
         None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
-    match validate_password_argon2id(&hash, password) {
+    match validate_password_pbkdf2(&hash, password) {
         true => {
             Identity::login(&request.extensions(), user.id.to_string()).unwrap();
             Ok(())
@@ -99,22 +96,43 @@ pub async fn login_by_email(
     }
 }
 
-pub fn hash_password_argon2id(
-    password: &str
-) -> String {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
+pub fn hash_password_pbkdf2(password: &str) -> String {
+    let mut salt_bytes = [0u8; Salt::RECOMMENDED_LENGTH];
+    OsRng.fill_bytes(&mut salt_bytes);
 
-    argon2.hash_password(password.as_bytes(), &salt).unwrap().to_string()
+    let iterations = 5000;
+    let password = password.as_bytes();
+
+    let output = Output::init_with(Sha256::output_size(), |out| {
+        pbkdf2_hmac::<Sha256>(password, &salt_bytes, iterations, out);
+        Ok(())
+    })
+    .unwrap();
+
+    let params = Params {
+        rounds: iterations,
+        output_length: Sha256::output_size(),
+    }
+    .try_into()
+    .unwrap();
+
+    let salt_b64 = SaltString::encode_b64(&salt_bytes).unwrap();
+
+    let hash = PasswordHash {
+        algorithm: Algorithm::PBKDF2_SHA256_IDENT,
+        version: None,
+        params,
+        salt: Some(salt_b64.as_salt()),
+        hash: Some(output),
+    };
+
+    hash.to_string()
 }
 
-pub fn validate_password_argon2id(
-    hash: &str, 
-    password: &str
-) -> bool {
+pub fn validate_password_pbkdf2(hash: &str, password: &str) -> bool {
     let parsed_hash = PasswordHash::new(hash).unwrap();
 
-    Argon2::default()
+    Pbkdf2
     .verify_password(password.as_bytes(), &parsed_hash)
     .is_ok()
 }

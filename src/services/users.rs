@@ -3,7 +3,7 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
 use crate::models::users::{AccessLevel, User, UserModel};
 
-use super::authentication::hash_password_argon2id;
+use super::authentication::hash_password_pbkdf2;
 
 
 pub async fn create_anonymous_user(
@@ -23,7 +23,7 @@ pub async fn update_root_user(
     conn_pool: &Pool<AsyncMysqlConnection>,
     password: &str,
 ) -> Result<(), Error> {
-    let password_hash = hash_password_argon2id(password);
+    let password_hash = hash_password_pbkdf2(password);
 
     let root_model = UserModel {
         access_level: AccessLevel::Root as u8,
@@ -51,7 +51,7 @@ pub async fn register_user(
     email: &str,
     password: &str,
 ) -> Result<(), Error> {
-    let password_hash = hash_password_argon2id(password);
+    let password_hash = hash_password_pbkdf2(password);
 
     UserModel {
         access_level: AccessLevel::Registered as u8,
