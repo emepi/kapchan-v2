@@ -1577,6 +1577,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "dotenvy",
+ "regex",
  "sailfish",
  "serde",
 ]

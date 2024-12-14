@@ -3,12 +3,13 @@ use actix_web::{error::InternalError, http::StatusCode, web, HttpRequest, HttpRe
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use sailfish::{TemplateOnce};
 
-use crate::services::authentication::resolve_user;
+use crate::{models::users::AccessLevel, services::authentication::resolve_user};
 
 
 #[derive(TemplateOnce)]
 #[template(path = "pages/index.stpl")]
 struct IndexTemplate {
+    logged_in: bool,
     boards: Vec<String>,
 }
 
@@ -23,7 +24,8 @@ pub async fn index_view(
     };
 
     let body = IndexTemplate { 
-        boards: vec!["test".to_string(), "test-2".to_string(), "test-3".to_string()] 
+        logged_in: user_data.access_level > AccessLevel::Anonymous as u8,
+        boards: vec!["test".to_string(), "test-2".to_string(), "test-3".to_string()], 
     }
     .render_once()
     .map_err(|e| InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;

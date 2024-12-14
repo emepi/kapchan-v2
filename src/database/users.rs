@@ -52,6 +52,27 @@ impl User {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn by_email(
+        email: &str,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<User, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let user = users::table
+                    .filter(users::email.eq(email))
+                    .first::<User>(conn)
+                    .await?;
+        
+                    Ok(user)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 impl UserModel<'_> {

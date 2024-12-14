@@ -3,3 +3,11 @@
     <% for board in self.boards { %>
       <a href="/<%= board %>"><%= board %></a>
     <% } %>
+
+    <% if self.logged_in { %>
+    <form action="/logout" method="post">
+    <button name="logout">logout</button>
+    </form>
+    <% } else { %>
+    <a href="/login">login</a>
+    <% } %>

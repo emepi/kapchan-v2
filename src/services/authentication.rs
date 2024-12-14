@@ -1,5 +1,5 @@
 use actix_identity::Identity;
-use actix_web::{HttpMessage, HttpRequest};
+use actix_web::{http::StatusCode, HttpMessage, HttpRequest, HttpResponse, HttpResponseBuilder};
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString}, 
     Argon2, 
@@ -41,6 +41,62 @@ pub async fn resolve_user(
         id: user.id,
         access_level: user.access_level,
     })
+}
+
+pub async fn login_by_username(
+    username: &str,
+    password: &str,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    request: HttpRequest,
+) -> Result<(), StatusCode> {
+    let user = User::by_username(username, conn_pool)
+    .await
+    .map_err(|err| match err {
+            Error::NotFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    )?;
+
+    let hash = match user.password_hash {
+        Some(pwd_hash) => pwd_hash,
+        None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match validate_password_argon2id(&hash, password) {
+        true => {
+            Identity::login(&request.extensions(), user.id.to_string()).unwrap();
+            Ok(())
+        },
+        false => Err(StatusCode::FORBIDDEN),
+    }
+}
+
+pub async fn login_by_email(
+    email: &str,
+    password: &str,
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    request: HttpRequest,
+) -> Result<(), StatusCode> {
+    let user = User::by_email(email, conn_pool)
+    .await
+    .map_err(|err| match err {
+            Error::NotFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    )?;
+
+    let hash = match user.password_hash {
+        Some(pwd_hash) => pwd_hash,
+        None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match validate_password_argon2id(&hash, password) {
+        true => {
+            Identity::login(&request.extensions(), user.id.to_string()).unwrap();
+            Ok(())
+        },
+        false => Err(StatusCode::FORBIDDEN),
+    }
 }
 
 pub fn hash_password_argon2id(

@@ -6,7 +6,7 @@ use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::index::index_view;
+use handlers::{forms::{login::handle_login, logout::handle_logout}, index::index_view, login::login_view};
 use services::users::update_root_user;
 
 
@@ -15,7 +15,12 @@ mod database {
 }
 
 mod handlers {
+    pub mod forms {
+        pub mod login;
+        pub mod logout;
+    }
     pub mod index;
+    pub mod login;
 }
 
 mod models {
@@ -76,6 +81,15 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/")
                     .route(web::get().to(index_view))
+            )
+            .service(
+                web::resource("/login")
+                    .route(web::get().to(login_view))
+                    .route(web::post().to(handle_login))
+            )
+            .service(
+                web::resource("/logout")
+                    .route(web::post().to(handle_logout))
             )
     })
     .bind(("127.0.0.1", 8080))?
