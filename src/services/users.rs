@@ -43,3 +43,23 @@ pub async fn update_root_user(
         ),
     }
 }
+
+pub async fn register_user(
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    user_id: u32,
+    username: &str,
+    email: &str,
+    password: &str,
+) -> Result<(), Error> {
+    let password_hash = hash_password_argon2id(password);
+
+    UserModel {
+        access_level: AccessLevel::Registered as u8,
+        username: Some(username),
+        email: Some(email),
+        password_hash: Some(&password_hash),
+    }
+    .update_by_id(user_id, conn_pool)
+    .await
+    .and_then(|_| Ok(()))
+}

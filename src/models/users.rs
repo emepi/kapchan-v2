@@ -32,7 +32,7 @@ pub enum AccessLevel {
     Registered = 20,
     PendingMember = 30,
     Member = 40,
-    Moderator = 50,
+    Moderator = 90,
     Admin = 100,
     Owner = 200,
     Root = 255,

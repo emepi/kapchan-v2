@@ -17,3 +17,4 @@ dotenvy = "0.15.7"
 regex = "1.11.1"
 sailfish = "0.9"
 serde = { version = "1.0.192", features = ["derive"] }
+validator = { version = "0.18.1", features = ["derive"] }
