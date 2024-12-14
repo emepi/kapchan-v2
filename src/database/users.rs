@@ -1,4 +1,4 @@
-use diesel::{result::Error, sql_function, QueryDsl};
+use diesel::{result::Error, sql_function, ExpressionMethods, QueryDsl};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
     scoped_futures::ScopedFutureExt, 
@@ -7,59 +7,100 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::users::{AccessLevel, User, UserModel}, schema::users};
+use crate::{models::users::{User, UserModel}, schema::users};
 
 
-pub async fn user_by_id(
-    id: u32,
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> Result<User, Error> {
-    match conn_pool.get().await {
-        Ok(mut conn) => {
-            conn.transaction::<_, Error, _>(|conn| async move {
-                let user = users::table
-                .find(id)
-                .first::<User>(conn)
-                .await?;
+impl User {
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<User, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let user = users::table
+                    .find(id)
+                    .first::<User>(conn)
+                    .await?;
+        
+                    Ok(user)
+                }.scope_boxed())
+                .await
+            },
     
-                Ok(user)
-            }.scope_boxed())
-            .await
-        },
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 
-        Err(_) => Err(Error::BrokenTransactionManager),
+    pub async fn by_username(
+        username: &str,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<User, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let user = users::table
+                    .filter(users::username.eq(username))
+                    .first::<User>(conn)
+                    .await?;
+        
+                    Ok(user)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
     }
 }
 
-pub async fn create_anonymous_user(
-    conn_pool: &Pool<AsyncMysqlConnection>,
-) -> Result<User, Error> {
-    let anon_user = UserModel {
-        access_level: AccessLevel::Anonymous as u8,
-        username: None,
-        email: None,
-        password_hash: None,
-    };
-
-    match conn_pool.get().await {
-        Ok(mut conn) => {
-            conn.transaction::<_, Error, _>(|conn| async move {
-                let _ = diesel::insert_into(users::table)
-                .values(anon_user)
-                .execute(conn)
-                .await?;
+impl UserModel<'_> {
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<User, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(users::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let user = users::table
+                    .find(last_insert_id())
+                    .first::<User>(conn)
+                    .await?;
             
-                let user = users::table
-                .find(last_insert_id())
-                .first::<User>(conn)
-                .await?;
-        
-                Ok(user)
-            }.scope_boxed())
-            .await
-        },
+                    Ok(user)
+                }.scope_boxed())
+                .await
+            },
 
-        Err(_) => Err(Error::BrokenTransactionManager),
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn update_by_id(
+        &self,
+        user_id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<usize, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let res = diesel::update(users::table.find(user_id))
+                    .set(self)
+                    .execute(conn)
+                    .await?;
+            
+                    Ok(res)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
     }
 }
 

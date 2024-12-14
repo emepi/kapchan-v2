@@ -1,5 +1,5 @@
 [package]
-name = "frontend"
+name = "kapchan"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 actix-web = "4"
 actix-identity = "0.8.0"
 actix-session = { version = "0.10.1", features = ["cookie-session"] }
+argon2 = "0.5.3"
 base64 = "0.22.1"
 chrono = { version = "0.4.31", features = ["serde"] }
 deadpool = "0.10.0"

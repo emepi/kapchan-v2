@@ -17,7 +17,7 @@ pub struct User {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct UserModel<'a> {
     pub access_level: u8,
@@ -26,7 +26,7 @@ pub struct UserModel<'a> {
     pub password_hash: Option<&'a str>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum AccessLevel {
     Anonymous = 10,
     Registered = 20,
@@ -36,4 +36,10 @@ pub enum AccessLevel {
     Admin = 100,
     Owner = 200,
     Root = 255,
+}
+
+#[derive(Debug)]
+pub struct UserData {
+    pub id: u32,
+    pub access_level: u8,
 }

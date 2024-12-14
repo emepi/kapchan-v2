@@ -7,6 +7,7 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
 use handlers::index::index_view;
+use services::users::update_root_user;
 
 
 mod database {
@@ -23,6 +24,7 @@ mod models {
 
 mod services {
     pub mod authentication;
+    pub mod users;
 }
 
 mod schema;
@@ -53,6 +55,14 @@ async fn main() -> std::io::Result<()> {
     "#);
 
     let private_key = Key::from(&BASE64_STANDARD.decode(private_key).unwrap());
+
+    // Create or update root user.
+    let root_pwd = env::var("ROOT_PASSWORD").expect(r#"
+        env variable `ROOT_PASSWORD` must be set in `.env`
+        see: .env.example
+    "#);
+
+    update_root_user(&mysql_connection_pool, &root_pwd).await.unwrap();
 
     HttpServer::new(move || {
         App::new()
