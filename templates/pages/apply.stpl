@@ -1,0 +1,18 @@
+<html>
+  <body>
+    <h1>Apply 2/2</h1>
+    <% for error in self.errors { %>
+      <p><%= error %></p>
+    <% } %>
+    <form action=/apply method=POST>
+      <label for="background">background:</label><br>
+      <textarea name="background" rows="10" cols="30">
+      </textarea>
+      <label for="motivation">Motivation:</label>
+      <textarea name="motivation" rows="10" cols="30">
+      </textarea>
+      <label for="other">Other:</label>
+      <textarea name="other" rows="10" cols="30">
+      </textarea>
+      <button type=submit>submit</button>
+    </form>

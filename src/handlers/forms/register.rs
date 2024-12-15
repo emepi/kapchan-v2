@@ -90,7 +90,7 @@ pub async fn handle_register(
     ).await;
 
     match result {
-        Ok(_) => Ok(HttpResponse::Found().append_header(("Location", "/")).finish()),
+        Ok(_) => Ok(HttpResponse::Found().append_header(("Location", "/apply")).finish()),
         Err(e) => match e {
             diesel::result::Error::DatabaseError(e_type, _) => match e_type {
                 diesel::result::DatabaseErrorKind::UniqueViolation => 

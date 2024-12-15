@@ -7,7 +7,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::users::{User, UserModel}, schema::users};
+use crate::{models::users::{User, UserModel}, schema::users::{self, access_level}};
 
 
 impl User {
@@ -66,6 +66,28 @@ impl User {
                     .await?;
         
                     Ok(user)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn update_access_level(
+        user_id: u32,
+        access_lvl: u8,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<usize, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let res = diesel::update(users::table.find(user_id))
+                    .set(access_level.eq(access_lvl))
+                    .execute(conn)
+                    .await?;
+            
+                    Ok(res)
                 }.scope_boxed())
                 .await
             },
