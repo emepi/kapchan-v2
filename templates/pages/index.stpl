@@ -1,14 +1,6 @@
-<% include!("../metadata/root.stpl"); %>
-  <body>
-    <% for board in self.boards { %>
-      <a href="/<%= board %>"><%= board %></a>
-    <% } %>
-
-    <% if self.logged_in { %>
-    <form action="/logout" method="post">
-    <button name="logout">logout</button>
-    </form>
-    <% } else { %>
-    <a href="/login">login</a>
-    <a href="/register">register</a>
-    <% } %>
+<% include!("../layouts/kapchan.stpl"); %>
+<main class="content">
+  <% for board in self.boards { %>
+    <a href="/<%= board %>"><%= board %></a>
+  <% } %>
+</main>
