@@ -43,3 +43,14 @@ pub async fn load_application_previews(
 
     Application::load_previews(conn_pool, false, page_size, offset).await
 }
+
+pub async fn count_preview_pages(
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    page_size: u64,
+) -> Result<u64, Error> {
+    Application::count(conn_pool, false).await
+    .and_then(|count| {
+        let count = u64::try_from(count).unwrap();
+        Ok(count.div_ceil(page_size))
+    })
+}

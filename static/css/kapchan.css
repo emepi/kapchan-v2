@@ -98,3 +98,8 @@ body {
   border-bottom: 1px solid white;
   color: white;
 }
+
+.pages {
+  display: flex;
+  gap: 5px;
+}

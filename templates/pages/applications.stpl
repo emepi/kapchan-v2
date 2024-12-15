@@ -13,5 +13,11 @@
         <a href="/application/<%= preview.application_id %>">Avaa hakemus</a>
       </div>
     <% } %>
+    <div class="pages">
+    <p>pages:</p>
+    <% for n in 1..=self.pages { %>
+    <a href="/applications/<%= n %>"><%= n %></a>
+    <% } %>
+    </div>
   <div>
 </main>

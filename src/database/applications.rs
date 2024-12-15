@@ -76,6 +76,29 @@ impl Application {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn count(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        is_accepted: bool,
+    ) -> Result<i64, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let count: i64 = applications::table
+                    .filter(accepted.eq(is_accepted))
+                    .count()
+                    .get_result(conn)
+                    .await?;
+            
+                    Ok(count)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);

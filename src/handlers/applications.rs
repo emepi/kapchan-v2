@@ -3,7 +3,7 @@ use actix_web::{error::InternalError, http::StatusCode, web, HttpRequest, HttpRe
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use sailfish::{TemplateOnce};
 
-use crate::{models::{applications::ApplicationPreview, users::AccessLevel}, services::{applications::load_application_previews, authentication::resolve_user}};
+use crate::{models::{applications::ApplicationPreview, users::AccessLevel}, services::{applications::{count_preview_pages, load_application_previews}, authentication::resolve_user}};
 
 
 #[derive(TemplateOnce)]
@@ -11,6 +11,7 @@ use crate::{models::{applications::ApplicationPreview, users::AccessLevel}, serv
 struct ApplicationsTemplate {
     pub access_level: u8,
     pub previews: Vec<ApplicationPreview>,
+    pub pages: u64,
 }
 
 pub async fn applications_view(
@@ -30,14 +31,20 @@ pub async fn applications_view(
 
     let page = path.into_inner();
 
-    let previews = match load_application_previews(&conn_pool, page.into(), 50).await {
+    let previews = match load_application_previews(&conn_pool, page.into(), 20).await {
         Ok(previews) => previews,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    let pages = match count_preview_pages(&conn_pool, 20).await {
+        Ok(pages) => pages,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
     let body = ApplicationsTemplate {
         access_level: user_data.access_level,
         previews,
+        pages,
     }
     .render_once()
     .map_err(|e| InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
