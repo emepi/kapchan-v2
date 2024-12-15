@@ -1,6 +1,6 @@
 <% include!("../layouts/kapchan.stpl"); %>
 <main class="content">
-  <% for board in self.boards { %>
-    <a href="/<%= board %>"><%= board %></a>
-  <% } %>
+  <nav class="selector">
+    <a href="/" class="selector-btn--active">Etusivu</a>
+  <nav>
 </main>

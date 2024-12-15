@@ -52,4 +52,49 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  cursor: pointer;
+}
+
+.selector {
+  display: flex;
+  gap: 10px;
+  margin: 10px;
+}
+
+.selector-btn {
+  color: white;
+  padding: 6px 10px 6px 10px;
+  background-color:#212121;
+  border-radius: 7px;
+}
+
+.selector-btn--active {
+  color: #0f0f0f;
+  background-color: white;
+  padding: 6px 10px 6px 10px;
+  border-radius: 7px;
+}
+
+.selector-btn--inactive {
+  color: gray;
+  background-color:#212121;
+  padding: 6px 10px 6px 10px;
+  border-radius: 7px;
+}
+
+.application-list {
+  margin: 10px;
+  padding: 10px;
+  background-color:#212121;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 7px;
+}
+
+.application-preview {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid white;
+  color: white;
 }

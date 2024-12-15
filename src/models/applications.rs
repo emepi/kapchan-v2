@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::schema::{application_reviews, applications};
 
@@ -44,4 +44,11 @@ pub struct ApplicationReview {
 pub struct ApplicationReviewModel {
     pub reviewer_id: u32,
     pub application_id: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApplicationPreview {
+    pub username: String,
+    pub application_id: u32,
+    pub submission_time: String,
 }

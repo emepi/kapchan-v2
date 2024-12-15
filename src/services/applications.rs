@@ -1,7 +1,7 @@
 use diesel::result::Error;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::models::{applications::ApplicationModel, users::{AccessLevel, User}};
+use crate::models::{applications::{Application, ApplicationModel, ApplicationPreview}, users::{AccessLevel, User}};
 
 
 pub async fn submit_application(
@@ -32,4 +32,14 @@ pub async fn submit_application(
         },
         Err(err) => Err(err),
     }
+}
+
+pub async fn load_application_previews(
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    page: i64,
+    page_size: i64,
+) -> Result<Vec<ApplicationPreview>, Error> {
+    let offset = (page - 1) * page_size;
+
+    Application::load_previews(conn_pool, false, page_size, offset).await
 }

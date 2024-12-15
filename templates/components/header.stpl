@@ -1,5 +1,5 @@
 <header class="main-header">
-  <h1>Kapakka</h1>
+  <a href="/"><h1>Kapakka</h1></a>
   <nav class="navbar">
     <% if self.access_level == 20 { %>
     <a class="svg-a" href="/apply">

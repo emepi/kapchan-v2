@@ -7,7 +7,7 @@ use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{apply::application_view, forms::{apply::handle_application, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
+use handlers::{admin::admin_view, applications::applications_view, apply::application_view, forms::{apply::handle_application, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
 use services::users::update_root_user;
 
 
@@ -23,6 +23,8 @@ mod handlers {
         pub mod logout;
         pub mod register;
     }
+    pub mod admin;
+    pub mod applications;
     pub mod apply;
     pub mod index;
     pub mod login;
@@ -108,6 +110,14 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/apply")
                     .route(web::get().to(application_view))
                     .route(web::post().to(handle_application))
+            )
+            .service(
+                web::resource("/admin")
+                    .route(web::get().to(admin_view))
+            )
+            .service(
+                web::resource("/applications/{page}")
+                    .route(web::get().to(applications_view))
             )
             .service(
                 Files::new("/static", "./static")
