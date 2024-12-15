@@ -40,6 +40,7 @@ mod services {
     pub mod authentication;
     pub mod applications;
     pub mod users;
+    pub mod time;
 }
 
 mod schema;

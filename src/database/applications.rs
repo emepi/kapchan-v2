@@ -8,7 +8,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::applications::{Application, ApplicationModel, ApplicationPreview}, schema::{applications::{self, accepted, created_at, id}, users::{self, username}}};
+use crate::{models::applications::{Application, ApplicationModel, ApplicationPreview}, schema::{applications::{self, accepted, created_at, id}, users::{self, username}}, services::time::fi_datetime};
 
 
 impl ApplicationModel<'_> {
@@ -64,7 +64,7 @@ impl Application {
                     .map(|preview| ApplicationPreview {
                         username: preview.1.unwrap_or_default(),
                         application_id: preview.0,
-                        submission_time: preview.2.to_string(),
+                        submission_time: fi_datetime(preview.2),
                     })
                     .collect();
             
