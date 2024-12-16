@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, web::{self, Redirect}, HttpRequest, HttpResponse};
+use actix_web::{http::StatusCode, web::{self}, HttpRequest, HttpResponse};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use regex::Regex;
 use serde::{Deserialize, Serialize};

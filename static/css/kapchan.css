@@ -42,6 +42,7 @@ body {
 .content {
   grid-area: 2 / 1 / 3 / 1;
   color: white;
+  margin: 10px;
 }
 
 .navbar {
@@ -59,7 +60,7 @@ body {
 .selector {
   display: flex;
   gap: 10px;
-  margin: 10px;
+  margin-bottom: 10px;
 }
 
 .selector-btn {
@@ -84,7 +85,6 @@ body {
 }
 
 .application-list {
-  margin: 10px;
   padding: 10px;
   background-color:#212121;
   display: flex;

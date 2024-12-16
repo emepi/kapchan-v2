@@ -137,7 +137,6 @@ impl Application {
 
     pub async fn load_previews(
         conn_pool: &Pool<AsyncMysqlConnection>,
-        is_accepted: bool,
         page_size: i64,
         offset: i64,
     ) -> Result<Vec<ApplicationPreview>, Error> {

@@ -1,5 +1,5 @@
 use actix_identity::Identity;
-use actix_web::{error::InternalError, http::StatusCode, web, HttpRequest, HttpResponse};
+use actix_web::{error::InternalError, http::StatusCode, web, Error, HttpRequest, HttpResponse};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use sailfish::{TemplateOnce};
 
@@ -8,8 +8,17 @@ use crate::{models::users::AccessLevel, services::authentication::resolve_user};
 
 #[derive(TemplateOnce)]
 #[template(path = "pages/admin.stpl")]
-struct AdminTemplate {
+pub struct AdminTemplate {
     pub access_level: u8,
+    pub errors: Vec<String>,
+}
+
+pub fn template(
+    t: AdminTemplate
+) -> Result<String, Error> {
+    Ok(t
+    .render_once()
+    .map_err(|e| InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?)
 }
 
 pub async fn admin_view(
@@ -26,11 +35,10 @@ pub async fn admin_view(
         return Ok(HttpResponse::Forbidden().finish())
     }
 
-    let body = AdminTemplate {
+    let body = template(AdminTemplate {
         access_level: user_data.access_level,
-    }
-    .render_once()
-    .map_err(|e| InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+        errors: vec![],
+    })?;
 
     Ok(HttpResponse::Ok()
     .content_type("text/html; charset=utf-8")

@@ -7,12 +7,13 @@ use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, forms::{accept_application::handle_application_accept, apply::handle_application, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
+use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
 use services::users::update_root_user;
 
 
 mod database {
     pub mod applications;
+    pub mod boards;
     pub mod users;
 }
 
@@ -24,6 +25,7 @@ mod handlers {
         pub mod login;
         pub mod logout;
         pub mod register;
+        pub mod create_board;
     }
     pub mod admin;
     pub mod applications;
@@ -36,6 +38,7 @@ mod handlers {
 
 mod models {
     pub mod applications;
+    pub mod boards;
     pub mod users;
 }
 
@@ -134,6 +137,10 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/deny-application/{application_id}")
                     .route(web::post().to(handle_application_deny))
+            )
+            .service(
+                web::resource("/boards")
+                    .route(web::post().to(handle_board_creation))
             )
             .service(
                 Files::new("/static", "./static")

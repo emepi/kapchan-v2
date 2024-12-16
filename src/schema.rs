@@ -22,6 +22,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    boards (id) {
+        id -> Unsigned<Integer>,
+        #[max_length = 8]
+        handle -> Varchar,
+        title -> Tinytext,
+        access_level -> Unsigned<Tinyint>,
+        post_cooldown_time_sec -> Unsigned<Integer>,
+        active_threads_limit -> Unsigned<Integer>,
+        thread_size_limit -> Unsigned<Integer>,
+        captcha -> Bool,
+        nsfw -> Bool,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Unsigned<Integer>,
         access_level -> Unsigned<Tinyint>,
@@ -42,5 +57,6 @@ diesel::joinable!(applications -> users (user_id));
 diesel::allow_tables_to_appear_in_same_query!(
     application_reviews,
     applications,
+    boards,
     users,
 );

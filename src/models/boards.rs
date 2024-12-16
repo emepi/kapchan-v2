@@ -1,0 +1,33 @@
+use diesel::prelude::*;
+use serde::Serialize;
+
+use crate::schema::boards;
+
+
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+#[diesel(table_name = boards)]
+#[diesel(check_for_backend(diesel::mysql::Mysql))]
+pub struct Board {
+    pub id: u32,
+    pub handle: String,
+    pub title: String,
+    pub access_level: u8,
+    pub post_cooldown_time_sec: u32,
+    pub active_threads_limit: u32,
+    pub thread_size_limit: u32,
+    pub captcha: bool,
+    pub nsfw: bool,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = boards)]
+pub struct BoardModel<'a> {
+    pub handle: &'a str,
+    pub title: &'a str,
+    pub access_level: u8,
+    pub post_cooldown_time_sec: u32,
+    pub active_threads_limit: u32,
+    pub thread_size_limit: u32,
+    pub captcha: bool,
+    pub nsfw: bool,
+}

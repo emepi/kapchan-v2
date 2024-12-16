@@ -61,7 +61,7 @@ pub async fn load_application_previews(
 ) -> Result<Vec<ApplicationPreview>, Error> {
     let offset = (page - 1) * page_size;
 
-    Application::load_previews(conn_pool, false, page_size, offset).await
+    Application::load_previews(conn_pool, page_size, offset).await
 }
 
 pub async fn count_preview_pages(
