@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use diesel::result::Error;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
@@ -34,6 +35,25 @@ pub async fn submit_application(
     }
 }
 
+pub async fn review_application (
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    application_id: u32,
+    reviewer_id: u32,
+    accept: bool,
+) -> Result<Application, Error> {
+    let timestamp = DateTime::from_timestamp(Utc::now().timestamp(), 0).unwrap().naive_utc();
+
+    Application::review(conn_pool, application_id, reviewer_id, accept, timestamp).await
+}
+
+pub async fn is_reviewed(
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    application_id: u32,
+) -> Result<bool, Error> {
+    Application::closed_at(&conn_pool, application_id).await
+    .map(|closed| closed.is_some())
+}
+
 pub async fn load_application_previews(
     conn_pool: &Pool<AsyncMysqlConnection>,
     page: i64,
@@ -48,7 +68,7 @@ pub async fn count_preview_pages(
     conn_pool: &Pool<AsyncMysqlConnection>,
     page_size: u64,
 ) -> Result<u64, Error> {
-    Application::count(conn_pool, false).await
+    Application::count_previews(conn_pool).await
     .and_then(|count| {
         let count = u64::try_from(count).unwrap();
         Ok(count.div_ceil(page_size))

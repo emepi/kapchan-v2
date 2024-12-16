@@ -52,3 +52,16 @@ pub struct ApplicationPreview {
     pub application_id: u32,
     pub submission_time: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApplicationView {
+    pub application_id: u32,
+    pub username: String,
+    pub email: String,
+    pub accepted: bool,
+    pub background: String,
+    pub motivation: String,
+    pub other: String,
+    pub submission_time: String,
+    pub closed_at: Option<String>
+}

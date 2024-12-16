@@ -10,7 +10,7 @@
       <div class="application-preview">
         <p><%= preview.submission_time %></p>
         <p><%= preview.username %></p>
-        <a href="/application/<%= preview.application_id %>">Avaa hakemus</a>
+        <a href="/application-review/<%= preview.application_id %>">Avaa hakemus</a>
       </div>
     <% } %>
     <div class="pages">
