@@ -3,7 +3,7 @@ use actix_web::{error::InternalError, http::StatusCode, web, Error, HttpRequest,
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use sailfish::{TemplateOnce};
 
-use crate::{models::users::AccessLevel, services::authentication::resolve_user};
+use crate::{models::{boards::Board, users::AccessLevel}, services::authentication::resolve_user};
 
 
 #[derive(TemplateOnce)]
@@ -11,6 +11,7 @@ use crate::{models::users::AccessLevel, services::authentication::resolve_user};
 pub struct AdminTemplate {
     pub access_level: u8,
     pub errors: Vec<String>,
+    pub boards: Vec<Board>,
 }
 
 pub fn template(
@@ -35,9 +36,15 @@ pub async fn admin_view(
         return Ok(HttpResponse::Forbidden().finish())
     }
 
+    let boards = match Board::list_all(&conn_pool).await {
+        Ok(boards) => boards,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
     let body = template(AdminTemplate {
         access_level: user_data.access_level,
         errors: vec![],
+        boards,
     })?;
 
     Ok(HttpResponse::Ok()

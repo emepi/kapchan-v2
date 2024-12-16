@@ -9,10 +9,43 @@
     <% } %>
     <a href="/users" class="selector-btn">Käyttäjät</a>
   </nav>
+  <div class="card">
   <h2>Laudat</h2>
   <% for error in self.errors { %>
     <p><%= error %></p>
   <% } %>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Lauta</th>
+        <th scope="col">Lautakoodi</th>
+        <th scope="col">Käyttäjätaso</th>
+        <th scope="col">Aikaraja (sec)</th>
+        <th scope="col">Lanka limiitti</th>
+        <th scope="col">lankojen koko</th>
+        <th scope="col">captcha</th>
+        <th scope="col">NSFW</th>
+      </tr>
+    </thead>
+    <tbody>
+  <% for board in self.boards { %>
+    <tr>
+      <th scope="row"><%= board.title %></th>
+      <td><%= board.handle %></td>
+      <td><%= board.access_level %></td>
+      <td><%= board.post_cooldown_time_sec %></td>
+      <td><%= board.active_threads_limit %></td>
+      <td><%= board.thread_size_limit %></td>
+      <td><% if board.captcha { %>kyllä<% } else { %>ei<% } %></td>
+      <td><% if board.nsfw { %>kyllä<% } else { %>ei<% } %></td>
+    </tr>
+  <% } %>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="card">
   <% if self.access_level >= 100 { %>
       <form action=/boards method=POST>
         <label for="handle">Board handle:</label>
@@ -41,4 +74,5 @@
         <button type=submit>create board</button>
       </form>
   <% } %>
+  </div>
 </main>

@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{handlers::admin::{template, AdminTemplate}, models::{boards::BoardModel, users::AccessLevel}, services::authentication::resolve_user};
+use crate::{handlers::admin::{template, AdminTemplate}, models::{boards::{Board, BoardModel}, users::AccessLevel}, services::authentication::resolve_user};
 
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -62,9 +62,15 @@ pub async fn handle_board_creation(
             .flat_map(|errors| errors)
             .collect();
 
+            let boards = match Board::list_all(&conn_pool).await {
+                Ok(boards) => boards,
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+
             let t = AdminTemplate {
                 errors,
                 access_level: user_data.access_level,
+                boards,
             };
 
             let body = template(t).unwrap();

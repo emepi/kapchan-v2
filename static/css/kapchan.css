@@ -84,6 +84,12 @@ body {
   border-radius: 7px;
 }
 
+.card {
+  padding: 10px;
+  background-color:#212121;
+  border-radius: 7px;
+}
+
 .application-list {
   padding: 10px;
   background-color:#212121;

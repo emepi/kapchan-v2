@@ -2,5 +2,12 @@
 <main class="content">
   <nav class="selector">
     <a href="/" class="selector-btn--active">Etusivu</a>
+    <% for board in self.boards { %>
+      <% if board.access_level > self.access_level { %>
+        <a class="selector-btn--inactive"><%= board.title %></a>
+      <% } else { %>
+        <a href="/boards/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
+      <% } %>
+    <% } %>
   <nav>
 </main>

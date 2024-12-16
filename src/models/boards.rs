@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::schema::boards;
 
@@ -29,5 +29,13 @@ pub struct BoardModel<'a> {
     pub active_threads_limit: u32,
     pub thread_size_limit: u32,
     pub captcha: bool,
+    pub nsfw: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BoardSimple {
+    pub handle: String,
+    pub title: String,
+    pub access_level: u8,
     pub nsfw: bool,
 }

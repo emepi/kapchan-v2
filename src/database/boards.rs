@@ -7,7 +7,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::boards::{Board, BoardModel}, schema::boards};
+use crate::{models::boards::{Board, BoardModel, BoardSimple}, schema::boards::{self, access_level, handle, nsfw, title}};
 
 
 impl BoardModel<'_> {
@@ -29,6 +29,57 @@ impl BoardModel<'_> {
                     .await?;
             
                     Ok(application)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+}
+
+impl Board {
+    pub async fn list_all(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Vec<Board>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let boards: Vec<Board> = boards::table
+                    .select(Board::as_select())
+                    .load(conn)
+                    .await?;
+            
+                    Ok(boards)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn list_all_simple(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Vec<BoardSimple>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let boards: Vec<(String, String, u8, bool)> = boards::table
+                    .select((handle, title, access_level, nsfw))
+                    .load::<(String, String, u8, bool)>(conn)
+                    .await?;
+
+                    let boards = boards.into_iter()
+                    .map(|board| BoardSimple {
+                        handle: board.0,
+                        title: board.1,
+                        access_level: board.2,
+                        nsfw: board.3,
+                    })
+                    .collect();
+            
+                    Ok(boards)
                 }.scope_boxed())
                 .await
             },
