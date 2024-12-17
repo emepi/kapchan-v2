@@ -12,7 +12,7 @@ use crate::{models::users::{User, UserModel}, schema::users::{self, access_level
 
 impl User {
     pub async fn by_id(
-        id: u32,
+        id: u64,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<User, Error> {
         match conn_pool.get().await {
@@ -75,7 +75,7 @@ impl User {
     }
 
     pub async fn update_access_level(
-        user_id: u32,
+        user_id: u64,
         access_lvl: u8,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<usize, Error> {
@@ -126,7 +126,7 @@ impl UserModel<'_> {
 
     pub async fn update_by_id(
         &self,
-        user_id: u32,
+        user_id: u64,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<usize, Error> {
         match conn_pool.get().await {
@@ -147,4 +147,4 @@ impl UserModel<'_> {
     }
 }
 
-sql_function!(fn last_insert_id() -> Unsigned<Integer>);
+sql_function!(fn last_insert_id() -> Unsigned<BigInt>);

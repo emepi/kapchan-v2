@@ -46,7 +46,7 @@ pub async fn update_root_user(
 
 pub async fn register_user(
     conn_pool: &Pool<AsyncMysqlConnection>,
-    user_id: u32,
+    user_id: u64,
     username: &str,
     email: &str,
     password: &str,

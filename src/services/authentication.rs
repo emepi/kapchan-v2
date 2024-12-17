@@ -19,7 +19,7 @@ pub async fn resolve_user(
 ) -> Result<UserData, Error> {
     let user = match user {
         Some(user) => {
-            let id = match user.id().unwrap().parse::<u32>() {
+            let id = match user.id().unwrap().parse::<u64>() {
                 Ok(id) => id,
                 Err(_) => return Err(Error::NotFound),
             };

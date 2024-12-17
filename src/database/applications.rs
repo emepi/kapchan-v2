@@ -43,7 +43,7 @@ impl Application {
     pub async fn review(
         conn_pool: &Pool<AsyncMysqlConnection>,
         application_id: u32,
-        reviewer_id: u32,
+        reviewer_id: u64,
         accept: bool,
         review_time: NaiveDateTime,
     ) -> Result<Application, Error> {

@@ -7,7 +7,7 @@ use crate::models::{applications::{Application, ApplicationModel, ApplicationPre
 
 pub async fn submit_application(
     conn_pool: &Pool<AsyncMysqlConnection>,
-    user_id: u32,
+    user_id: u64,
     background: &str,
     motivation: &str,
     other: &str,
@@ -38,7 +38,7 @@ pub async fn submit_application(
 pub async fn review_application (
     conn_pool: &Pool<AsyncMysqlConnection>,
     application_id: u32,
-    reviewer_id: u32,
+    reviewer_id: u64,
     accept: bool,
 ) -> Result<Application, Error> {
     let timestamp = DateTime::from_timestamp(Utc::now().timestamp(), 0).unwrap().naive_utc();

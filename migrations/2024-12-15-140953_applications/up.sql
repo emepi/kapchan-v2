@@ -1,6 +1,6 @@
 CREATE TABLE applications (
     id          INTEGER UNSIGNED NOT NULL  AUTO_INCREMENT,
-    user_id     INTEGER UNSIGNED NOT NULL,
+    user_id     BIGINT  UNSIGNED NOT NULL,
     accepted    BOOLEAN          NOT NULL,
     background  TEXT             NOT NULL,
     motivation  TEXT             NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE applications (
 
 CREATE TABLE application_reviews (
     id              INTEGER UNSIGNED  NOT NULL  AUTO_INCREMENT,
-    reviewer_id     INTEGER UNSIGNED  NOT NULL,
+    reviewer_id     BIGINT UNSIGNED  NOT NULL,
     application_id  INTEGER UNSIGNED  NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (reviewer_id) REFERENCES users(id),

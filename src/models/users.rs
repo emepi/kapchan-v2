@@ -9,7 +9,7 @@ use crate::schema::users;
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
-    pub id: u32,
+    pub id: u64,
     pub access_level: u8,
     pub username: Option<String>,
     pub email: Option<String>,
@@ -40,6 +40,6 @@ pub enum AccessLevel {
 
 #[derive(Debug)]
 pub struct UserData {
-    pub id: u32,
+    pub id: u64,
     pub access_level: u8,
 }

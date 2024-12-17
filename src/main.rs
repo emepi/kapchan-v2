@@ -7,7 +7,7 @@ use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
+use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
 use services::users::update_root_user;
 
 
@@ -31,6 +31,7 @@ mod handlers {
     pub mod applications;
     pub mod application_review;
     pub mod board;
+    pub mod captcha;
     pub mod apply;
     pub mod index;
     pub mod login;
@@ -146,6 +147,10 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/boards/{handle}")
                     .route(web::get().to(board_view))
+            )
+            .service(
+                web::resource("/captcha")
+                    .route(web::get().to(generate_captcha))
             )
             .service(
                 Files::new("/static", "./static")

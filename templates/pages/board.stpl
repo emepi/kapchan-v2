@@ -30,7 +30,7 @@
           <textarea name="message" class="posting-message" rows="10" cols="30">
           </textarea>
           <% if self.captcha { %>
-          <button type="button" class="posting-captcha-btn">Hae captcha</button>
+          <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">Hae captcha</button>
           <input type="text" name="captcha" class="posting-captcha">
           <div id="captcha-container" class="posting-captcha-container">
           </div>

@@ -3,7 +3,7 @@
 diesel::table! {
     application_reviews (id) {
         id -> Unsigned<Integer>,
-        reviewer_id -> Unsigned<Integer>,
+        reviewer_id -> Unsigned<Bigint>,
         application_id -> Unsigned<Integer>,
     }
 }
@@ -11,7 +11,7 @@ diesel::table! {
 diesel::table! {
     applications (id) {
         id -> Unsigned<Integer>,
-        user_id -> Unsigned<Integer>,
+        user_id -> Unsigned<Bigint>,
         accepted -> Bool,
         background -> Text,
         motivation -> Text,
@@ -38,7 +38,7 @@ diesel::table! {
 
 diesel::table! {
     users (id) {
-        id -> Unsigned<Integer>,
+        id -> Unsigned<Bigint>,
         access_level -> Unsigned<Tinyint>,
         #[max_length = 16]
         username -> Nullable<Varchar>,
