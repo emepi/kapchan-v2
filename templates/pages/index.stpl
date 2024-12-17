@@ -9,5 +9,5 @@
         <a href="/boards/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
       <% } %>
     <% } %>
-  <nav>
+  </nav>
 </main>

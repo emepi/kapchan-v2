@@ -39,6 +39,28 @@ impl BoardModel<'_> {
 }
 
 impl Board {
+    pub async fn by_handle(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        hdl: &String,
+    ) -> Result<Board, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let board = boards::table
+                    .filter(boards::handle.eq(hdl))
+                    .select(Board::as_select())
+                    .first(conn)
+                    .await?;
+            
+                    Ok(board)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn list_all(
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<Vec<Board>, Error> {

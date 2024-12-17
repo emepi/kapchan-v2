@@ -8,7 +8,6 @@ actix-files = "0.6.6"
 actix-web = "4"
 actix-identity = "0.8.0"
 actix-session = { version = "0.10.1", features = ["cookie-session"] }
-ammonia = "4.0.0"
 base64 = "0.22.1"
 chrono = { version = "0.4.31", features = ["serde"] }
 chrono-tz = "0.10.0"

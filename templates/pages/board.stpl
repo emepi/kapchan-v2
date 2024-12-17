@@ -1,0 +1,44 @@
+<% include!("../layouts/kapchan.stpl"); %>
+<main class="content">
+  <div class="board-selector">
+  <nav class="selector">
+    <a href="/" class="selector-btn">Etusivu</a>
+    <% for board in self.boards { %>
+      <% if board.access_level > self.access_level { %>
+        <a class="selector-btn--inactive"><%= board.title %></a>
+      <% } else if board.handle == self.handle { %>
+        <a href="/boards/<%= board.handle %>" class="selector-btn--active"><%= board.title %></a>
+      <% } else { %>
+        <a href="/boards/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
+      <% } %>
+    <% } %>
+  </nav>
+  <a class="selector-btn" onclick="openPosting()">Luo lanka</a> 
+  </div>
+
+  <div id="posting-screen" hidden>
+    <div id="posting-container">
+      <div class="posting-modal">
+        <header class="modal-head">
+          <h3>Luo uusi lanka</h3>
+          <a class="svg-a" onClick="closePosting()">
+            <svg height="24" viewBox="0 -960 960 960" width="24"><path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+          </a>
+        </header>
+        <form class="posting-form">
+          <input type="text" name="topic" class="posting-topic">
+          <textarea name="message" class="posting-message" rows="10" cols="30">
+          </textarea>
+          <% if self.captcha { %>
+          <button type="button" class="posting-captcha-btn">Hae captcha</button>
+          <input type="text" name="captcha" class="posting-captcha">
+          <div id="captcha-container" class="posting-captcha-container">
+          </div>
+          <% } %>
+          <input type="file" name="attachment" class="posting-file">
+          <button type="button" class="posting-submit-btn">Lähetä</button> 
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
