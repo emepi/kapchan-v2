@@ -1,3 +1,7 @@
+const kapchanState = {
+    current_captcha: 0,
+};
+
 const logout = (event) => {
     fetch(new Request("/logout", {
             method: "POST",
@@ -30,5 +34,20 @@ const fetchCaptcha = () => {
 
         cc.innerHTML = "";
         cc.appendChild(captcha);
+        kapchanState.current_captcha = captcha_data.id;
     });
 }
+
+const submitPost = () => {
+    const pf = document.getElementById("posting-form");
+    const data = new FormData(pf)
+
+    if(data.has("captcha")) {
+        data.append("captcha_id", kapchanState.current_captcha.toString())
+    }
+
+    fetch(window.location.href, {
+        method: "POST",
+        body: data,
+    })
+};

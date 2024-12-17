@@ -7,13 +7,14 @@ use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
+use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view};
 use services::users::update_root_user;
 
 
 mod database {
     pub mod applications;
     pub mod boards;
+    pub mod captchas;
     pub mod users;
 }
 
@@ -26,6 +27,7 @@ mod handlers {
         pub mod logout;
         pub mod register;
         pub mod create_board;
+        pub mod create_thread;
     }
     pub mod admin;
     pub mod applications;
@@ -42,11 +44,15 @@ mod models {
     pub mod applications;
     pub mod boards;
     pub mod users;
+    pub mod threads;
+    pub mod posts;
+    pub mod captchas;
 }
 
 mod services {
     pub mod authentication;
     pub mod applications;
+    pub mod captchas;
     pub mod users;
     pub mod time;
 }
@@ -147,6 +153,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/boards/{handle}")
                     .route(web::get().to(board_view))
+                    .route(web::post().to(handle_thread_creation))
             )
             .service(
                 web::resource("/captcha")
