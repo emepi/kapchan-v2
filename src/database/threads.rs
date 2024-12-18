@@ -1,7 +1,7 @@
 use std::os::windows::thread;
 
 use chrono::NaiveDateTime;
-use diesel::{result::Error, sql_function, BelongingToDsl, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{result::Error, sql_function, BelongingToDsl, ExpressionMethods, GroupedBy, QueryDsl, SelectableHelper};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
     scoped_futures::ScopedFutureExt, 
@@ -10,7 +10,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::{posts::{Post, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadInput, ThreadModel}}, schema::{posts, threads}};
+use crate::{models::{posts::{Attachment, Post, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadInput, ThreadModel}}, schema::{attachments, posts, threads}};
 
 
 impl Thread {
@@ -80,51 +80,35 @@ impl Thread {
                     .load::<Thread>(conn)
                     .await?;
 
-                    let thread_posts = Post::belonging_to(&threads)
+                    let thread_posts: Vec<(Post, Option<Attachment>)> = Post::belonging_to(&threads)
+                    .left_join(attachments::table)
                     .order_by(posts::id)
                     .select((
-                        posts::thread_id,
-                        posts::id,
-                        posts::show_username,
-                        posts::message,
-                        posts::country_code,
-                        posts::hidden
+                        Post::as_select(),
+                        Option::<Attachment>::as_select()
                     ))
-                    .load::<(u32, u32, bool, String, Option<String>, bool)>(conn)
+                    .load::<(Post, Option<Attachment>)>(conn)
                     .await?;
 
-                    //TODO: improve
-                    let mut grouped_posts: Vec<Vec<(u32, u32, bool, String, Option<String>, bool)>> = Vec::with_capacity(threads.len());
-
-                    for _ in 0..threads.len() {
-                        grouped_posts.push(vec![]);
-                    }
-
-                    for (i, thread) in threads.iter().enumerate() {
-                        for (j, post) in thread_posts.iter().enumerate() {
-                            if post.0 == thread.id {
-                                grouped_posts[i].push(thread_posts[j].clone());
-                            }
-                        } 
-                    }
-
-                    let catalog = threads.into_iter()
-                    .zip(grouped_posts)
-                    .map(|(thread, posts)| {
+                    let catalog = thread_posts
+                    .grouped_by(&threads)
+                    .into_iter()
+                    .zip(threads)
+                    .map(|(posts, thread)| {
                         ThreadCatalogOutput {
                             title: thread.title,
                             pinned: thread.pinned,
                             op_post: PostOutput {
-                                id: posts[0].1,
-                                show_username: posts[0].2,
-                                message: posts[0].3.clone(),
-                                country_code: posts[0].4.clone(),
-                                hidden: posts[0].5,
+                                id: posts[0].0.id,
+                                show_username: posts[0].0.show_username,
+                                message: posts[0].0.message.clone(),
+                                country_code: posts[0].0.country_code.clone(),
+                                hidden: posts[0].0.hidden,
                             },
                             replies: posts.len() - 1,
                         }
                     })
-                    .collect::<Vec<ThreadCatalogOutput>>();
+                    .collect();
                       
                     Ok(catalog)
                 }.scope_boxed())

@@ -16,13 +16,19 @@
   <a class="selector-btn" onclick="openPosting()">Luo lanka</a> 
   </div>
 
+  <div class="catalog">
   <% for thread in self.threads { %>
   <div class="post" id="p<%= thread.op_post.id %>">
+  <a>
+  <div class="image-container">
+  </div>
+  </a>
   <p>R: <%= thread.replies %></p>
   <p><b><%= thread.title %>: </b></p>
   <p><%= thread.op_post.message %></p>
   </div>
   <% } %>
+  </div>
 
   <div id="posting-screen" hidden>
     <div id="posting-container">

@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{models::threads::Thread, schema::posts};
+use crate::{models::threads::Thread, schema::{attachments, posts}};
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, PartialEq)]
@@ -35,6 +35,30 @@ pub struct PostModel<'a> {
     pub user_agent: &'a str,
     pub country_code: Option<&'a str>,
     pub hidden: bool,
+}
+
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Clone)]
+#[diesel(table_name = attachments)]
+#[diesel(check_for_backend(diesel::mysql::Mysql))]
+pub struct Attachment {
+    pub id: u32,
+    pub file_name: String,
+    pub height: u32,
+    pub width: u32,
+    pub file_hash: String,
+    pub file_location: String,
+    pub thumbnail_location: String,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = attachments)]
+pub struct AttachmentModel<'a> {
+    pub file_name: &'a str,
+    pub height: u32,
+    pub width: u32,
+    pub file_hash: &'a str,
+    pub file_location: &'a str,
+    pub thumbnail_location: &'a str,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

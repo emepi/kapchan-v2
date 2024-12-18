@@ -173,3 +173,26 @@ body {
 .posting-submit-btn {
   grid-area: 5 / 2 / 6 / 3;
 }
+
+.catalog {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.post {
+  background-color: #212121;
+  padding: 10px;
+  width: 300px;
+}
+
+.image-container {
+  min-width: 200px;
+  min-height: 200px;
+  width: 10%;
+  height: 10%;
+  max-width: 300px;
+  max-height: 300px;
+}
