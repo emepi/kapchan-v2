@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::boards::Board, services::{authentication::resolve_user, captchas::verify_captcha}};
+use crate::{models::boards::Board, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -59,5 +59,19 @@ pub async fn handle_thread_creation(
         }
     }
 
-    return HttpResponse::InternalServerError().finish()
+    let result = create_thread(
+        &conn_pool, 
+        user_data.id, 
+        current_board.id, 
+        input.topic.to_string(), 
+        input.message.to_string(), 
+        input.attachment, 
+        "".to_string(), 
+        "".to_string()
+    ).await;
+
+    match result {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }

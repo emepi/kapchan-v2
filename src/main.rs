@@ -16,6 +16,7 @@ mod database {
     pub mod boards;
     pub mod captchas;
     pub mod users;
+    pub mod threads;
 }
 
 mod handlers {
@@ -55,6 +56,7 @@ mod services {
     pub mod captchas;
     pub mod users;
     pub mod time;
+    pub mod threads;
 }
 
 mod schema;

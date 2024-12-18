@@ -1,8 +1,10 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::schema::threads;
+
+use super::posts::PostInput;
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
@@ -24,4 +26,13 @@ pub struct ThreadModel<'a> {
     pub title: &'a str,
     pub pinned: bool,
     pub archived: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ThreadInput {
+    pub board_id: u32,
+    pub title: String,
+    pub pinned: bool,
+    pub archived: bool,
+    pub post: PostInput,
 }

@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::schema::posts;
 
@@ -18,6 +18,7 @@ pub struct Post {
     pub ip_address: String,
     pub user_agent: String,
     pub country_code: Option<String>,
+    pub hidden: bool,
     pub created_at: NaiveDateTime,
 }
 
@@ -32,4 +33,17 @@ pub struct PostModel<'a> {
     pub ip_address: &'a str,
     pub user_agent: &'a str,
     pub country_code: Option<&'a str>,
+    pub hidden: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostInput {
+    pub user_id: u64,
+    pub show_username: bool,
+    pub message: String,
+    pub message_hash: String,
+    pub ip_address: String,
+    pub user_agent: String,
+    pub country_code: Option<String>,
+    pub hidden: bool,
 }

@@ -8,6 +8,7 @@ CREATE TABLE posts (
     ip_address         VARCHAR(45)      NOT NULL,
     user_agent         VARCHAR(512)     NOT NULL,
     country_code       VARCHAR(2),
+    hidden             BOOLEAN          NOT NULL,
     created_at         DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id),

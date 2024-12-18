@@ -75,6 +75,7 @@ diesel::table! {
         user_agent -> Varchar,
         #[max_length = 2]
         country_code -> Nullable<Varchar>,
+        hidden -> Bool,
         created_at -> Datetime,
     }
 }
