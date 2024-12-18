@@ -42,4 +42,6 @@ pub enum AccessLevel {
 pub struct UserData {
     pub id: u64,
     pub access_level: u8,
+    pub ip_addr: String,
+    pub user_agent: String,
 }
