@@ -3,7 +3,7 @@ use actix_web::{error::InternalError, http::StatusCode, web, Error, HttpRequest,
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use sailfish::{TemplateOnce};
 
-use crate::{models::boards::{Board, BoardSimple}, services::authentication::resolve_user};
+use crate::{models::{boards::{Board, BoardSimple}, threads::{Thread, ThreadCatalogOutput}}, services::authentication::resolve_user};
 
 
 #[derive(TemplateOnce)]
@@ -12,6 +12,7 @@ pub struct BoardTemplate {
     pub access_level: u8,
     pub handle: String,
     pub boards: Vec<BoardSimple>,
+    pub threads: Vec<ThreadCatalogOutput>,
     pub captcha: bool,
 }
 
@@ -50,12 +51,16 @@ pub async fn board_view(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
-
+    let threads = match Thread::list_threads_by_board_catalog(&conn_pool, current_board.id).await {
+        Ok(t) => t,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
 
     let body = template(BoardTemplate { 
         access_level: user_data.access_level,
         handle,
         boards,
+        threads,
         captcha: current_board.captcha,
     })?;
 

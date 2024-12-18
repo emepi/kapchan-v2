@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::schema::threads;
 
-use super::posts::PostInput;
+use super::posts::{PostInput, PostOutput};
 
 
-#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize, PartialEq)]
 #[diesel(table_name = threads)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Thread {
@@ -35,4 +35,12 @@ pub struct ThreadInput {
     pub pinned: bool,
     pub archived: bool,
     pub post: PostInput,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ThreadCatalogOutput {
+    pub title: String,
+    pub pinned: bool,
+    pub op_post: PostOutput,
+    pub replies: usize,
 }

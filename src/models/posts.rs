@@ -2,12 +2,13 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::schema::posts;
+use crate::{models::threads::Thread, schema::posts};
 
 
-#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
-#[diesel(table_name = posts)]
+#[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, PartialEq)]
+#[diesel(belongs_to(Thread))]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
+#[diesel(primary_key(id))]
 pub struct Post {
     pub id: u32,
     pub user_id: u64,
@@ -44,6 +45,15 @@ pub struct PostInput {
     pub message_hash: String,
     pub ip_address: String,
     pub user_agent: String,
+    pub country_code: Option<String>,
+    pub hidden: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostOutput {
+    pub id: u32,
+    pub show_username: bool,
+    pub message: String,
     pub country_code: Option<String>,
     pub hidden: bool,
 }
