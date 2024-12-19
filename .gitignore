@@ -5,6 +5,7 @@ target/
 
 # File storage directory
 files/
+thumbnails/
 
 # Environment variables must not be shared
 *.env

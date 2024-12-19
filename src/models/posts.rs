@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{models::threads::Thread, schema::{attachments, posts}};
 
+use super::files::FileInfo;
 
-#[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, PartialEq)]
+
+#[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, Deserialize, Clone, PartialEq)]
 #[diesel(belongs_to(Thread))]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 #[diesel(primary_key(id))]
@@ -37,15 +39,13 @@ pub struct PostModel<'a> {
     pub hidden: bool,
 }
 
-#[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Clone)]
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Deserialize, Clone)]
 #[diesel(table_name = attachments)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Attachment {
     pub id: u32,
     pub file_name: String,
-    pub height: u32,
-    pub width: u32,
-    pub file_hash: String,
+    pub file_type: String,
     pub file_location: String,
     pub thumbnail_location: String,
 }
@@ -53,10 +53,9 @@ pub struct Attachment {
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = attachments)]
 pub struct AttachmentModel<'a> {
+    pub id: u32,
     pub file_name: &'a str,
-    pub height: u32,
-    pub width: u32,
-    pub file_hash: &'a str,
+    pub file_type: &'a str,
     pub file_location: &'a str,
     pub thumbnail_location: &'a str,
 }
@@ -71,6 +70,7 @@ pub struct PostInput {
     pub user_agent: String,
     pub country_code: Option<String>,
     pub hidden: bool,
+    pub attachment: Option<FileInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -80,4 +80,5 @@ pub struct PostOutput {
     pub message: String,
     pub country_code: Option<String>,
     pub hidden: bool,
+    pub attachment: Option<Attachment>,
 }

@@ -26,9 +26,7 @@ CREATE TABLE replies (
 CREATE TABLE attachments (
     id                 INTEGER UNSIGNED NOT NULL,
     file_name          TINYTEXT         NOT NULL,
-    height             INTEGER UNSIGNED NOT NULL,
-    width              INTEGER UNSIGNED NOT NULL,
-    file_hash          VARCHAR(64)      NOT NULL,
+    file_type          TINYTEXT         NOT NULL,
     file_location      VARCHAR(512)     NOT NULL,
     thumbnail_location VARCHAR(512)     NOT NULL,
     PRIMARY KEY (id),

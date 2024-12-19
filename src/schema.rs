@@ -25,10 +25,7 @@ diesel::table! {
     attachments (id) {
         id -> Unsigned<Integer>,
         file_name -> Tinytext,
-        height -> Unsigned<Integer>,
-        width -> Unsigned<Integer>,
-        #[max_length = 64]
-        file_hash -> Varchar,
+        file_type -> Tinytext,
         #[max_length = 512]
         file_location -> Varchar,
         #[max_length = 512]

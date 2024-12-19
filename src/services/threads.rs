@@ -5,6 +5,8 @@ use sha2::{Digest, Sha256};
 
 use crate::models::{posts::PostInput, threads::{Thread, ThreadInput}};
 
+use super::files::{read_file_info, store_attachment};
+
 
 pub async fn create_thread(
     conn_pool: &Pool<AsyncMysqlConnection>,
@@ -16,15 +18,12 @@ pub async fn create_thread(
     ip_addr: String,
     user_agent: String,
 ) -> Result<(), Error> {
-    //TODO: handle files
     //TODO: handle replies
 
     let mut hasher = Sha256::new();
     hasher.update(message.clone());
 
     let message_hash = format!("{:X}", hasher.finalize());
-
-
 
     let thread_input = ThreadInput {
         board_id,
@@ -40,8 +39,18 @@ pub async fn create_thread(
             user_agent,
             country_code: None,
             hidden: false,
+            attachment: read_file_info(&attachment),
         },
     };
 
-    Thread::insert_thread(&conn_pool, thread_input).await
+    let thread_info = match Thread::insert_thread(&conn_pool, thread_input).await {
+        Ok(thread_info) => thread_info,
+        Err(e) => return Err(e),
+    };
+
+    if thread_info.attachment.is_some() {
+        let _ = store_attachment(attachment, thread_info.attachment.unwrap()).await;
+    }
+
+    Ok(())
 }

@@ -1,6 +1,3 @@
-use std::os::windows::thread;
-
-use chrono::NaiveDateTime;
 use diesel::{result::Error, sql_function, BelongingToDsl, ExpressionMethods, GroupedBy, QueryDsl, SelectableHelper};
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
@@ -10,14 +7,14 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::{posts::{Attachment, Post, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadInput, ThreadModel}}, schema::{attachments, posts, threads}};
+use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadDbOutput, ThreadInput, ThreadModel}}, schema::{attachments::{self, thumbnail_location}, posts, threads}};
 
 
 impl Thread {
     pub async fn insert_thread(
         conn_pool: &Pool<AsyncMysqlConnection>,
         input: ThreadInput,
-    ) -> Result<(), Error> {
+    ) -> Result<ThreadDbOutput, Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
@@ -55,8 +52,42 @@ impl Thread {
                     .find(last_insert_id())
                     .first::<Post>(conn)
                     .await?;
+
+                    if input.post.attachment.is_some() {
+                        let attachment = input.post.attachment.clone().unwrap();
+
+                        // Unique file paths
+                        let file_location = format!("files/{}", post.id);
+                        let thumb_location = format!("thumbnails/{}", post.id);
+
+                        let _ = diesel::insert_into(attachments::table)
+                        .values(AttachmentModel {
+                            id: post.id,
+                            file_name: &attachment.file_name,
+                            file_location: &file_location,
+                            thumbnail_location: &thumb_location,
+                            file_type: &attachment.file_type,
+                        })
+                        .execute(conn)
+                        .await?;
+
+                        let attachment_o = attachments::table
+                        .find(post.id)
+                        .first::<Attachment>(conn)
+                        .await?;
+
+                        return Ok(ThreadDbOutput {
+                            thread,
+                            post,
+                            attachment: Some(attachment_o),
+                        });
+                    }
             
-                    Ok(())
+                    Ok(ThreadDbOutput {
+                        thread,
+                        post,
+                        attachment: None,
+                    })
                 }.scope_boxed())
                 .await
             },
@@ -95,15 +126,18 @@ impl Thread {
                     .into_iter()
                     .zip(threads)
                     .map(|(posts, thread)| {
+                        let op_post = posts.get(0).expect("Encountered thread without op post!");
+
                         ThreadCatalogOutput {
                             title: thread.title,
                             pinned: thread.pinned,
                             op_post: PostOutput {
-                                id: posts[0].0.id,
-                                show_username: posts[0].0.show_username,
-                                message: posts[0].0.message.clone(),
-                                country_code: posts[0].0.country_code.clone(),
-                                hidden: posts[0].0.hidden,
+                                id: op_post.0.id,
+                                show_username: op_post.0.show_username,
+                                message: op_post.0.message.clone(),
+                                country_code: op_post.0.country_code.clone(),
+                                hidden: op_post.0.hidden,
+                                attachment: op_post.1.clone(),
                             },
                             replies: posts.len() - 1,
                         }
