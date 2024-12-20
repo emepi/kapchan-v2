@@ -50,6 +50,10 @@ const submitPost = () => {
         method: "POST",
         body: data,
     })
+    .then(() => {
+        pf.reset()
+        location.reload()
+    })
 };
 
 const enlargeImage = (container_id, image_id) => {
@@ -57,8 +61,8 @@ const enlargeImage = (container_id, image_id) => {
     image_container.children[0].src = "/files/" + image_id;
 
     if (image_container.classList.contains("image-container")) {
-        image_container.classList.remove("image-container");
+        image_container.classList.replace("image-container", "image-container-large");
     } else {
-        image_container.classList.add("image-container");
+        image_container.classList.replace("image-container-large", "image-container");
     }
 }

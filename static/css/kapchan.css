@@ -207,7 +207,11 @@ body {
   height: 200px;
 }
 
-img {
+.image-container-large {
+  max-height: calc(100vh - 200px);
+}
+
+.post-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -230,4 +234,26 @@ img {
 .post-body-t {
   display: flex;
   flex-direction: column;
+}
+
+.reply {
+  background-color: #212121;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.reply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reply-form-btm {
+  display: flex;
+  justify-content: space-between;
+}
+
+.reply-text {
+  width: 100%;
+  resize: vertical;
 }

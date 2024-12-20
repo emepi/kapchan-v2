@@ -20,7 +20,7 @@ pub fn read_file_info(
 
     //TODO: store subtype separately & check support
     let file_name = match &file_i.file_name {
-        Some(file_name) => format!("{}.{}", file_name, mime.subtype().as_str()),
+        Some(file_name) => file_name,
         None => return None,
     };
 

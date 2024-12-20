@@ -29,7 +29,7 @@
   <a href="/<%= self.current_board.handle %>/thread/<%= thread.op_post.id %>">
   <div class="image-container">
   <% if thread.op_post.attachment.clone().is_some() && thread.op_post.attachment.clone().unwrap().file_type == "image" { %>
-    <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>">
+    <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>" class="post-img">
   <% } %>
   </div>
   </a>
@@ -51,8 +51,7 @@
         </header>
         <form class="posting-form" id="posting-form">
           <input type="text" name="topic" class="posting-topic">
-          <textarea name="message" class="posting-message" rows="10" cols="30">
-          </textarea>
+          <textarea name="message" class="posting-message" rows="10" cols="30"></textarea>
           <% if self.current_board.captcha { %>
           <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">Hae captcha</button>
           <input type="text" name="captcha" class="posting-captcha">

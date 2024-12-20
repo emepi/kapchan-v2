@@ -13,6 +13,7 @@
       <% } %>
     <% } %>
   </nav>
+  <a class="selector-btn" onclick="">Vastaa lankaan</a> 
   </div>
 
   <div class="board-head">
@@ -28,15 +29,33 @@
       <% if postdata.attachment.clone().is_some() && postdata.attachment.clone().unwrap().file_type == "image" { %>
       <% let attachment = &postdata.attachment.unwrap(); %>
       <div class="image-container" id="i<%= attachment.id %>" onClick="enlargeImage(this.id, <%= attachment.id %>)">
-        <img loading="lazy" src="/thumbnails/<%= attachment.id %>">
+        <img loading="lazy" src="/thumbnails/<%= attachment.id %>" class="post-img">
       </div>
       <% } %>
       <div class="post-body-t">
-      <p><%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %></p>
+      <p>Anonymous <%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %></p>
       <p><%= postdata.post.message %></p>
-      <div>
+      </div>
     </div>
   <% } %>
   </div>
 
+  <div class="reply">
+    <form class="reply-form" id="posting-form">
+      <textarea name="message" class="reply-text">
+      </textarea>
+      <% if self.current_board.captcha { %>
+      <div>
+      <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">Hae captcha</button>
+      <input type="text" name="captcha" class="posting-captcha">
+      <div id="captcha-container" class="posting-captcha-container">
+      </div>
+      </div>
+      <% } %>
+      <div class="reply-form-btm">
+        <input type="file" name="attachment" class="posting-file">
+        <button type=button onClick="submitPost()">Lähetä</button>
+      </div>
+    </form>
+  </div>
 </main>
