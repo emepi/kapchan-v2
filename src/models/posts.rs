@@ -82,3 +82,9 @@ pub struct PostOutput {
     pub hidden: bool,
     pub attachment: Option<Attachment>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostData {
+    pub post: Post,
+    pub attachment: Option<Attachment>,
+}

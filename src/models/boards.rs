@@ -11,10 +11,12 @@ pub struct Board {
     pub id: u32,
     pub handle: String,
     pub title: String,
+    pub description: String,
     pub access_level: u8,
     pub post_cooldown_time_sec: u32,
     pub active_threads_limit: u32,
     pub thread_size_limit: u32,
+    pub unique_posts: bool,
     pub captcha: bool,
     pub nsfw: bool,
 }
@@ -24,10 +26,12 @@ pub struct Board {
 pub struct BoardModel<'a> {
     pub handle: &'a str,
     pub title: &'a str,
+    pub description: &'a str,
     pub access_level: u8,
     pub post_cooldown_time_sec: u32,
     pub active_threads_limit: u32,
     pub thread_size_limit: u32,
+    pub unique_posts: bool,
     pub captcha: bool,
     pub nsfw: bool,
 }

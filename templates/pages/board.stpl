@@ -7,22 +7,29 @@
       <% if board.access_level > self.access_level { %>
         <a class="selector-btn--inactive"><%= board.title %></a>
       <% } else if board.handle == self.handle { %>
-        <a href="/boards/<%= board.handle %>" class="selector-btn--active"><%= board.title %></a>
+        <a href="/<%= board.handle %>" class="selector-btn--active"><%= board.title %></a>
       <% } else { %>
-        <a href="/boards/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
+        <a href="/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
       <% } %>
     <% } %>
   </nav>
   <a class="selector-btn" onclick="openPosting()">Luo lanka</a> 
   </div>
 
+  <div class="board-head">
+    <div class="board-head-container">
+    <h2><%= self.current_board.title %></h2>
+    <p><%= self.current_board.description %></p>
+    </div>
+  </div>
+
   <div class="catalog">
   <% for thread in self.threads { %>
   <div class="post" id="p<%= thread.op_post.id %>">
-  <a>
+  <a href="/<%= self.current_board.handle %>/thread/<%= thread.op_post.id %>">
   <div class="image-container">
   <% if thread.op_post.attachment.clone().is_some() && thread.op_post.attachment.clone().unwrap().file_type == "image" { %>
-    <img src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>">
+    <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>">
   <% } %>
   </div>
   </a>
@@ -46,7 +53,7 @@
           <input type="text" name="topic" class="posting-topic">
           <textarea name="message" class="posting-message" rows="10" cols="30">
           </textarea>
-          <% if self.captcha { %>
+          <% if self.current_board.captcha { %>
           <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">Hae captcha</button>
           <input type="text" name="captcha" class="posting-captcha">
           <div id="captcha-container" class="posting-captcha-container">

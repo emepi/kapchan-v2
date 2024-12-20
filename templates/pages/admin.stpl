@@ -52,6 +52,9 @@
         <input type="text" id="handle" name="handle">
         <label for="title">Board title:</label>
         <input type="text" id="title" name="title">
+        <label for="description">Description:</label>
+        <textarea name="description" rows="10" cols="30">
+        </textarea>
         <label for="access_level">Access level:</label>
         <select name="access_level" id="access_level">
           <option value="10">Anonymous</option>
@@ -71,6 +74,8 @@
         <label for="captcha">captcha</label>
         <input type="checkbox" id="nsfw" name="nsfw" />
         <label for="nsfw">nsfw</label>
+        <input type="checkbox" id="unique_posts" name="unique_posts" />
+        <label for="unique_posts">r9k</label>
         <button type=submit>create board</button>
       </form>
   <% } %>

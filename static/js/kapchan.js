@@ -51,3 +51,14 @@ const submitPost = () => {
         body: data,
     })
 };
+
+const enlargeImage = (container_id, image_id) => {
+    const image_container = document.getElementById(container_id);
+    image_container.children[0].src = "/files/" + image_id;
+
+    if (image_container.classList.contains("image-container")) {
+        image_container.classList.remove("image-container");
+    } else {
+        image_container.classList.add("image-container");
+    }
+}

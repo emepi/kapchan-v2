@@ -12,8 +12,8 @@ pub struct BoardTemplate {
     pub access_level: u8,
     pub handle: String,
     pub boards: Vec<BoardSimple>,
+    pub current_board: Board,
     pub threads: Vec<ThreadCatalogOutput>,
-    pub captcha: bool,
 }
 
 pub fn template(
@@ -60,8 +60,8 @@ pub async fn board_view(
         access_level: user_data.access_level,
         handle,
         boards,
+        current_board,
         threads,
-        captcha: current_board.captcha,
     })?;
 
     Ok(HttpResponse::Ok()

@@ -7,10 +7,59 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadDbOutput, ThreadInput, ThreadModel}}, schema::{attachments::{self, thumbnail_location}, posts, threads}};
+use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostData, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadData, ThreadDbOutput, ThreadInput, ThreadModel}}, schema::{attachments::{self, thumbnail_location}, posts, threads}};
 
 
 impl Thread {
+    pub async fn by_post_id(
+        post_id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<ThreadData, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let post = posts::table
+                    .find(post_id)
+                    .first::<Post>(conn)
+                    .await?;
+
+                    let thread = threads::table
+                    .find(post.thread_id)
+                    .first::<Thread>(conn)
+                    .await?;
+
+                    let thread_posts: Vec<(Post, Option<Attachment>)> = Post::belonging_to(&thread)
+                    .left_join(attachments::table)
+                    .order_by(posts::id)
+                    .select((
+                        Post::as_select(),
+                        Option::<Attachment>::as_select()
+                    ))
+                    .load::<(Post, Option<Attachment>)>(conn)
+                    .await?;
+
+                    let thread_posts = thread_posts
+                    .into_iter()
+                    .map(|(post, attachment)| {
+                        PostData {
+                            post,
+                            attachment,
+                        }
+                    })
+                    .collect();
+
+                    Ok(ThreadData {
+                        thread,
+                        posts: thread_posts,
+                    })
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn insert_thread(
         conn_pool: &Pool<AsyncMysqlConnection>,
         input: ThreadInput,
@@ -126,6 +175,7 @@ impl Thread {
                     .into_iter()
                     .zip(threads)
                     .map(|(posts, thread)| {
+                        // TODO: add error handling
                         let op_post = posts.get(0).expect("Encountered thread without op post!");
 
                         ThreadCatalogOutput {

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::schema::threads;
 
-use super::posts::{Attachment, Post, PostInput, PostOutput};
+use super::posts::{Attachment, Post, PostData, PostInput, PostOutput};
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Deserialize, PartialEq)]
@@ -50,4 +50,10 @@ pub struct ThreadDbOutput {
     pub thread: Thread,
     pub post: Post,
     pub attachment: Option<Attachment>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ThreadData {
+    pub thread: Thread,
+    pub posts: Vec<PostData>,
 }

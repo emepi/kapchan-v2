@@ -30,12 +30,14 @@ pub struct CreateBoardForm {
         )
     )]
     pub title: String,
+    pub description: String,
     pub access_level: u8,
     pub cooldown: u32,
     pub threads_limit: u32,
     pub thread_size: u32,
     pub captcha: Option<String>,
     pub nsfw: Option<String>,
+    pub unique_posts: Option<String>,
 }
 
 pub async fn handle_board_creation(
@@ -90,6 +92,8 @@ pub async fn handle_board_creation(
         thread_size_limit: form.thread_size,
         captcha: form.captcha.is_some(),
         nsfw: form.nsfw.is_some(),
+        description: &form.description,
+        unique_posts: form.unique_posts.is_some(),
     }
     .insert(&conn_pool)
     .await;

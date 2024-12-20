@@ -1,0 +1,42 @@
+<% include!("../layouts/kapchan.stpl"); %>
+<main class="content">
+  <div class="board-selector">
+  <nav class="selector">
+    <a href="/" class="selector-btn">Etusivu</a>
+    <% for board in self.boards { %>
+      <% if board.access_level > self.access_level { %>
+        <a class="selector-btn--inactive"><%= board.title %></a>
+      <% } else if board.handle == self.current_board.handle { %>
+        <a href="/<%= board.handle %>" class="selector-btn--active"><%= board.title %></a>
+      <% } else { %>
+        <a href="/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
+      <% } %>
+    <% } %>
+  </nav>
+  </div>
+
+  <div class="board-head">
+    <div class="board-head-container">
+    <h2><%= self.current_board.title %></h2>
+    <p><%= self.current_board.description %></p>
+    </div>
+  </div>
+
+  <div class="thread">
+  <% for postdata in self.thread.posts { %>
+    <div class="post-t" id="P<%= postdata.post.id %>">
+      <% if postdata.attachment.clone().is_some() && postdata.attachment.clone().unwrap().file_type == "image" { %>
+      <% let attachment = &postdata.attachment.unwrap(); %>
+      <div class="image-container" id="i<%= attachment.id %>" onClick="enlargeImage(this.id, <%= attachment.id %>)">
+        <img loading="lazy" src="/thumbnails/<%= attachment.id %>">
+      </div>
+      <% } %>
+      <div class="post-body-t">
+      <p><%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %></p>
+      <p><%= postdata.post.message %></p>
+      <div>
+    </div>
+  <% } %>
+  </div>
+
+</main>
