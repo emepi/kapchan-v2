@@ -1916,6 +1916,7 @@ dependencies = [
  "diesel-async",
  "dotenvy",
  "image 0.25.5",
+ "itertools 0.13.0",
  "mime",
  "password-hash",
  "pbkdf2",

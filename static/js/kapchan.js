@@ -52,7 +52,6 @@ const submitPost = () => {
     })
     .then(() => {
         pf.reset()
-        location.reload()
     })
 };
 

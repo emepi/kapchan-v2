@@ -257,3 +257,7 @@ body {
   width: 100%;
   resize: vertical;
 }
+
+p {
+  white-space: pre-wrap;
+}

@@ -6,8 +6,9 @@ use diesel_async::{
     AsyncMysqlConnection, 
     RunQueryDsl
 };
+use itertools::izip;
 
-use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostData, PostModel, PostOutput}, threads::{Thread, ThreadCatalogOutput, ThreadData, ThreadDbOutput, ThreadInput, ThreadModel}}, schema::{attachments::{self, thumbnail_location}, posts, threads}};
+use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostData, PostModel, PostOutput, Reply, ReplyModel}, threads::{Thread, ThreadCatalogOutput, ThreadData, ThreadDbOutput, ThreadInput, ThreadModel}}, schema::{attachments::{self, thumbnail_location}, posts, replies, threads}};
 
 
 impl Thread {
@@ -38,19 +39,28 @@ impl Thread {
                     .load::<(Post, Option<Attachment>)>(conn)
                     .await?;
 
-                    let thread_posts = thread_posts
-                    .into_iter()
-                    .map(|(post, attachment)| {
-                        PostData {
+                    let (posts, attachments): (Vec<_>, Vec<_>) = thread_posts.into_iter().unzip();
+
+                    let replies = Reply::belonging_to(&posts)
+                    .select(Reply::as_select())
+                    .load::<Reply>(conn)
+                    .await?;
+
+                    let replies_per_post = replies.grouped_by(&posts);
+
+                    let mut post_data: Vec<PostData> = vec![];
+
+                    for (post, attachment, replies) in izip!(posts, attachments, replies_per_post) {
+                        post_data.push(PostData {
                             post,
                             attachment,
-                        }
-                    })
-                    .collect();
+                            replies: replies.into_iter().map(|reply| reply.reply_id).collect(),
+                        });
+                    }
 
                     Ok(ThreadData {
                         thread,
-                        posts: thread_posts,
+                        posts: post_data,
                     })
                 }.scope_boxed())
                 .await
@@ -100,6 +110,19 @@ impl Thread {
                     let post = posts::table
                     .find(last_insert_id())
                     .first::<Post>(conn)
+                    .await?;
+
+                    let replies: Vec<ReplyModel> = input.post.reply_ids
+                    .iter()
+                    .map(|reply_id| ReplyModel {
+                        post_id: *reply_id,
+                        reply_id: post.id,
+                    })
+                    .collect();
+
+                    let _ = diesel::insert_into(replies::table)
+                    .values(replies)
+                    .execute(conn)
                     .await?;
 
                     if input.post.attachment.is_some() {

@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 use crate::models::{posts::PostInput, threads::{Thread, ThreadInput}};
 
-use super::files::{read_file_info, store_attachment};
+use super::{files::{read_file_info, store_attachment}, posts::parse_backlinks};
 
 
 pub async fn create_thread(
@@ -18,7 +18,7 @@ pub async fn create_thread(
     ip_addr: String,
     user_agent: String,
 ) -> Result<(), Error> {
-    //TODO: handle replies
+    let reply_ids = parse_backlinks(&message);
 
     let mut hasher = Sha256::new();
     hasher.update(message.clone());
@@ -40,6 +40,7 @@ pub async fn create_thread(
             country_code: None,
             hidden: false,
             attachment: read_file_info(&attachment),
+            reply_ids,
         },
     };
 

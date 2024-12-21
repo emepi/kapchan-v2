@@ -7,7 +7,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::posts::{Attachment, AttachmentModel, Post, PostInput, PostModel, PostOutput}, schema::{attachments, posts}};
+use crate::{models::posts::{Attachment, AttachmentModel, Post, PostInput, PostModel, PostOutput, ReplyModel}, schema::{attachments, posts, replies}};
 
 
 impl Post {
@@ -42,6 +42,19 @@ impl Post {
                     let new_post = posts::table
                     .find(last_insert_id())
                     .first::<Post>(conn)
+                    .await?;
+
+                    let replies: Vec<ReplyModel> = input.reply_ids
+                    .iter()
+                    .map(|reply_id| ReplyModel {
+                        post_id: *reply_id,
+                        reply_id: new_post.id,
+                    })
+                    .collect();
+
+                    let _ = diesel::insert_into(replies::table)
+                    .values(replies)
+                    .execute(conn)
                     .await?;
 
                     if input.attachment.is_some() {

@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{models::threads::Thread, schema::{attachments, posts}};
+use crate::{models::threads::Thread, schema::{attachments, posts, replies}};
 
 use super::files::FileInfo;
 
@@ -60,6 +60,23 @@ pub struct AttachmentModel<'a> {
     pub thumbnail_location: &'a str,
 }
 
+#[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, Deserialize, Clone, PartialEq)]
+#[diesel(belongs_to(Post))]
+#[diesel(table_name = replies)]
+#[diesel(primary_key(post_id))]
+#[diesel(check_for_backend(diesel::mysql::Mysql))]
+pub struct Reply {
+    pub post_id: u32,
+    pub reply_id: u32,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = replies)]
+pub struct ReplyModel {
+    pub post_id: u32,
+    pub reply_id: u32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PostInput {
     pub user_id: u64,
@@ -71,6 +88,7 @@ pub struct PostInput {
     pub country_code: Option<String>,
     pub hidden: bool,
     pub attachment: Option<FileInfo>,
+    pub reply_ids: Vec<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -87,4 +105,5 @@ pub struct PostOutput {
 pub struct PostData {
     pub post: Post,
     pub attachment: Option<Attachment>,
+    pub replies: Vec<u32>,
 }
