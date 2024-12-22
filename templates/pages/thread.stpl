@@ -33,7 +33,7 @@
       </div>
       <% } %>
       <div class="post-body-t">
-      <p>Anonymous <%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %>  <% for reply in postdata.replies { %>>><%= reply %><% } %>
+      <p>Anonymous <%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %>  <% for reply in postdata.replies { %> >><%= reply %><% } %> 
       </p>
       <p><%= postdata.post.message %></p>
       </div>

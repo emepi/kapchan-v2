@@ -63,7 +63,7 @@ pub struct AttachmentModel<'a> {
 #[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, Deserialize, Clone, PartialEq)]
 #[diesel(belongs_to(Post))]
 #[diesel(table_name = replies)]
-#[diesel(primary_key(post_id))]
+#[diesel(primary_key(post_id, reply_id))]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Reply {
     pub post_id: u32,

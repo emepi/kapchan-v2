@@ -5,7 +5,7 @@ use regex::Regex;
 use sha2::{Digest, Sha256};
 use itertools::Itertools;
 
-use crate::models::{posts::{Post, PostInput}, threads::{Thread, ThreadInput}};
+use crate::models::posts::{Post, PostInput};
 
 use super::files::{read_file_info, store_attachment};
 

@@ -1,3 +1,5 @@
+use std::io::{BufReader, Cursor, Read};
+
 use actix_multipart::form::tempfile::TempFile;
 use image::ImageReader;
 
@@ -47,17 +49,11 @@ pub async fn store_attachment(
     let file_path = format!("{}/{}", &attachment_info.file_location, &attachment_info.file_name);
     let file = file.file;
 
-    match file.persist(&file_path) {
-        Ok(_) => (),
-        Err(_) => return None,
-    };
-
-    //TODO: read file from memory
-    let img = match ImageReader::open(&file_path) {
+    let img = match ImageReader::new(BufReader::new(&mut file.as_file())).with_guessed_format() {
         Ok(i) => match i.decode() {
             Ok(decoded) => decoded,
             Err(_) => return None,
-        }
+        },
         Err(_) => return None,
     };
 
@@ -66,5 +62,10 @@ pub async fn store_attachment(
     let thumbnail_path = format!("{}/{}", &attachment_info.thumbnail_location, &attachment_info.file_name);
     let _ = thumbnail.save(thumbnail_path);
 
-    None
+    match file.persist(&file_path) {
+        Ok(_) => (),
+        Err(_) => return None,
+    };
+
+    Some(())
 }

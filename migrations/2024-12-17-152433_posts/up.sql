@@ -12,7 +12,7 @@ CREATE TABLE posts (
     created_at         DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (thread_id) REFERENCES threads(id)
+    FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE
 );
 
 CREATE TABLE replies (
