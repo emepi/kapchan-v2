@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{models::threads::Thread, schema::{attachments, posts, replies}};
 
-use super::files::FileInfo;
-
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, Deserialize, Clone, PartialEq)]
 #[diesel(belongs_to(Thread))]

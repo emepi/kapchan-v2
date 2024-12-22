@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::boards::Board, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_post_id, threads::create_thread}};
+use crate::{models::boards::Board, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_post_id}};
 
 
 #[derive(Debug, MultipartForm)]

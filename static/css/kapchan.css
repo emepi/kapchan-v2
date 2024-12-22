@@ -208,7 +208,7 @@ body {
 }
 
 .image-container-large {
-  max-height: calc(100vh - 200px);
+  
 }
 
 .post-img {
@@ -234,6 +234,12 @@ body {
 .post-body-t {
   display: flex;
   flex-direction: column;
+}
+
+.post-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .reply {

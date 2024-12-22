@@ -58,7 +58,7 @@ impl Post {
                     .execute(conn)
                     .await?;
                 
-                    Ok(post)
+                    Ok(new_post)
                 }.scope_boxed())
                 .await
             },

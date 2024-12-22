@@ -79,3 +79,15 @@ pub async fn create_attachment(
     .await
     .ok()
 }
+
+pub fn display_filesize(
+    bytes: u64,
+) -> String {
+    if bytes as f64 / 1_000_000.0 > 1.0 {
+        return format!("{:.02} MB", bytes as f64 / 1_000_000.0);
+    } else if bytes as f64 / 1000.0 > 1.0 {
+        return format!("{:.02} kB", bytes as f64 / 1000.0);
+    } else {
+        return format!("{} B", bytes);
+    }
+}

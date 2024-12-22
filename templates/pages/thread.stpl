@@ -27,9 +27,12 @@
   <% for postdata in self.thread.posts { %>
     <div class="post-t" id="P<%= postdata.post.id %>">
       <% if postdata.attachment.clone().is_some() && postdata.attachment.clone().unwrap().file_type == "image" { %>
+      <div class="post-left">
       <% let attachment = &postdata.attachment.unwrap(); %>
+      <p>File: <%= attachment.file_name %> (<%= display_filesize(attachment.file_size_bytes) %>, <%= attachment.width %>x<%= attachment.height %>)</p>
       <div class="image-container" id="i<%= attachment.id %>" onClick="enlargeImage(this.id, <%= attachment.id %>)">
         <img loading="lazy" src="/thumbnails/<%= attachment.id %>" class="post-img">
+      </div>
       </div>
       <% } %>
       <div class="post-body-t">

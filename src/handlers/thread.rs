@@ -5,6 +5,7 @@ use sailfish::{TemplateOnce};
 
 use crate::{models::{boards::{Board, BoardSimple}, threads::{Thread, ThreadData}}, services::authentication::resolve_user};
 use crate::services::time::fi_datetime;
+use crate::services::files::display_filesize;
 
 
 #[derive(TemplateOnce)]
