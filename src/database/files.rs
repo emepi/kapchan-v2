@@ -7,7 +7,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::posts::Attachment, schema::attachments};
+use crate::{models::posts::{Attachment, AttachmentModel}, schema::attachments};
 
 
 impl Attachment {
@@ -28,6 +28,34 @@ impl Attachment {
                 .await
             },
     
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+}
+
+impl AttachmentModel<'_> {
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Attachment, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(attachments::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let attachment = attachments::table
+                    .find(self.id)
+                    .first::<Attachment>(conn)
+                    .await?;
+            
+                    Ok(attachment)
+                }.scope_boxed())
+                .await
+            },
+
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }

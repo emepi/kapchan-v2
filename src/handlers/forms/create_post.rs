@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::boards::Board, schema::posts::user_agent, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_post_id, threads::create_thread}};
+use crate::{models::boards::Board, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_post_id, threads::create_thread}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -63,9 +63,8 @@ pub async fn handle_post_creation(
         user_data.id, 
         post_id, 
         input.message.to_string(), 
-        input.attachment, 
-        user_data.ip_addr, 
-        user_data.user_agent
+        input.attachment,
+        current_board.access_level
     ).await {
         Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),

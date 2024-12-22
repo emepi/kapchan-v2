@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::models::posts::{Post, PostInput};
 
-use super::files::{read_file_info, store_attachment};
+use super::files::create_attachment;
 
 
 pub async fn create_post_by_post_id(
@@ -16,8 +16,7 @@ pub async fn create_post_by_post_id(
     post_id: u32,
     message: String,
     attachment: TempFile,
-    ip_addr: String,
-    user_agent: String,
+    access_level: u8,
 ) -> Result<(), Error> {
     let reply_ids = parse_backlinks(&message);
 
@@ -31,20 +30,18 @@ pub async fn create_post_by_post_id(
         show_username: false,
         message,
         message_hash,
-        ip_address: ip_addr,
-        user_agent,
         country_code: None,
         hidden: false,
-        attachment: read_file_info(&attachment),
         reply_ids,
+        sage: false,
+        mod_note: None,
+        access_level,
     }).await {
         Ok(post) => post,
         Err(e) => return Err(e),
     };
 
-    if post.attachment.is_some() {
-        let _ = store_attachment(attachment, post.attachment.unwrap()).await;
-    }
+    let _ = create_attachment(&conn_pool, post.id, attachment).await;
 
     Ok(())
 }

@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 use crate::models::{posts::PostInput, threads::{Thread, ThreadInput}};
 
-use super::{files::{read_file_info, store_attachment}, posts::parse_backlinks};
+use super::{files::create_attachment, posts::parse_backlinks};
 
 
 pub async fn create_thread(
@@ -15,8 +15,7 @@ pub async fn create_thread(
     topic: String,
     message: String,
     attachment: TempFile,
-    ip_addr: String,
-    user_agent: String,
+    access_level: u8,
 ) -> Result<(), Error> {
     let reply_ids = parse_backlinks(&message);
 
@@ -35,12 +34,12 @@ pub async fn create_thread(
             show_username: false,
             message,
             message_hash,
-            ip_address: ip_addr,
-            user_agent,
             country_code: None,
             hidden: false,
-            attachment: read_file_info(&attachment),
             reply_ids,
+            sage: false,
+            mod_note: None,
+            access_level,
         },
     };
 
@@ -49,9 +48,7 @@ pub async fn create_thread(
         Err(e) => return Err(e),
     };
 
-    if thread_info.attachment.is_some() {
-        let _ = store_attachment(attachment, thread_info.attachment.unwrap()).await;
-    }
+    let _ = create_attachment(&conn_pool, thread_info.1.id, attachment).await;
 
     Ok(())
 }

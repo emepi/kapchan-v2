@@ -73,7 +73,7 @@ impl Thread {
     pub async fn insert_thread(
         conn_pool: &Pool<AsyncMysqlConnection>,
         input: ThreadInput,
-    ) -> Result<ThreadDbOutput, Error> {
+    ) -> Result<(Thread, Post), Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
@@ -99,10 +99,11 @@ impl Thread {
                         show_username: input.post.show_username,
                         message: &input.post.message,
                         message_hash: &input.post.message_hash,
-                        ip_address: &input.post.ip_address,
-                        user_agent: &input.post.user_agent,
                         country_code: input.post.country_code.as_deref(),
                         hidden: input.post.hidden,
+                        access_level: input.post.access_level,
+                        sage: input.post.sage,
+                        mod_note: input.post.mod_note.as_deref(),
                     })
                     .execute(conn)
                     .await?;
@@ -124,42 +125,8 @@ impl Thread {
                     .values(replies)
                     .execute(conn)
                     .await?;
-
-                    if input.post.attachment.is_some() {
-                        let attachment = input.post.attachment.clone().unwrap();
-
-                        // Unique file paths
-                        let file_location = format!("files/{}", post.id);
-                        let thumb_location = format!("thumbnails/{}", post.id);
-
-                        let _ = diesel::insert_into(attachments::table)
-                        .values(AttachmentModel {
-                            id: post.id,
-                            file_name: &attachment.file_name,
-                            file_location: &file_location,
-                            thumbnail_location: &thumb_location,
-                            file_type: &attachment.file_type,
-                        })
-                        .execute(conn)
-                        .await?;
-
-                        let attachment_o = attachments::table
-                        .find(post.id)
-                        .first::<Attachment>(conn)
-                        .await?;
-
-                        return Ok(ThreadDbOutput {
-                            thread,
-                            post,
-                            attachment: Some(attachment_o),
-                        });
-                    }
             
-                    Ok(ThreadDbOutput {
-                        thread,
-                        post,
-                        attachment: None,
-                    })
+                    Ok((thread, post))
                 }.scope_boxed())
                 .await
             },

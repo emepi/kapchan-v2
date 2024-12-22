@@ -66,8 +66,7 @@ pub async fn handle_thread_creation(
         input.topic.to_string(), 
         input.message.to_string(), 
         input.attachment, 
-        user_data.ip_addr, 
-        user_data.user_agent
+        current_board.access_level,
     ).await;
 
     match result {

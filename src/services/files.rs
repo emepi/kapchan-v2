@@ -1,15 +1,18 @@
-use std::io::{BufReader, Cursor, Read};
+use std::{fs::Metadata, io::{BufReader, Cursor, Read, Seek}};
 
 use actix_multipart::form::tempfile::TempFile;
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use image::ImageReader;
 
-use crate::models::{files::FileInfo, posts::Attachment};
+use crate::models::{files::FileInfo, posts::{Attachment, AttachmentModel}};
 
 
-pub fn read_file_info(
-    file_i: &TempFile,
-) -> Option<FileInfo> {
-    let mime = match &file_i.content_type {
+pub async fn create_attachment(
+    conn_pool: &Pool<AsyncMysqlConnection>,
+    post_id: u32,
+    attachment: TempFile,
+) -> Option<Attachment> {
+    let mime = match &attachment.content_type {
         Some(mime) => mime,
         None => return None,
     };
@@ -20,36 +23,33 @@ pub fn read_file_info(
         _ => return None, // unsupported file type
     };
 
-    //TODO: store subtype separately & check support
-    let file_name = match &file_i.file_name {
+    let file_name = match &attachment.file_name {
         Some(file_name) => file_name,
         None => return None,
     };
 
-    Some(FileInfo {
-        file_name: file_name.to_string(),
-        file_type,
-    })
-}
+    let file_path = format!("files/{}", post_id);
+    let file_location = format!("{}/{}", &file_path, &file_name);
 
-pub async fn store_attachment(
-    file: TempFile,
-    attachment_info: Attachment,
-) -> Option<()> {
-    match tokio::fs::create_dir_all(&attachment_info.file_location).await {
+    let thumbnail_path = format!("thumbnails/{}", post_id);
+    let thumbnail_location = format!("{}/{}", &thumbnail_path, &file_name);
+
+    match tokio::fs::create_dir_all(&file_path).await {
         Ok(_) => (),
         Err(_) => return None,
     };
 
-    match tokio::fs::create_dir_all(&attachment_info.thumbnail_location).await {
+    match tokio::fs::create_dir_all(&thumbnail_path).await {
         Ok(_) => (),
         Err(_) => return None,
     };
 
-    let file_path = format!("{}/{}", &attachment_info.file_location, &attachment_info.file_name);
-    let file = file.file;
+    let metadata = match attachment.file.as_file().metadata() {
+        Ok(metadata) => metadata,
+        Err(_) => return None,
+    };
 
-    let img = match ImageReader::new(BufReader::new(&mut file.as_file())).with_guessed_format() {
+    let img = match ImageReader::new(BufReader::new(attachment.file.as_file())).with_guessed_format() {
         Ok(i) => match i.decode() {
             Ok(decoded) => decoded,
             Err(_) => return None,
@@ -58,14 +58,24 @@ pub async fn store_attachment(
     };
 
     let thumbnail = img.thumbnail(300, 300);
+    let _ = thumbnail.save(&thumbnail_location);
 
-    let thumbnail_path = format!("{}/{}", &attachment_info.thumbnail_location, &attachment_info.file_name);
-    let _ = thumbnail.save(thumbnail_path);
-
-    match file.persist(&file_path) {
+    match attachment.file.persist(&file_location) {
         Ok(_) => (),
         Err(_) => return None,
     };
 
-    Some(())
+    AttachmentModel {
+        id: post_id,
+        width: img.width(),
+        height: img.height(),
+        file_size_bytes: metadata.len(),
+        file_name: &file_name,
+        file_type: &file_type,
+        file_location: &file_path,
+        thumbnail_location: &thumbnail_path,
+    }
+    .insert(conn_pool)
+    .await
+    .ok()
 }

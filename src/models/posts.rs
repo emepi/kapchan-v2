@@ -15,12 +15,13 @@ pub struct Post {
     pub id: u32,
     pub user_id: u64,
     pub thread_id: u32,
+    pub access_level: u8,
     pub show_username: bool,
+    pub sage: bool,
     pub message: String,
     pub message_hash: String,
-    pub ip_address: String,
-    pub user_agent: String,
     pub country_code: Option<String>,
+    pub mod_note: Option<String>,
     pub hidden: bool,
     pub created_at: NaiveDateTime,
 }
@@ -30,12 +31,13 @@ pub struct Post {
 pub struct PostModel<'a> {
     pub user_id: u64,
     pub thread_id: u32,
+    pub access_level: u8,
     pub show_username: bool,
+    pub sage: bool,
     pub message: &'a str,
     pub message_hash: &'a str,
-    pub ip_address: &'a str,
-    pub user_agent: &'a str,
     pub country_code: Option<&'a str>,
+    pub mod_note: Option<&'a str>,
     pub hidden: bool,
 }
 
@@ -44,6 +46,9 @@ pub struct PostModel<'a> {
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Attachment {
     pub id: u32,
+    pub width: u32,
+    pub height: u32,
+    pub file_size_bytes: u64,
     pub file_name: String,
     pub file_type: String,
     pub file_location: String,
@@ -54,6 +59,9 @@ pub struct Attachment {
 #[diesel(table_name = attachments)]
 pub struct AttachmentModel<'a> {
     pub id: u32,
+    pub width: u32,
+    pub height: u32,
+    pub file_size_bytes: u64,
     pub file_name: &'a str,
     pub file_type: &'a str,
     pub file_location: &'a str,
@@ -79,15 +87,15 @@ pub struct ReplyModel {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PostInput {
+    pub access_level: u8,
     pub user_id: u64,
     pub show_username: bool,
+    pub sage: bool,
     pub message: String,
     pub message_hash: String,
-    pub ip_address: String,
-    pub user_agent: String,
     pub country_code: Option<String>,
+    pub mod_note: Option<String>,
     pub hidden: bool,
-    pub attachment: Option<FileInfo>,
     pub reply_ids: Vec<u32>,
 }
 

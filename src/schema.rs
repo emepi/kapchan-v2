@@ -24,6 +24,9 @@ diesel::table! {
 diesel::table! {
     attachments (id) {
         id -> Unsigned<Integer>,
+        width -> Unsigned<Integer>,
+        height -> Unsigned<Integer>,
+        file_size_bytes -> Unsigned<Bigint>,
         file_name -> Tinytext,
         file_type -> Tinytext,
         #[max_length = 512]
@@ -64,16 +67,15 @@ diesel::table! {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Bigint>,
         thread_id -> Unsigned<Integer>,
+        access_level -> Unsigned<Tinyint>,
         show_username -> Bool,
+        sage -> Bool,
         message -> Text,
         #[max_length = 64]
         message_hash -> Varchar,
-        #[max_length = 45]
-        ip_address -> Varchar,
-        #[max_length = 512]
-        user_agent -> Varchar,
         #[max_length = 2]
         country_code -> Nullable<Varchar>,
+        mod_note -> Nullable<Text>,
         hidden -> Bool,
         created_at -> Datetime,
     }
