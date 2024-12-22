@@ -1,0 +1,83 @@
+<% include!("../layouts/kapchan.stpl"); %>
+<main class="content">
+  <nav class="selector">
+    <a href="/admin" class="selector-btn--active">Kapchan</a>
+    <% if self.access_level < 100 { %>
+      <a class="selector-btn--inactive">Hakemukset</a>
+    <% } else { %>
+    <a href="/applications/1" class="selector-btn">Hakemukset</a>
+    <% } %>
+    <a href="/users" class="selector-btn">Käyttäjät</a>
+  </nav>
+  <div class="card">
+  <h2>Laudat</h2>
+  <% for error in self.errors { %>
+    <p><%= error %></p>
+  <% } %>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Lauta</th>
+        <th scope="col">Lautakoodi</th>
+        <th scope="col">Käyttäjätaso</th>
+        <th scope="col">Aikaraja (sec)</th>
+        <th scope="col">Lanka limiitti</th>
+        <th scope="col">lankojen koko</th>
+        <th scope="col">captcha</th>
+        <th scope="col">NSFW</th>
+      </tr>
+    </thead>
+    <tbody>
+  <% for board in self.boards { %>
+    <tr>
+      <th scope="row"><%= board.title %></th>
+      <td><%= board.handle %></td>
+      <td><%= board.access_level %></td>
+      <td><%= board.post_cooldown_time_sec %></td>
+      <td><%= board.active_threads_limit %></td>
+      <td><%= board.thread_size_limit %></td>
+      <td><% if board.captcha { %>kyllä<% } else { %>ei<% } %></td>
+      <td><% if board.nsfw { %>kyllä<% } else { %>ei<% } %></td>
+    </tr>
+  <% } %>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="card">
+  <% if self.access_level >= 100 { %>
+      <form action=/boards method=POST>
+        <label for="handle">Board handle:</label>
+        <input type="text" id="handle" name="handle">
+        <label for="title">Board title:</label>
+        <input type="text" id="title" name="title">
+        <label for="description">Description:</label>
+        <textarea name="description" rows="10" cols="30">
+        </textarea>
+        <label for="access_level">Access level:</label>
+        <select name="access_level" id="access_level">
+          <option value="10">Anonymous</option>
+          <option value="20">Registered</option>
+          <option value="30">Pending member</option>
+          <option value="40">Member</option>
+          <option value="90">Moderator</option>
+          <option value="100">Admin</option>
+        </select> 
+        <label for="cooldown">cooldown time (sec)</label>
+        <input type="number" id="cooldown" name="cooldown" min="0" />
+        <label for="threads_limit">Active threads limit:</label>
+        <input type="number" id="threads_limit" name="threads_limit" min="0" />
+        <label for="thread_size">Threads size limit:</label>
+        <input type="number" id="thread_size" name="thread_size" min="0" />
+        <input type="checkbox" id="captcha" name="captcha" />
+        <label for="captcha">captcha</label>
+        <input type="checkbox" id="nsfw" name="nsfw" />
+        <label for="nsfw">nsfw</label>
+        <input type="checkbox" id="unique_posts" name="unique_posts" />
+        <label for="unique_posts">r9k</label>
+        <button type=submit>create board</button>
+      </form>
+  <% } %>
+  </div>
+</main>

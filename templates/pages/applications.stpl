@@ -1,0 +1,23 @@
+<% include!("../layouts/kapchan.stpl"); %>
+<main class="content">
+  <nav class="selector">
+    <a href="/admin" class="selector-btn">Kapchan</a>
+    <a href="/applications/1" class="selector-btn--active">Hakemukset</a>
+    <a href="/users" class="selector-btn">Käyttäjät</a>
+  </nav>
+  <div class="application-list">
+    <% for preview in self.previews { %>
+      <div class="application-preview">
+        <p><%= preview.submission_time %></p>
+        <p><%= preview.username %></p>
+        <a href="/application-review/<%= preview.application_id %>">Avaa hakemus</a>
+      </div>
+    <% } %>
+    <div class="pages">
+    <p>pages:</p>
+    <% for n in 1..=self.pages { %>
+    <a href="/applications/<%= n %>"><%= n %></a>
+    <% } %>
+    </div>
+  <div>
+</main>
