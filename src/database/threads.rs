@@ -79,6 +79,7 @@ impl Thread {
                 conn.transaction::<_, Error, _>(|conn| async move {
                     let _ = diesel::insert_into(threads::table)
                     .values(ThreadModel {
+                        user_id: input.post.user_id,
                         board_id: input.board_id,
                         title: &input.title,
                         pinned: input.pinned,

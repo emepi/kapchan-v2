@@ -91,6 +91,7 @@ diesel::table! {
 diesel::table! {
     threads (id) {
         id -> Unsigned<Integer>,
+        user_id -> Unsigned<Bigint>,
         board_id -> Unsigned<Integer>,
         title -> Tinytext,
         pinned -> Bool,
@@ -120,6 +121,7 @@ diesel::joinable!(attachments -> posts (id));
 diesel::joinable!(posts -> threads (thread_id));
 diesel::joinable!(posts -> users (user_id));
 diesel::joinable!(threads -> boards (board_id));
+diesel::joinable!(threads -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     application_reviews,

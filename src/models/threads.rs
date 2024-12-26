@@ -12,6 +12,7 @@ use super::posts::{Attachment, Post, PostData, PostInput, PostOutput};
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Thread {
     pub id: u32,
+    pub user_id: u64,
     pub board_id: u32,
     pub title: String,
     pub pinned: bool,
@@ -22,6 +23,7 @@ pub struct Thread {
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = threads)]
 pub struct ThreadModel<'a> {
+    pub user_id: u64,
     pub board_id: u32,
     pub title: &'a str,
     pub pinned: bool,
