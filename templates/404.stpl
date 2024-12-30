@@ -1,0 +1,4 @@
+<% include!("./layouts/kapchan.stpl"); %>
+<main class="content">
+  <h1>Sivua ei löytynyt!</h1>
+</main>

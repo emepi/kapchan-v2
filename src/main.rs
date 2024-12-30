@@ -7,7 +7,7 @@ use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, register::register_view, thread::thread_view};
+use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, not_found::not_found_view, register::register_view, thread::thread_view};
 use services::users::update_root_user;
 
 
@@ -44,6 +44,7 @@ mod handlers {
     pub mod login;
     pub mod register;
     pub mod thread;
+    pub mod not_found;
 }
 
 mod models {
@@ -186,7 +187,8 @@ async fn main() -> std::io::Result<()> {
                 Files::new("/static", "./static")
                     .show_files_listing()
                     .use_last_modified(true),
-        )
+            )
+            .default_service(web::to(not_found_view))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
