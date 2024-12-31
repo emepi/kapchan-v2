@@ -59,10 +59,21 @@ body {
   object-fit: contain;
 }
 
+.card-index {
+  width: calc(100vw - 20px);
+  max-width: 800px;
+}
+
 .card {
   padding: 10px;
   background-color:#212121;
   border-radius: 7px;
+}
+
+.post-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navbar {
@@ -80,28 +91,32 @@ body {
 .selector {
   display: flex;
   gap: 10px;
+  overflow-x: auto;
+  width: calc(100vw - 20px);
+}
+
+.selector-btn--active,
+.selector-btn--inactive,
+.selector-btn {
+  flex: 0 0 auto;
+  padding: 6px 10px 6px 10px;
+  border-radius: 7px;
 }
 
 .selector-btn {
   color: white;
-  padding: 6px 10px 6px 10px;
   background-color:#212121;
-  border-radius: 7px;
   cursor: pointer;
 }
 
 .selector-btn--active {
   color: #0f0f0f;
   background-color: white;
-  padding: 6px 10px 6px 10px;
-  border-radius: 7px;
 }
 
 .selector-btn--inactive {
   color: gray;
   background-color:#212121;
-  padding: 6px 10px 6px 10px;
-  border-radius: 7px;
 }
 
 .application-list {
@@ -128,6 +143,8 @@ body {
 .board-selector {
   display: flex;
   justify-content: space-between;
+  width: calc(100vw - 20px);
+  gap: 20px;
 }
 
 #posting-screen {
@@ -277,8 +294,4 @@ body {
 .reply-text {
   width: 100%;
   resize: vertical;
-}
-
-p {
-  white-space: pre-wrap;
 }

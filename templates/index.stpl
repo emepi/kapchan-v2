@@ -13,18 +13,18 @@
   <div class="index">
     <img src="/static/img/logo.png" alt="Kapchan logo" class="logo">
     <h2>Avaruuskapakka</h2>
-    <div class="card">
+    <div class="card card-index">
       <p>Kapakka on kuvalauta ja chat syrjäytyneille ja muille normaalista poikkeaville. <br>Sisäänkirjautuneena pääset useammalle alueelle ja saat muita ominaisuuksia käyttöösi.</p>
     </div>
     
     <h2>Uutiset</h2>
-    <div class="card">
+    <div class="card card-index">
     </div>
 
     <h2>Viimeisimmät Postaukset</h2>
-    <div class="card">
+    <div class="card card-index">
       <% for post in self.latest_posts { %>
-        <p><b><%= post.board_name %></b>: <a href="/<%= post.board_handle %>/thread/<%= post.thread_id %>#p<%= post.post_id %>"><%= post.message %></a></p>
+        <p class="post-preview"><b><%= post.board_name %></b>: <a href="/<%= post.board_handle %>/thread/<%= post.thread_id %>#p<%= post.post_id %>"><%= post.message %></a></p>
       <% } %>
     </div>
   </div>
