@@ -9,7 +9,6 @@ CREATE TABLE posts (
     message_hash       VARCHAR(64)      NOT NULL,
     country_code       VARCHAR(2),
     mod_note           TEXT,
-    hidden             BOOLEAN          NOT NULL,
     created_at         DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

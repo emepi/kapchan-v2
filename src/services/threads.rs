@@ -35,7 +35,6 @@ pub async fn create_thread(
             message,
             message_hash,
             country_code: None,
-            hidden: false,
             reply_ids,
             sage: false,
             mod_note: None,

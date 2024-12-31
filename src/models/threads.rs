@@ -41,6 +41,7 @@ pub struct ThreadInput {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThreadCatalogOutput {
+    pub id: u32,
     pub title: String,
     pub pinned: bool,
     pub op_post: PostOutput,

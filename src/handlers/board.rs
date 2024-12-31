@@ -7,7 +7,7 @@ use crate::{models::{boards::{Board, BoardSimple}, threads::{Thread, ThreadCatal
 
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/board.stpl")]
+#[template(path = "board.stpl")]
 pub struct BoardTemplate {
     pub access_level: u8,
     pub handle: String,

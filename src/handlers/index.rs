@@ -3,14 +3,15 @@ use actix_web::{error::InternalError, http::StatusCode, web, HttpRequest, HttpRe
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use sailfish::{TemplateOnce};
 
-use crate::{models::boards::{Board, BoardSimple}, services::authentication::resolve_user};
+use crate::{models::{boards::{Board, BoardSimple}, posts::{Post, PostPreview}}, services::authentication::resolve_user};
 
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/index.stpl")]
+#[template(path = "index.stpl")]
 struct IndexTemplate {
     access_level: u8,
     boards: Vec<BoardSimple>,
+    latest_posts: Vec<PostPreview>,
 }
 
 pub async fn index_view(
@@ -28,9 +29,15 @@ pub async fn index_view(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    let latest_posts = match Post::latest_posts_preview(&conn_pool, user_data.access_level, 10).await {
+        Ok(posts) => posts,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
     let body = IndexTemplate { 
         access_level: user_data.access_level,
-        boards, 
+        boards,
+        latest_posts, 
     }
     .render_once()
     .map_err(|e| InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;

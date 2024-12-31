@@ -20,7 +20,6 @@ pub struct Post {
     pub message_hash: String,
     pub country_code: Option<String>,
     pub mod_note: Option<String>,
-    pub hidden: bool,
     pub created_at: NaiveDateTime,
 }
 
@@ -36,7 +35,6 @@ pub struct PostModel<'a> {
     pub message_hash: &'a str,
     pub country_code: Option<&'a str>,
     pub mod_note: Option<&'a str>,
-    pub hidden: bool,
 }
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Deserialize, Clone)]
@@ -93,7 +91,6 @@ pub struct PostInput {
     pub message_hash: String,
     pub country_code: Option<String>,
     pub mod_note: Option<String>,
-    pub hidden: bool,
     pub reply_ids: Vec<u32>,
 }
 
@@ -103,7 +100,6 @@ pub struct PostOutput {
     pub show_username: bool,
     pub message: String,
     pub country_code: Option<String>,
-    pub hidden: bool,
     pub attachment: Option<Attachment>,
 }
 
@@ -112,4 +108,13 @@ pub struct PostData {
     pub post: Post,
     pub attachment: Option<Attachment>,
     pub replies: Vec<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostPreview {
+    pub post_id: u32,
+    pub thread_id: u32,
+    pub board_handle: String,
+    pub board_name: String,
+    pub message: String,
 }

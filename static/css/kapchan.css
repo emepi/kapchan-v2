@@ -44,6 +44,27 @@ body {
   margin: 10px;
 }
 
+.index {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 100%;
+  max-width: 600px;
+  height: 100%;
+  max-height: 600px;
+  object-fit: contain;
+}
+
+.card {
+  padding: 10px;
+  background-color:#212121;
+  border-radius: 7px;
+}
+
 .navbar {
   display: flex;
   gap: 10px;
@@ -80,12 +101,6 @@ body {
   color: gray;
   background-color:#212121;
   padding: 6px 10px 6px 10px;
-  border-radius: 7px;
-}
-
-.card {
-  padding: 10px;
-  background-color:#212121;
   border-radius: 7px;
 }
 

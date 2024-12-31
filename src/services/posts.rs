@@ -31,7 +31,6 @@ pub async fn create_post_by_post_id(
         message,
         message_hash,
         country_code: None,
-        hidden: false,
         reply_ids,
         sage: false,
         mod_note: None,

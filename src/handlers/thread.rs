@@ -9,7 +9,7 @@ use crate::services::files::display_filesize;
 
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/thread.stpl")]
+#[template(path = "thread.stpl")]
 struct ThreadTemplate {
     access_level: u8,
     boards: Vec<BoardSimple>,
@@ -33,14 +33,14 @@ pub async fn thread_view(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
-    let (handle, post_id) = path.into_inner();
+    let (handle, thread_id) = path.into_inner();
 
     let current_board = match Board::by_handle(&conn_pool, &handle).await {
         Ok(board) => board,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
-    let thread = match Thread::by_post_id(post_id, &conn_pool).await {
+    let thread = match Thread::by_id(thread_id, &conn_pool).await {
         Ok(thread) => thread,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };

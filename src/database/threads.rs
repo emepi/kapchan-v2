@@ -12,20 +12,16 @@ use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostData, PostMo
 
 
 impl Thread {
-    pub async fn by_post_id(
-        post_id: u32,
+    pub async fn by_id(
+        thread_id: u32,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<ThreadData, Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
-                    let post = posts::table
-                    .find(post_id)
-                    .first::<Post>(conn)
-                    .await?;
 
                     let thread = threads::table
-                    .find(post.thread_id)
+                    .find(thread_id)
                     .first::<Thread>(conn)
                     .await?;
 
@@ -101,7 +97,6 @@ impl Thread {
                         message: &input.post.message,
                         message_hash: &input.post.message_hash,
                         country_code: input.post.country_code.as_deref(),
-                        hidden: input.post.hidden,
                         access_level: input.post.access_level,
                         sage: input.post.sage,
                         mod_note: input.post.mod_note.as_deref(),
@@ -170,6 +165,7 @@ impl Thread {
                         let op_post = posts.get(0).expect("Encountered thread without op post!");
 
                         ThreadCatalogOutput {
+                            id: thread.id,
                             title: thread.title,
                             pinned: thread.pinned,
                             op_post: PostOutput {
@@ -177,7 +173,6 @@ impl Thread {
                                 show_username: op_post.0.show_username,
                                 message: op_post.0.message.clone(),
                                 country_code: op_post.0.country_code.clone(),
-                                hidden: op_post.0.hidden,
                                 attachment: op_post.1.clone(),
                             },
                             replies: posts.len() - 1,

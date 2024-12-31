@@ -1,4 +1,4 @@
-<% include!("../layouts/kapchan.stpl"); %>
+<% include!("./layouts/kapchan.stpl"); %>
 <main class="content">
   <div class="board-selector">
   <nav class="selector">

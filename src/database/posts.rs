@@ -7,7 +7,7 @@ use diesel_async::{
     RunQueryDsl
 };
 
-use crate::{models::posts::{Attachment, AttachmentModel, Post, PostInput, PostModel, PostOutput, ReplyModel}, schema::{attachments, posts, replies}};
+use crate::{models::{boards::Board, posts::{Attachment, AttachmentModel, Post, PostInput, PostModel, PostOutput, PostPreview, ReplyModel}, threads::Thread}, schema::{attachments, boards, posts, replies, threads}};
 
 
 impl Post {
@@ -32,7 +32,6 @@ impl Post {
                         message: &input.message,
                         message_hash: &input.message_hash,
                         country_code: input.country_code.as_deref(),
-                        hidden: input.hidden,
                         access_level: input.access_level,
                         sage: input.sage,
                         mod_note: input.mod_note.as_deref(),
@@ -59,6 +58,44 @@ impl Post {
                     .await?;
                 
                     Ok(new_post)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn latest_posts_preview(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        access_level: u8,
+        limit: i64,
+    ) -> Result<Vec<PostPreview>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let posts: Vec<(Post, (Thread, Board))> = posts::table
+                    .filter(posts::access_level.le(access_level))
+                    .order(posts::created_at.desc())
+                    .limit(limit)
+                    .inner_join(
+                        threads::table
+                        .inner_join(boards::table)
+                    )
+                    .load::<(Post, (Thread, Board))>(conn)
+                    .await?;
+
+                    let posts: Vec<PostPreview> = posts.into_iter()
+                    .map(|post| PostPreview {
+                        post_id: post.0.id,
+                        thread_id: post.1.0.id,
+                        board_handle: post.1.1.handle,
+                        board_name: post.1.1.title,
+                        message: post.0.message,
+                    })
+                    .collect();
+
+                    Ok(posts)
                 }.scope_boxed())
                 .await
             },

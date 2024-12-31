@@ -76,7 +76,6 @@ diesel::table! {
         #[max_length = 2]
         country_code -> Nullable<Varchar>,
         mod_note -> Nullable<Text>,
-        hidden -> Bool,
         created_at -> Datetime,
     }
 }
