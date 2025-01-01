@@ -24,21 +24,32 @@
   </div>
 
   <div class="thread">
-  <% for postdata in self.thread.posts { %>
-    <div class="post-t" id="P<%= postdata.post.id %>">
-      <% if postdata.attachment.clone().is_some() && postdata.attachment.clone().unwrap().file_type == "image" { %>
-      <div class="post-left">
-      <% let attachment = &postdata.attachment.unwrap(); %>
-      <p>File: <%= attachment.file_name %> (<%= display_filesize(attachment.file_size_bytes) %>, <%= attachment.width %>x<%= attachment.height %>)</p>
-      <div class="image-container" id="i<%= attachment.id %>" onClick="enlargeImage(this.id, <%= attachment.id %>)">
-        <img loading="lazy" src="/thumbnails/<%= attachment.id %>" class="post-img">
-      </div>
+  <% for (i, postdata) in self.thread.posts.into_iter().enumerate() { %>
+    <div class="thread-post" id="p<%= postdata.post.id %>">
+      <% if postdata.attachment.clone().is_some() { %>
+      <% let attachment = &postdata.attachment.clone().unwrap(); %>
+      <div class="thread-post-file-info">
+        <p>File: <%= attachment.file_name %> (<%= display_filesize(attachment.file_size_bytes) %>, <%= attachment.width %>x<%= attachment.height %>)</p>
       </div>
       <% } %>
-      <div class="post-body-t">
-      <p>Anonymous <%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %>  <% for reply in postdata.replies { %> >><%= reply %><% } %> 
-      </p>
-      <p><%= postdata.post.message %></p>
+
+      <div class="thread-post-content">
+        <% if postdata.attachment.clone().is_some() && postdata.attachment.clone().unwrap().file_type == "image" { %>
+        <% let attachment = &postdata.attachment.clone().unwrap(); %>
+        <div class="thread-post-file">
+          <div class="image-container" id="i<%= attachment.id %>" onClick="enlargeImage(this.id, <%= attachment.id %>)">
+            <img loading="lazy" src="/thumbnails/<%= attachment.id %>" class="post-img">
+          </div>
+        </div>
+        <% } %>
+        <div class="thread-post-body">
+          <div class="thread-post-info">
+            <p class="post-info"><% if i == 0 { %><b><%=self.thread.thread.title%></b> <% } %>Anonymous <%= fi_datetime(postdata.post.created_at) %> No. <%= postdata.post.id %>  <% for reply in postdata.replies { %> >><%= reply %><% } %> </p>
+          </div>
+          <div class="thread-post-message">
+            <p class="post-message"><%= postdata.post.message %></p>
+          </div>
+        </div>
       </div>
     </div>
   <% } %>

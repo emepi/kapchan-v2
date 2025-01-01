@@ -232,11 +232,36 @@ body {
 .post {
   background-color: #212121;
   padding: 10px;
+  width: 160px;
+}
+
+.post-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 95px;
+}
+
+.post-rply {
+  font-size: small;
+  color: gray;
+}
+
+.post-title {
+  word-break: break-word;
+  overflow: hidden;
+  padding: 5px;
+}
+
+.post-msg {
+  overflow: hidden;
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .image-container {
-  width: 200px;
-  height: 200px;
+  width: 140px;
+  height: 140px;
 }
 
 .image-container-large {
@@ -256,22 +281,40 @@ body {
   gap: 10px;
 }
 
-.post-t {
+.thread-post {
   display: flex;
+  flex-direction: column;
   background-color: #212121;
   padding: 10px;
-  gap: 10px;
 }
 
-.post-body-t {
+.thread-post-file-info {
+  font-size: small;
+  word-break: break-word;
+}
+
+.post-info {
+  word-break: break-word;
+}
+
+.thread-post-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.thread-post-body {
   display: flex;
   flex-direction: column;
 }
 
-.post-left {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.thread-post-message {
+  padding: 5px;
+}
+
+.post-message {
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .reply {

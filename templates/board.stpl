@@ -33,9 +33,11 @@
   <% } %>
   </div>
   </a>
-  <p>R: <%= thread.replies %></p>
-  <p><b><%= thread.title %>: </b></p>
-  <p><%= thread.op_post.message %></p>
+    <div class="post-body">
+      <p class="post-rply">Vastuksia: <%= thread.replies %></p>
+      <p class="post-title"><b><%= thread.title %></b></p>
+      <p class="post-msg"><%= thread.op_post.message %></p>
+    </div>
   </div>
   <% } %>
   </div>
