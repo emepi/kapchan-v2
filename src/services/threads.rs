@@ -16,6 +16,7 @@ pub async fn create_thread(
     message: String,
     attachment: TempFile,
     access_level: u8,
+    active_threads_limit: u32,
 ) -> Result<(), Error> {
     let reply_ids = parse_backlinks(&message);
 
@@ -42,7 +43,7 @@ pub async fn create_thread(
         },
     };
 
-    let thread_info = match Thread::insert_thread(&conn_pool, thread_input).await {
+    let thread_info = match Thread::insert_thread(&conn_pool, thread_input, active_threads_limit).await {
         Ok(thread_info) => thread_info,
         Err(e) => return Err(e),
     };

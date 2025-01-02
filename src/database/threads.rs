@@ -69,6 +69,7 @@ impl Thread {
     pub async fn insert_thread(
         conn_pool: &Pool<AsyncMysqlConnection>,
         input: ThreadInput,
+        active_threads_limit: u32,
     ) -> Result<(Thread, Post), Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
@@ -121,6 +122,25 @@ impl Thread {
                     .values(replies)
                     .execute(conn)
                     .await?;
+
+                    // archive threads over active threads limits
+                    let inactive_thread = threads::table
+                    .filter(threads::board_id.eq(input.board_id))
+                    .filter(threads::archived.eq(false))
+                    .order((threads::pinned.eq(true), threads::bump_time.desc()))
+                    .limit(1)
+                    .offset(active_threads_limit.into())
+                    .load::<Thread>(conn)
+                    .await?;
+
+                    match inactive_thread.get(0) {
+                        Some(thread) => diesel::update(
+                            threads::table.find(thread.id)
+                        )
+                        .set(threads::archived.eq(true))
+                        .execute(conn).await?,
+                        None => 0,
+                    };
             
                     Ok((thread, post))
                 }.scope_boxed())

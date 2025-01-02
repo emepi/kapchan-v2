@@ -67,6 +67,7 @@ pub async fn handle_thread_creation(
         input.message.to_string(), 
         input.attachment, 
         current_board.access_level,
+        current_board.active_threads_limit,
     ).await;
 
     match result {
