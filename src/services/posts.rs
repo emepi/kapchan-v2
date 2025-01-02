@@ -10,10 +10,10 @@ use crate::models::posts::{Post, PostInput};
 use super::files::create_attachment;
 
 
-pub async fn create_post_by_post_id(
+pub async fn create_post_by_thread_id(
     conn_pool: &Pool<AsyncMysqlConnection>,
     user_id: u64,
-    post_id: u32,
+    thread_id: u32,
     message: String,
     attachment: TempFile,
     access_level: u8,
@@ -25,7 +25,7 @@ pub async fn create_post_by_post_id(
 
     let message_hash = format!("{:X}", hasher.finalize());
 
-    let post = match Post::insert_post_by_post_id(post_id, &conn_pool, PostInput {
+    let post = match Post::insert_post_by_thread_id(thread_id, &conn_pool, PostInput {
         user_id,
         show_username: false,
         message,

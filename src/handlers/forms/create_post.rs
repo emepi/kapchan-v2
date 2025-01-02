@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::boards::Board, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_post_id}};
+use crate::{models::{boards::Board, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -27,7 +27,7 @@ pub async fn handle_post_creation(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    let (handle, post_id) = path.into_inner();
+    let (handle, thread_id) = path.into_inner();
 
     let current_board = match Board::by_handle(&conn_pool, &handle).await {
         Ok(board) => board,
@@ -35,6 +35,16 @@ pub async fn handle_post_creation(
     };
 
     if current_board.access_level > user_data.access_level {
+        return HttpResponse::Forbidden().finish()
+    }
+
+    let thread_replies = match Thread::count_replies(thread_id, &conn_pool).await {
+        Ok(count) => count,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if thread_replies > current_board.thread_size_limit.into() {
+        println!("thread is full!");
         return HttpResponse::Forbidden().finish()
     }
 
@@ -58,10 +68,10 @@ pub async fn handle_post_creation(
         }
     }
 
-    match create_post_by_post_id(
+    match create_post_by_thread_id(
         &conn_pool,
         user_data.id, 
-        post_id, 
+        thread_id, 
         input.message.to_string(), 
         input.attachment,
         current_board.access_level

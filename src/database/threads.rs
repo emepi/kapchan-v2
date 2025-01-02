@@ -12,6 +12,28 @@ use crate::{models::{posts::{Attachment, AttachmentModel, Post, PostData, PostMo
 
 
 impl Thread {
+    pub async fn count_replies(
+        thread_id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<i64, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let count = posts::table
+                    .filter(posts::thread_id.eq(thread_id))
+                    .count()
+                    .get_result(conn)
+                    .await?;
+
+                    Ok(count)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn by_id(
         thread_id: u32,
         conn_pool: &Pool<AsyncMysqlConnection>,

@@ -11,23 +11,19 @@ use crate::{models::{boards::Board, posts::{Attachment, AttachmentModel, Post, P
 
 
 impl Post {
-    pub async fn insert_post_by_post_id(
-        post_id: u32,
+    pub async fn insert_post_by_thread_id(
+        thread_id: u32,
         conn_pool: &Pool<AsyncMysqlConnection>,
         input: PostInput,
     ) -> Result<Post, Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
-                    let post = posts::table
-                    .find(post_id)
-                    .first::<Post>(conn)
-                    .await?;
 
                     let _ = diesel::insert_into(posts::table)
                     .values(PostModel {
                         user_id: input.user_id,
-                        thread_id: post.thread_id,
+                        thread_id,
                         show_username: input.show_username,
                         message: &input.message,
                         message_hash: &input.message_hash,
