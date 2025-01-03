@@ -15,7 +15,6 @@ pub struct Board {
     pub access_level: u8,
     pub active_threads_limit: u32,
     pub thread_size_limit: u32,
-    pub unique_posts: bool,
     pub captcha: bool,
     pub nsfw: bool,
 }
@@ -29,7 +28,6 @@ pub struct BoardModel<'a> {
     pub access_level: u8,
     pub active_threads_limit: u32,
     pub thread_size_limit: u32,
-    pub unique_posts: bool,
     pub captcha: bool,
     pub nsfw: bool,
 }

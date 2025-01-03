@@ -70,8 +70,6 @@
         <label for="captcha">captcha</label>
         <input type="checkbox" id="nsfw" name="nsfw" />
         <label for="nsfw">nsfw</label>
-        <input type="checkbox" id="unique_posts" name="unique_posts" />
-        <label for="unique_posts">r9k</label>
         <button type=submit>create board</button>
       </form>
   <% } %>

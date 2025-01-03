@@ -6,7 +6,6 @@ CREATE TABLE boards (
     access_level           TINYINT UNSIGNED NOT NULL,
     active_threads_limit   INTEGER UNSIGNED NOT NULL,
     thread_size_limit      INTEGER UNSIGNED NOT NULL,
-    unique_posts           boolean          NOT NULL,
     captcha                boolean          NOT NULL,
     nsfw                   boolean          NOT NULL,
     PRIMARY KEY (id)

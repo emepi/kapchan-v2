@@ -46,7 +46,6 @@ diesel::table! {
         access_level -> Unsigned<Tinyint>,
         active_threads_limit -> Unsigned<Integer>,
         thread_size_limit -> Unsigned<Integer>,
-        unique_posts -> Bool,
         captcha -> Bool,
         nsfw -> Bool,
     }
