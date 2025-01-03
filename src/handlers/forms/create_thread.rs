@@ -23,6 +23,12 @@ pub async fn handle_thread_creation(
     MultipartForm(input): MultipartForm<ThreadForm>,
     req: HttpRequest,
 ) -> impl Responder {
+    if input.message.is_empty() {
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Viesti ei voi olla tyhjä!".to_owned(),
+        });
+    }
+    
     let user_data = match resolve_user(user, req, &conn_pool).await {
         Ok(usr_data) => usr_data,
         Err(_) => return HttpResponse::InternalServerError().finish(),
