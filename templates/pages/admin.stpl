@@ -21,7 +21,6 @@
         <th scope="col">Lauta</th>
         <th scope="col">Lautakoodi</th>
         <th scope="col">Käyttäjätaso</th>
-        <th scope="col">Aikaraja (sec)</th>
         <th scope="col">Lanka limiitti</th>
         <th scope="col">lankojen koko</th>
         <th scope="col">captcha</th>
@@ -34,7 +33,6 @@
       <th scope="row"><%= board.title %></th>
       <td><%= board.handle %></td>
       <td><%= board.access_level %></td>
-      <td><%= board.post_cooldown_time_sec %></td>
       <td><%= board.active_threads_limit %></td>
       <td><%= board.thread_size_limit %></td>
       <td><% if board.captcha { %>kyllä<% } else { %>ei<% } %></td>
@@ -63,9 +61,7 @@
           <option value="40">Member</option>
           <option value="90">Moderator</option>
           <option value="100">Admin</option>
-        </select> 
-        <label for="cooldown">cooldown time (sec)</label>
-        <input type="number" id="cooldown" name="cooldown" min="0" />
+        </select>
         <label for="threads_limit">Active threads limit:</label>
         <input type="number" id="threads_limit" name="threads_limit" min="0" />
         <label for="thread_size">Threads size limit:</label>

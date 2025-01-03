@@ -4,7 +4,6 @@ CREATE TABLE boards (
     title                  TINYTEXT         NOT NULL,
     description            TEXT             NOT NULL,
     access_level           TINYINT UNSIGNED NOT NULL,
-    post_cooldown_time_sec INTEGER UNSIGNED NOT NULL,
     active_threads_limit   INTEGER UNSIGNED NOT NULL,
     thread_size_limit      INTEGER UNSIGNED NOT NULL,
     unique_posts           boolean          NOT NULL,

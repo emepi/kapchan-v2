@@ -44,7 +44,6 @@ diesel::table! {
         title -> Tinytext,
         description -> Text,
         access_level -> Unsigned<Tinyint>,
-        post_cooldown_time_sec -> Unsigned<Integer>,
         active_threads_limit -> Unsigned<Integer>,
         thread_size_limit -> Unsigned<Integer>,
         unique_posts -> Bool,
