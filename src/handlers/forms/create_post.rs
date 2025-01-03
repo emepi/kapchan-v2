@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
+use crate::{models::{boards::Board, error::UserError, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -11,7 +11,7 @@ pub struct PostForm {
     pub message: Text<String>,
     pub captcha: Option<Text<String>>,
     pub captcha_id: Option<Text<u64>>,
-    #[multipart(limit = "20MB")]
+    #[multipart(limit = "5MB")]
     pub attachment: TempFile,
 }
 
@@ -55,16 +55,17 @@ pub async fn handle_post_creation(
                 *input.captcha_id.unwrap(), 
                 input.captcha.unwrap().to_string()
             ).await {
-                Ok(_) => {
-                    println!("success");
-                },
+                Ok(_) => (),
                 Err(err) => {
-                    println!("{}", err);
-                    return HttpResponse::InternalServerError().finish()
+                    return HttpResponse::Forbidden().json(UserError {
+                        error: err,
+                    });
                 },
             }
         } else {
-            return HttpResponse::Forbidden().finish()
+            return HttpResponse::Forbidden().json(UserError {
+                error: "Captcha epäonnistui!".to_owned(),
+            })
         }
     }
 

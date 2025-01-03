@@ -55,6 +55,7 @@ mod models {
     pub mod threads;
     pub mod posts;
     pub mod captchas;
+    pub mod error;
 }
 
 mod services {

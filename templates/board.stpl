@@ -51,6 +51,7 @@
             <svg height="24" viewBox="0 -960 960 960" width="24"><path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
           </a>
         </header>
+        <div class="err-container" id="err-container"></div>
         <form class="posting-form" id="posting-form">
           <input type="text" name="topic" class="posting-topic">
           <textarea name="message" class="posting-message" rows="10" cols="30"></textarea>

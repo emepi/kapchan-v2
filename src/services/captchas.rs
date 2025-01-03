@@ -25,13 +25,13 @@ pub async fn verify_captcha(
     let captcha_info = match Captcha::by_id(captcha_id, conn_pool).await {
         Ok(info) => info,
         Err(err) => match err {
-            Error::NotFound => return Err("Captcha not found. recomplete.".to_string()),
-            _ => return Err("Server error".to_owned()),
+            Error::NotFound => return Err("Hae uusi captcha!".to_string()),
+            _ => return Err("Palvelin ongelma".to_owned()),
         },
     };
 
     if Utc::now().timestamp() > captcha_info.expires.and_utc().timestamp() {
-        return Err("Captcha expired!".to_owned());
+        return Err("Captcha on vanhentunut!".to_owned());
     }
 
     let _ = Captcha::delete_by_id(captcha_id, &conn_pool).await;
@@ -39,6 +39,6 @@ pub async fn verify_captcha(
     if captcha_info.answer.eq(&answer) {
         Ok(())
     } else {
-        Err("Captcha failed!".to_owned())
+        Err("Captcha epäonnistui!".to_owned())
     }
 }

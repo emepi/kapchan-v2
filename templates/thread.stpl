@@ -56,6 +56,7 @@
   </div>
 
   <div class="reply">
+    <div class="err-container" id="err-container"></div>
     <form class="reply-form" id="posting-form">
       <textarea name="message" class="reply-text">
       </textarea>

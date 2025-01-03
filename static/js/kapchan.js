@@ -7,7 +7,7 @@ const logout = (event) => {
             method: "POST",
         })
     )
-    .then(() => location.reload());
+    .then(() => location.replace("/"));
 };
 
 const openPosting = () => {
@@ -40,18 +40,29 @@ const fetchCaptcha = () => {
 
 const submitPost = () => {
     const pf = document.getElementById("posting-form");
-    const data = new FormData(pf)
+    const data = new FormData(pf);
 
     if(data.has("captcha")) {
-        data.append("captcha_id", kapchanState.current_captcha.toString())
+        data.append("captcha_id", kapchanState.current_captcha.toString());
     }
 
     fetch(window.location.href, {
         method: "POST",
         body: data,
     })
-    .then(() => {
-        pf.reset()
+    .then((res) => {
+        if (res.ok) {
+            pf.reset();
+            location.reload();
+        } else if (res.status == 403) {
+            res.json()
+            .then(json => {
+                let errContainer = document.getElementById("err-container");
+                let err = document.createTextNode(json.error);
+                errContainer.innerHTML = "";
+                errContainer.appendChild(err);
+            });
+        }
     })
 };
 

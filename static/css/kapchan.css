@@ -338,3 +338,8 @@ body {
   width: 100%;
   resize: vertical;
 }
+
+.err-container {
+  color: red;
+  padding: 10px;
+}
