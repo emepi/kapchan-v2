@@ -44,8 +44,20 @@ pub async fn handle_post_creation(
     };
 
     if thread_replies > current_board.thread_size_limit.into() {
-        println!("thread is full!");
-        return HttpResponse::Forbidden().finish()
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Lanka on täynnä!".to_owned(),
+        });
+    }
+
+    let current_thread = match Thread::thread_by_id(thread_id, &conn_pool).await {
+        Ok(thread) => thread,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if current_thread.archived {
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Lanka on arkistoitu, eikä siihen voi enää vastata!".to_owned(),
+        });
     }
 
     if current_board.captcha {

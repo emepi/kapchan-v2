@@ -88,6 +88,28 @@ impl Thread {
         }
     }
 
+    pub async fn thread_by_id(
+        thread_id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Thread, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let thread = threads::table
+                    .find(thread_id)
+                    .first::<Thread>(conn)
+                    .await?;
+
+                    Ok(thread)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn insert_thread(
         conn_pool: &Pool<AsyncMysqlConnection>,
         input: ThreadInput,
