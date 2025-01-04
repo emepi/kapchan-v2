@@ -30,9 +30,9 @@ pub async fn handle_login(
         Err(err) => {
             let t = LoginTemplate {
                 errors: match err {
-                    StatusCode::FORBIDDEN => vec!["Incorrect password".to_string()],
-                    StatusCode::NOT_FOUND => vec!["User not found".to_string()],
-                    _ => vec!["Connection error".to_string()],
+                    StatusCode::FORBIDDEN => vec!["Virheellinen salasana!".to_string()],
+                    StatusCode::NOT_FOUND => vec!["Käyttäjää ei ole olemassa!".to_string()],
+                    _ => vec!["Palvelin virhe!".to_string()],
                 },
             };
 
