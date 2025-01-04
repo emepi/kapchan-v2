@@ -17,11 +17,11 @@ pub struct RegisterForm {
         length(
             min = "1",
             max = "16",
-            message = "Username must be 1-16 characters long."
+            message = "Käyttäjänimi täytyy olla 1-16 merkkiä pitkä."
         ),
         regex(
             path = Regex::new(r"^[a-zA-Z0-9.-]+$").unwrap(),
-            message = "Username contains illegal characters."
+            message = "Käyttäjänimi sisältää kiellettyjä merkkejä!"
         )
     )]
     username: String,
@@ -29,18 +29,18 @@ pub struct RegisterForm {
         length(
             min = "1",
             max = "128",
-            message = "Email must be 1-128 characters long."
+            message = "Sähköposti täytyy olla 1-128 merkkiä pitkä."
         ),
         regex(
             path = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap(),
-            message = "Email address is invalid."
+            message = "Sähköpostiosoite on virheellinen!"
         )
     )]
     email: String,
     #[validate(length(
         min = "5",
         max = "128",
-        message = "Password must be 5-128 characters long."
+        message = "Salasana täytyy olla 5-128 merkkiä pitkä."
     ))]
     pwd: String,
 }
@@ -96,7 +96,7 @@ pub async fn handle_register(
                 diesel::result::DatabaseErrorKind::UniqueViolation => 
                 {
                     let t = RegisterTemplate {
-                        errors: vec!["Username or email already exists.".to_string()]
+                        errors: vec!["Käyttäjänimi tai sähköposti on jo olemassa!".to_string()]
                     };
 
                     let body = template(t).unwrap();

@@ -1,0 +1,20 @@
+<html>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/static/css/kapchan.css">
+  <body>
+    <div class="login-container">
+      <div class="card">
+    <h1 class="login-title">Rekisteröidy 1/2</h1>
+    <div class="err-container">
+    <% for error in self.errors { %>
+      <p><%= error %></p>
+    <% } %>
+    </div>
+    <form action=/register method=POST class="login-form">
+      <input type="text" id="username" name="username" placeholder="Käyttäjänimi">
+      <input type="email" id="email" name="email" placeholder="Sähköpostiosoite"> 
+      <input type="password" id="pwd" name="pwd" placeholder="Salasana">
+      <button type=submit>Rekisteröi käyttäjä</button>
+    </form>
+  </div>
+</div>

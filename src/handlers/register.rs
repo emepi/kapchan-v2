@@ -6,7 +6,7 @@ use sailfish::TemplateOnce;
 use crate::services::authentication::resolve_user;
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/register.stpl")]
+#[template(path = "register.stpl")]
 pub struct RegisterTemplate {
     pub errors: Vec<String>,
 }
