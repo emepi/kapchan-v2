@@ -49,7 +49,6 @@ mod handlers {
     pub mod captcha;
     pub mod apply;
     pub mod files;
-    pub mod index;
     pub mod login;
     pub mod register;
     pub mod thread;

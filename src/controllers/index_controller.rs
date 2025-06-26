@@ -2,7 +2,11 @@ use actix_identity::Identity;
 use actix_web::{web, HttpRequest, HttpResponse};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, posts::Post}, services::authentication::resolve_user, views::index_view::{self, IndexTemplate}};
+use crate::{
+    models::{boards::Board, posts::Post}, 
+    services::authentication::resolve_user, 
+    views::index_view::{self, IndexTemplate}
+};
 
 
 pub async fn index(
