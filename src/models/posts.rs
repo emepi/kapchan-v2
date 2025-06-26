@@ -1,8 +1,25 @@
+use diesel::{
+    prelude::*, 
+    result::Error, 
+    sql_function, 
+    ExpressionMethods, 
+    QueryDsl, 
+    SelectableHelper
+};
+use diesel_async::{
+    pooled_connection::deadpool::Pool, 
+    scoped_futures::ScopedFutureExt, 
+    AsyncConnection, 
+    AsyncMysqlConnection, 
+    RunQueryDsl
+};
+
 use chrono::NaiveDateTime;
-use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{models::threads::Thread, schema::{attachments, posts, replies}};
+use crate::{models::threads::Thread, schema::{attachments, boards, posts, replies, threads}};
+
+use super::boards::Board;
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, Deserialize, Clone, PartialEq)]
@@ -21,6 +38,46 @@ pub struct Post {
     pub country_code: Option<String>,
     pub mod_note: Option<String>,
     pub created_at: NaiveDateTime,
+}
+
+impl Post {
+    pub async fn latest_posts_preview(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        access_level: u8,
+        limit: i64,
+    ) -> Result<Vec<PostPreview>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let posts: Vec<(Post, (Thread, Board))> = posts::table
+                    .filter(posts::access_level.le(access_level))
+                    .order(posts::created_at.desc())
+                    .limit(limit)
+                    .inner_join(
+                        threads::table
+                        .inner_join(boards::table)
+                    )
+                    .load::<(Post, (Thread, Board))>(conn)
+                    .await?;
+
+                    let posts: Vec<PostPreview> = posts.into_iter()
+                    .map(|post| PostPreview {
+                        post_id: post.0.id,
+                        thread_id: post.1.0.id,
+                        board_handle: post.1.1.handle,
+                        board_name: post.1.1.title,
+                        message: post.0.message,
+                    })
+                    .collect();
+
+                    Ok(posts)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]

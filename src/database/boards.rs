@@ -61,26 +61,6 @@ impl Board {
         }
     }
 
-    pub async fn list_all(
-        conn_pool: &Pool<AsyncMysqlConnection>,
-    ) -> Result<Vec<Board>, Error> {
-        match conn_pool.get().await {
-            Ok(mut conn) => {
-                conn.transaction::<_, Error, _>(|conn| async move {
-                    let boards: Vec<Board> = boards::table
-                    .select(Board::as_select())
-                    .load(conn)
-                    .await?;
-            
-                    Ok(boards)
-                }.scope_boxed())
-                .await
-            },
-
-            Err(_) => Err(Error::BrokenTransactionManager),
-        }
-    }
-
     pub async fn list_all_simple(
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<Vec<BoardSimple>, Error> {

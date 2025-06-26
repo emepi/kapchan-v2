@@ -5,11 +5,20 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use controllers::index_controller;
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, index::index_view, login::login_view, not_found::not_found_view, register::register_view, thread::thread_view};
+use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, login::login_view, not_found::not_found_view, register::register_view, thread::thread_view};
 use services::users::update_root_user;
 
+
+mod controllers {
+    pub mod index_controller;
+}
+
+mod views {
+    pub mod index_view;
+}
 
 mod database {
     pub mod applications;
@@ -117,7 +126,7 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource("/")
-                    .route(web::get().to(index_view))
+                    .route(web::get().to(index_controller::index))
             )
             .service(
                 web::resource("/login")

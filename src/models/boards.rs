@@ -1,4 +1,18 @@
-use diesel::prelude::*;
+use diesel::{
+    prelude::*, 
+    result::Error, 
+    sql_function, 
+    ExpressionMethods, 
+    QueryDsl, 
+    SelectableHelper
+};
+use diesel_async::{
+    pooled_connection::deadpool::Pool, 
+    scoped_futures::ScopedFutureExt, 
+    AsyncConnection, 
+    AsyncMysqlConnection, 
+    RunQueryDsl
+};
 use serde::{Deserialize, Serialize};
 
 use crate::schema::boards;
@@ -19,6 +33,28 @@ pub struct Board {
     pub nsfw: bool,
 }
 
+impl Board {
+    pub async fn list_all(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Vec<Board>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let boards: Vec<Board> = boards::table
+                    .select(Board::as_select())
+                    .load(conn)
+                    .await?;
+            
+                    Ok(boards)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+}
+
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = boards)]
 pub struct BoardModel<'a> {
@@ -32,6 +68,7 @@ pub struct BoardModel<'a> {
     pub nsfw: bool,
 }
 
+//WARNING: DEPRACATED
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BoardSimple {
     pub handle: String,
@@ -39,3 +76,5 @@ pub struct BoardSimple {
     pub access_level: u8,
     pub nsfw: bool,
 }
+
+sql_function!(fn last_insert_id() -> Unsigned<Integer>);
