@@ -5,11 +5,14 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{
-    handlers::register::{template, RegisterTemplate}, 
-    models::users::AccessLevel, 
-    services::{authentication::resolve_user, users::register_user}
-};
+use crate::{models::users::AccessLevel, services::{applications::submit_application, authentication::resolve_user, users::register_user}, views::{application_view::{self, ApplicationTemplate}, register_view::{self, RegisterTemplate}}};
+
+
+pub async fn register() -> actix_web::Result<HttpResponse> {
+    register_view::render(RegisterTemplate {
+        errors: vec![],
+    }).await
+}
 
 #[derive(Serialize, Deserialize, Validate)]
 pub struct RegisterForm {
@@ -45,9 +48,9 @@ pub struct RegisterForm {
     pwd: String,
 }
 
-pub async fn handle_register(
+pub async fn handle_registration(
     user: Option<Identity>,
-    form: web::Form<RegisterForm>,
+    input: web::Form<RegisterForm>,
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
     req: HttpRequest,
 ) -> actix_web::Result<HttpResponse> {
@@ -60,7 +63,7 @@ pub async fn handle_register(
         return Ok(HttpResponse::Forbidden().finish())
     }
 
-    match form.validate() {
+    match input.validate() {
         Ok(_) => (),
         Err(e) => {
             let errors = e.field_errors()
@@ -69,24 +72,20 @@ pub async fn handle_register(
             .flat_map(|errors| errors)
             .collect();
 
-            let t = RegisterTemplate {
+            let template = RegisterTemplate {
                 errors,
             };
 
-            let body = template(t).unwrap();
-
-            return Ok(HttpResponse::Ok()
-            .content_type("text/html; charset=utf-8")
-            .body(body))
+            return register_view::render(template).await;
         },
     };
 
     let result = register_user(
         &conn_pool, 
         user_data.id, 
-        &form.username, 
-        &form.email, 
-        &form.pwd
+        &input.username, 
+        &input.email, 
+        &input.pwd
     ).await;
 
     match result {
@@ -95,19 +94,77 @@ pub async fn handle_register(
             diesel::result::Error::DatabaseError(e_type, _) => match e_type {
                 diesel::result::DatabaseErrorKind::UniqueViolation => 
                 {
-                    let t = RegisterTemplate {
+                    let template = RegisterTemplate {
                         errors: vec!["Käyttäjänimi tai sähköposti on jo olemassa!".to_string()]
                     };
 
-                    let body = template(t).unwrap();
-
-                    return Ok(HttpResponse::Ok()
-                    .content_type("text/html; charset=utf-8")
-                    .body(body))
+                    register_view::render(template).await
                 },
                 _ => Ok(HttpResponse::InternalServerError().finish()),
             },
             _ => Ok(HttpResponse::InternalServerError().finish()),
+        },
+    }
+}
+
+pub async fn application(
+    user: Option<Identity>,
+    req: HttpRequest,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+) -> actix_web::Result<HttpResponse> {
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    if user_data.access_level != AccessLevel::Registered as u8 {
+        return Ok(HttpResponse::Forbidden().finish())
+    }
+
+    application_view::render(ApplicationTemplate {
+        errors: vec![],
+    }).await
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApplicationForm {
+    background: String,
+    motivation: String,
+    other: String,
+}
+
+pub async fn handle_application(
+    user: Option<Identity>,
+    input: web::Form<ApplicationForm>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> actix_web::Result<HttpResponse> {
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    if user_data.access_level != AccessLevel::Registered as u8 {
+        return Ok(HttpResponse::Forbidden().finish())
+    }
+
+    let res = submit_application(
+        &conn_pool, 
+        user_data.id, 
+        &input.background, 
+        &input.motivation, 
+        &input.other
+    )
+    .await;
+
+    match res {
+        Ok(_) => Ok(HttpResponse::Found().append_header(("Location", "/")).finish()),
+        Err(_) => {
+            let template = ApplicationTemplate {
+                errors: vec!["Server error.".to_string()]
+            };
+    
+            application_view::render(template).await
         },
     }
 }
