@@ -5,11 +5,11 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use controllers::{admin_controller, application_controller, board_controller, captcha_controller, index_controller, user_controller};
+use controllers::{admin_controller, application_controller, board_controller, captcha_controller, file_controller, index_controller, post_controller, thread_controller, user_controller};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{files::{serve_files, serve_thumbnails}, forms::create_post::handle_post_creation, not_found::not_found_view, thread::thread_view};
 use services::users::update_root_user;
+use views::not_found_view;
 
 
 mod controllers {
@@ -17,7 +17,10 @@ mod controllers {
     pub mod application_controller;
     pub mod board_controller;
     pub mod captcha_controller;
+    pub mod file_controller;
     pub mod index_controller;
+    pub mod post_controller;
+    pub mod thread_controller;
     pub mod user_controller;
 }
 
@@ -29,7 +32,9 @@ mod views {
     pub mod board_view;
     pub mod index_view;
     pub mod login_view;
+    pub mod not_found_view;
     pub mod register_view;
+    pub mod thread_view;
 }
 
 mod database {
@@ -40,15 +45,6 @@ mod database {
     pub mod threads;
     pub mod files;
     pub mod posts;
-}
-
-mod handlers {
-    pub mod forms {
-        pub mod create_post;
-    }
-    pub mod files;
-    pub mod thread;
-    pub mod not_found;
 }
 
 mod models {
@@ -173,27 +169,27 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/{handle}")
                     .route(web::get().to(board_controller::board))
-                    .route(web::post().to(board_controller::handle_thread_creation))
+                    .route(web::post().to(thread_controller::handle_thread_creation))
             )
             .service(
                 web::resource("/{handle}/thread/{id}")
-                    .route(web::get().to(thread_view))
-                    .route(web::post().to(handle_post_creation))
+                    .route(web::get().to(thread_controller::thread))
+                    .route(web::post().to(post_controller::handle_post_creation))
             )
             .service(
                 web::resource("/files/{id}")
-                .route(web::get().to(serve_files))
+                .route(web::get().to(file_controller::serve_files))
             )
             .service(
                 web::resource("/thumbnails/{id}")
-                .route(web::get().to(serve_thumbnails))
+                .route(web::get().to(file_controller::serve_thumbnails))
             )
             .service(
                 Files::new("/static", "./static")
                     .show_files_listing()
                     .use_last_modified(true),
             )
-            .default_service(web::to(not_found_view))
+            .default_service(web::to(not_found_view::render))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
