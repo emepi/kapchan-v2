@@ -5,16 +5,18 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use controllers::{admin_controller, application_controller, index_controller, user_controller};
+use controllers::{admin_controller, application_controller, board_controller, captcha_controller, index_controller, user_controller};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{create_post::handle_post_creation, create_thread::handle_thread_creation}, not_found::not_found_view, thread::thread_view};
+use handlers::{files::{serve_files, serve_thumbnails}, forms::create_post::handle_post_creation, not_found::not_found_view, thread::thread_view};
 use services::users::update_root_user;
 
 
 mod controllers {
     pub mod admin_controller;
     pub mod application_controller;
+    pub mod board_controller;
+    pub mod captcha_controller;
     pub mod index_controller;
     pub mod user_controller;
 }
@@ -24,6 +26,7 @@ mod views {
     pub mod application_list_view;
     pub mod application_review_view;
     pub mod application_view;
+    pub mod board_view;
     pub mod index_view;
     pub mod login_view;
     pub mod register_view;
@@ -41,11 +44,8 @@ mod database {
 
 mod handlers {
     pub mod forms {
-        pub mod create_thread;
         pub mod create_post;
     }
-    pub mod board;
-    pub mod captcha;
     pub mod files;
     pub mod thread;
     pub mod not_found;
@@ -168,12 +168,12 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource("/captcha")
-                    .route(web::get().to(generate_captcha))
+                    .route(web::get().to(captcha_controller::captcha))
             )
             .service(
                 web::resource("/{handle}")
-                    .route(web::get().to(board_view))
-                    .route(web::post().to(handle_thread_creation))
+                    .route(web::get().to(board_controller::board))
+                    .route(web::post().to(board_controller::handle_thread_creation))
             )
             .service(
                 web::resource("/{handle}/thread/{id}")

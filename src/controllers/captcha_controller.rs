@@ -7,12 +7,12 @@ use crate::services::captchas::new_captcha;
 
 
 #[derive(Debug, Serialize)]
-struct CaptchaOutput {
+pub struct CaptchaOutput {
     pub id: u64,
     pub captcha: String,
 }
 
-pub async fn generate_captcha(
+pub async fn captcha(
     conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
     req: HttpRequest,
 ) -> impl Responder {
