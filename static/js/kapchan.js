@@ -76,3 +76,17 @@ const enlargeImage = (container_id, image_id) => {
         image_container.classList.replace("image-container-large", "image-container");
     }
 }
+
+const openMobileMenu = () => {
+  const mobileMenu = document.getElementById("m-m");
+  const mobileCanvas = document.getElementById("m-c");
+  mobileCanvas.style.display = "block";
+  mobileMenu.style.display = "flex";
+}
+
+const closeMobileMenu = () => {
+  const mobileMenu = document.getElementById("m-m");
+  const mobileCanvas = document.getElementById("m-c");
+  mobileCanvas.style.display = "none";
+  mobileMenu.style.display = "none";
+}
