@@ -98,7 +98,7 @@ body {
   align-items: center;
   gap: 15px;
   height: 30px;
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .svg-a {
@@ -120,6 +120,10 @@ body {
 .icon {
   height: 100%;
   width: auto;
+}
+
+.inactive {
+  color: var(--background);
 }
 
 .divider {
@@ -154,11 +158,10 @@ body {
 .content {
   grid-row: 2;
   color: white;
-  margin: 10px;
 }
 
 .footer {
-  grid-area: 3 / 1 / 4 / 1;
+  grid-row: 3;
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -204,6 +207,15 @@ body {
   gap: 10px;
   overflow-x: auto;
   width: calc(100vw - 20px);
+  padding: 0px 20px;
+  position: sticky;
+  top: 95px;
+}
+
+@media only screen and (max-width: 768px) {
+  .selector {
+    display: none;
+  }
 }
 
 .selector-btn--active,
@@ -216,12 +228,12 @@ body {
 
 .selector-btn {
   color: white;
-  background-color:#212121;
+  background-color:var(--surface);
   cursor: pointer;
 }
 
 .selector-btn--active {
-  color: #0f0f0f;
+  color: var(--background);
   background-color: white;
 }
 

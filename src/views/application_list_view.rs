@@ -1,13 +1,14 @@
 use actix_web::{error::InternalError, http::StatusCode, HttpResponse};
 use sailfish::TemplateOnce;
 
-use crate::models::applications::ApplicationPreview;
+use crate::models::{applications::ApplicationPreview, boards::Board};
 
 
 #[derive(TemplateOnce)]
 #[template(path = "pages/applications.stpl")]
 pub struct ApplicationListTemplate {
     pub access_level: u8,
+    pub boards: Vec<Board>,
     pub previews: Vec<ApplicationPreview>,
     pub pages: u64,
 }

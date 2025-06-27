@@ -149,8 +149,14 @@ pub async fn applications_list(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    let boards = match Board::list_all(&conn_pool).await {
+        Ok(boards) => boards,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
     application_list_view::render(ApplicationListTemplate {
         access_level: user_data.access_level,
+        boards,
         previews,
         pages,
     }).await
@@ -178,8 +184,14 @@ pub async fn application_review(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    let boards = match Board::list_all(&conn_pool).await {
+        Ok(boards) => boards,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
     application_review_view::render(ApplicationReviewTemplate {
         access_level: user_data.access_level,
+        boards,
         application,
     }).await
 }
