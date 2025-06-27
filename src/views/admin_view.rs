@@ -1,15 +1,19 @@
 use actix_web::{error::InternalError, http::StatusCode, HttpResponse};
 use sailfish::TemplateOnce;
 
+use crate::models::boards::Board;
+
 
 #[derive(TemplateOnce)]
-#[template(path = "login.stpl")]
-pub struct LoginTemplate {
+#[template(path = "pages/admin.stpl")]
+pub struct AdminTemplate {
+    pub access_level: u8,
     pub errors: Vec<String>,
+    pub boards: Vec<Board>,
 }
 
 pub async fn render(
-    template: LoginTemplate
+    template: AdminTemplate,
 ) -> actix_web::Result<HttpResponse> {
     let body = template
     .render_once()

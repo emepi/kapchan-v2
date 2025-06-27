@@ -5,20 +5,24 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use controllers::{application_controller, index_controller, user_controller};
+use controllers::{admin_controller, application_controller, index_controller, user_controller};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny}, not_found::not_found_view, thread::thread_view};
+use handlers::{board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{create_post::handle_post_creation, create_thread::handle_thread_creation}, not_found::not_found_view, thread::thread_view};
 use services::users::update_root_user;
 
 
 mod controllers {
+    pub mod admin_controller;
     pub mod application_controller;
     pub mod index_controller;
     pub mod user_controller;
 }
 
 mod views {
+    pub mod admin_view;
+    pub mod application_list_view;
+    pub mod application_review_view;
     pub mod application_view;
     pub mod index_view;
     pub mod login_view;
@@ -37,15 +41,9 @@ mod database {
 
 mod handlers {
     pub mod forms {
-        pub mod accept_application;
-        pub mod deny_application;
-        pub mod create_board;
         pub mod create_thread;
         pub mod create_post;
     }
-    pub mod admin;
-    pub mod applications;
-    pub mod application_review;
     pub mod board;
     pub mod captcha;
     pub mod files;
@@ -146,27 +144,27 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource("/admin")
-                    .route(web::get().to(admin_view))
+                    .route(web::get().to(admin_controller::admin))
             )
             .service(
                 web::resource("/applications/{page}")
-                    .route(web::get().to(applications_view))
+                    .route(web::get().to(admin_controller::applications_list))
             )
             .service(
                 web::resource("/application-review/{application_id}")
-                    .route(web::get().to(application_review_view))
+                    .route(web::get().to(admin_controller::application_review))
             )
             .service(
                 web::resource("/accept-application/{application_id}")
-                    .route(web::post().to(handle_application_accept))
+                    .route(web::post().to(admin_controller::handle_application_accept))
             )
             .service(
                 web::resource("/deny-application/{application_id}")
-                    .route(web::post().to(handle_application_deny))
+                    .route(web::post().to(admin_controller::handle_application_deny))
             )
             .service(
                 web::resource("/boards")
-                    .route(web::post().to(handle_board_creation))
+                    .route(web::post().to(admin_controller::handle_board_creation))
             )
             .service(
                 web::resource("/captcha")

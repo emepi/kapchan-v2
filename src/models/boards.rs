@@ -68,6 +68,34 @@ pub struct BoardModel<'a> {
     pub nsfw: bool,
 }
 
+impl BoardModel<'_> {
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Board, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(boards::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let application = boards::table
+                    .find(last_insert_id())
+                    .first::<Board>(conn)
+                    .await?;
+            
+                    Ok(application)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+}
+
 //WARNING: DEPRACATED
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BoardSimple {
