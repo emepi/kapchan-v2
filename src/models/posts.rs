@@ -41,6 +41,57 @@ pub struct Post {
 }
 
 impl Post {
+    pub async fn insert_post_by_thread_id(
+        thread_id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        input: PostInput,
+    ) -> Result<Post, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let _ = diesel::insert_into(posts::table)
+                    .values(PostModel {
+                        user_id: input.user_id,
+                        thread_id,
+                        show_username: input.show_username,
+                        message: &input.message,
+                        message_hash: &input.message_hash,
+                        country_code: input.country_code.as_deref(),
+                        access_level: input.access_level,
+                        sage: input.sage,
+                        mod_note: input.mod_note.as_deref(),
+                    })
+                    .execute(conn)
+                    .await?;
+
+                    let new_post = posts::table
+                    .find(last_insert_id())
+                    .first::<Post>(conn)
+                    .await?;
+
+                    let replies: Vec<ReplyModel> = input.reply_ids
+                    .iter()
+                    .map(|reply_id| ReplyModel {
+                        post_id: *reply_id,
+                        reply_id: new_post.id,
+                    })
+                    .collect();
+
+                    let _ = diesel::insert_into(replies::table)
+                    .values(replies)
+                    .execute(conn)
+                    .await?;
+                
+                    Ok(new_post)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn latest_posts_preview(
         conn_pool: &Pool<AsyncMysqlConnection>,
         access_level: u8,
@@ -108,6 +159,29 @@ pub struct Attachment {
     pub thumbnail_location: String,
 }
 
+impl Attachment {
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Attachment, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let attachment = attachments::table
+                    .find(id)
+                    .first::<Attachment>(conn)
+                    .await?;
+        
+                    Ok(attachment)
+                }.scope_boxed())
+                .await
+            },
+    
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+}
+
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = attachments)]
 pub struct AttachmentModel<'a> {
@@ -119,6 +193,34 @@ pub struct AttachmentModel<'a> {
     pub file_type: &'a str,
     pub file_location: &'a str,
     pub thumbnail_location: &'a str,
+}
+
+impl AttachmentModel<'_> {
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Attachment, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(attachments::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let attachment = attachments::table
+                    .find(self.id)
+                    .first::<Attachment>(conn)
+                    .await?;
+            
+                    Ok(attachment)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Associations, Serialize, Deserialize, Clone, PartialEq)]
@@ -175,3 +277,5 @@ pub struct PostPreview {
     pub board_name: String,
     pub message: String,
 }
+
+sql_function!(fn last_insert_id() -> Unsigned<Integer>);

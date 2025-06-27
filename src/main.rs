@@ -37,16 +37,6 @@ mod views {
     pub mod thread_view;
 }
 
-mod database {
-    pub mod applications;
-    pub mod boards;
-    pub mod captchas;
-    pub mod users;
-    pub mod threads;
-    pub mod files;
-    pub mod posts;
-}
-
 mod models {
     pub mod applications;
     pub mod boards;

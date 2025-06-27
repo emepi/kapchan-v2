@@ -34,6 +34,28 @@ pub struct Board {
 }
 
 impl Board {
+    pub async fn by_handle(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        hdl: &String,
+    ) -> Result<Board, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let board = boards::table
+                    .filter(boards::handle.eq(hdl))
+                    .select(Board::as_select())
+                    .first(conn)
+                    .await?;
+            
+                    Ok(board)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn list_all(
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<Vec<Board>, Error> {
@@ -94,15 +116,6 @@ impl BoardModel<'_> {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
-}
-
-//WARNING: DEPRACATED
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BoardSimple {
-    pub handle: String,
-    pub title: String,
-    pub access_level: u8,
-    pub nsfw: bool,
 }
 
 sql_function!(fn last_insert_id() -> Unsigned<Integer>);
