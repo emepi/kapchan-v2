@@ -24,7 +24,6 @@ body {
   display: grid;
   grid-template-rows: min-content 1fr min-content;
   background-color: var(--background);
-  height: 100vh;
   font-family: Exo2;
 }
 
@@ -44,6 +43,7 @@ body {
   grid-area: 2 / 1 / 3 / 1;
   color: white;
   margin: 10px;
+  min-height: 100vh;
 }
 
 .footer {

@@ -5,19 +5,21 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use controllers::index_controller;
+use controllers::{index_controller, user_controller};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
-use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, login::handle_login, logout::handle_logout, register::handle_register}, login::login_view, not_found::not_found_view, register::register_view, thread::thread_view};
+use handlers::{admin::admin_view, application_review::application_review_view, applications::applications_view, apply::application_view, board::board_view, captcha::generate_captcha, files::{serve_files, serve_thumbnails}, forms::{accept_application::handle_application_accept, apply::handle_application, create_board::handle_board_creation, create_post::handle_post_creation, create_thread::handle_thread_creation, deny_application::handle_application_deny, register::handle_register}, not_found::not_found_view, register::register_view, thread::thread_view};
 use services::users::update_root_user;
 
 
 mod controllers {
     pub mod index_controller;
+    pub mod user_controller;
 }
 
 mod views {
     pub mod index_view;
+    pub mod login_view;
 }
 
 mod database {
@@ -35,8 +37,6 @@ mod handlers {
         pub mod accept_application;
         pub mod deny_application;
         pub mod apply;
-        pub mod login;
-        pub mod logout;
         pub mod register;
         pub mod create_board;
         pub mod create_thread;
@@ -49,7 +49,6 @@ mod handlers {
     pub mod captcha;
     pub mod apply;
     pub mod files;
-    pub mod login;
     pub mod register;
     pub mod thread;
     pub mod not_found;
@@ -129,12 +128,12 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource("/login")
-                    .route(web::get().to(login_view))
-                    .route(web::post().to(handle_login))
+                    .route(web::get().to(user_controller::login))
+                    .route(web::post().to(user_controller::handle_login))
             )
             .service(
                 web::resource("/logout")
-                    .route(web::post().to(handle_logout))
+                    .route(web::post().to(user_controller::handle_logout))
             )
             .service(
                 web::resource("/register")
