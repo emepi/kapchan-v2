@@ -2,14 +2,29 @@
 <main class="content">
   <div class="board-selector">
   <nav class="selector">
-    <a href="/" class="selector-btn">Etusivu</a>
+    <button onClick="location.href = '/'" class="selector-btn">Etusivu</button>
     <% for board in self.boards { %>
       <% if board.access_level > self.access_level { %>
-        <a class="selector-btn--inactive"><%= board.title %></a>
+        <button class="selector-btn--inactive">
+          <%= board.title %>
+          <% if board.nsfw { %>
+          <span class="nsfw-marker">nsfw</span>
+          <% } %>
+        </button>
       <% } else if board.handle == self.current_board.handle { %>
-        <a href="/<%= board.handle %>" class="selector-btn--active"><%= board.title %></a>
+        <button onClick="location.href = '/<%= board.handle %>'" class="selector-btn--active">
+          <%= board.title %>
+          <% if board.nsfw { %>
+          <span class="nsfw-marker">nsfw</span>
+          <% } %>
+        </button>
       <% } else { %>
-        <a href="/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
+        <button onClick="location.href = '/<%= board.handle %>'" class="selector-btn">
+          <%= board.title %>
+          <% if board.nsfw { %>
+          <span class="nsfw-marker">nsfw</span>
+          <% } %>
+        </button>
       <% } %>
     <% } %>
   </nav>
