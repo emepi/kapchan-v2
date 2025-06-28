@@ -1,4 +1,5 @@
 <footer class="footer">
   <a>säännöt</a>
+  <div class="divider"></div>
   <a>info</a>
 </footer>

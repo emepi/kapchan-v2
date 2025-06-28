@@ -1,17 +1,27 @@
 <% include!("./layouts/kapchan.stpl"); %>
 <main class="content">
   <nav class="selector">
-    <a href="/" class="selector-btn--active">Etusivu</a>
+    <button onClick="location.href = '/'" class="selector-btn--active">Etusivu</button>
     <% for board in self.boards { %>
       <% if board.access_level > self.access_level { %>
-        <a class="selector-btn--inactive"><%= board.title %></a>
+        <button class="selector-btn--inactive">
+          <%= board.title %>
+          <% if board.nsfw { %>
+          <span class="nsfw-marker">nsfw</span>
+          <% } %>
+        </button>
       <% } else { %>
-        <a href="/<%= board.handle %>" class="selector-btn"><%= board.title %></a>
+        <button onClick="location.href = '/<%= board.handle %>'" class="selector-btn">
+          <%= board.title %>
+          <% if board.nsfw { %>
+          <span class="nsfw-marker">nsfw</span>
+          <% } %>
+        </button>
       <% } %>
     <% } %>
   </nav>
   <div class="index">
-    <img src="/static/img/logo.png" alt="Kapchan logo" class="logo">
+    <img src="/static/img/kassi.jpg" alt="Kapchan logo" class="logo">
     <h2>Avaruuskapakka</h2>
     <div class="card card-index">
       <p>Kapakka on kuvalauta ja chat syrjäytyneille ja muille normaalista poikkeaville. <br>Sisäänkirjautuneena pääset useammalle alueelle ja saat muita ominaisuuksia käyttöösi.</p>
