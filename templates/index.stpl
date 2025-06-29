@@ -1,5 +1,6 @@
 <% include!("./layouts/kapchan.stpl"); %>
 <main class="content">
+  <div class="board-selector">
   <nav class="selector">
     <button onClick="location.href = '/'" class="selector-btn--active">Etusivu</button>
     <% for board in self.boards { %>
@@ -20,6 +21,7 @@
       <% } %>
     <% } %>
   </nav>
+  </div>
   <div class="index">
     <img src="/static/img/kassi.jpg" alt="Kapchan logo" class="logo">
     <h2 class="sub-header">Avaruuskapakka</h2>

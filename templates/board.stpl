@@ -28,30 +28,38 @@
       <% } %>
     <% } %>
   </nav>
-  <a class="selector-btn" onclick="openPosting()">Luo lanka</a> 
+  <a class="selector-btn post-btn" onclick="openPosting()">Luo lanka</a> 
   </div>
 
   <div class="board-head">
     <div class="board-head-container">
-    <h2><%= self.current_board.title %></h2>
-    <p><%= self.current_board.description %></p>
+      <h2><%= self.current_board.title %></h2>
+      <p><%= self.current_board.description %></p>
     </div>
   </div>
 
   <div class="catalog">
   <% for thread in self.threads { %>
   <div class="post" id="p<%= thread.op_post.id %>">
-  <a href="/<%= self.current_board.handle %>/thread/<%= thread.id %>">
-  <div class="image-container">
-  <% if thread.op_post.attachment.clone().is_some() && thread.op_post.attachment.clone().unwrap().file_type == "image" { %>
-    <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>" class="post-img">
-  <% } %>
-  </div>
+    <a href="/<%= self.current_board.handle %>/thread/<%= thread.id %>">
+      <div class="image-container">
+      <% if thread.op_post.attachment.clone().is_some() && thread.op_post.attachment.clone().unwrap().file_type == "image" { %>
+      <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.clone().unwrap().id %>" class="post-img">
+      <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>" class="post-bg-img">
+     <% } %>
+    </div>
   </a>
     <div class="post-body">
-      <p class="post-rply">Vastuksia: <%= thread.replies %></p>
-      <p class="post-title"><b><%= thread.title %></b></p>
-      <p class="post-msg"><%= thread.op_post.message %></p>
+      <div class="post-body-text">
+        <p class="post-title"><b><%= thread.title %></b></p>
+        <p class="post-msg"><%= thread.op_post.message %></p>
+      </div>
+      <div class="post-body-info">
+        <svg class="icon" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="M760-200v-160q0-50-35-85t-85-35H273l144 144-57 56-240-240 240-240 57 56-144 144h367q83 0 141.5 58.5T840-360v160h-80Z"/>
+        </svg>
+        <%= thread.replies %>
+      </div>
     </div>
   </div>
   <% } %>

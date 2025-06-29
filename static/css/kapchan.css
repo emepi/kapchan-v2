@@ -196,12 +196,12 @@ body {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  width: calc(100vw - 20px);
-  padding: 10px 20px;
+  padding: 10px 0px;
   scrollbar-width: none;
-  mask-image: linear-gradient(90deg, #000 90%, transparent);
   user-select: none;
   z-index: 1;
+  width: 100%;
+  mask-image: linear-gradient(90deg, #000 90%, transparent);
 }
 
 .selector-btn--active,
@@ -293,7 +293,146 @@ body {
   }
 }
 
-/**/
+/*------------------------------- board.stpl ---------------------------------*/
+
+.board-selector {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100vw;
+  padding: 0px 20px
+}
+
+.post-btn {
+  margin: 10px 0px;
+}
+
+.board-head {
+  display: flex;
+  padding: 0px 20px
+}
+
+.board-head-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--on-surface);
+  background-color: var(--surface);
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  width: calc(100vw - 40px);
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  padding: 10px 20px;
+}
+
+.post {
+  background-color: var(--surface);
+  padding: 10px;
+  width: 100%;
+  border-radius: 5px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  min-width: 0;
+}
+
+.post-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 115px;
+}
+
+.post-body-info {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  color: var(--primary);
+  font-size: 14px;
+}
+
+.post-rply {
+  font-size: small;
+  color: gray;
+}
+
+.post-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--on-surface);
+  margin-top: 5px;
+}
+
+.post-msg {
+  overflow: hidden;
+  white-space: pre-line;
+  word-break: break-word;
+  color: var(--on-surface);
+  font-size: 14px;
+  max-height: 70px;
+}
+
+.image-container {
+  display: grid;
+  width: 100%;
+  height: 140px;
+  border-radius: 5px;
+  overflow:hidden;
+}
+
+.post-img {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  grid-column-start: 1;
+  grid-row-start: 1;
+  z-index: 2;
+}
+
+.post-bg-img {
+  width: 100%;
+  height: 140px;
+  grid-column-start: 1;
+  grid-row-start: 1;
+  object-fit: cover;
+  filter: blur(8px);
+  z-index: 1;
+}
+
+@media only screen and (max-width: 768px) {
+  .board-head,
+  .board-selector {
+    padding: 0px 15px
+  }
+
+  .board-head-container {
+    width: calc(100vw - 30px);
+  }
+
+  .catalog {
+    padding: 10px 15px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media only screen and (min-width: 768px) and (max-width: 1200px) {
+  .catalog {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media only screen and (min-width: 1200px) and (max-width: 1600px) {
+  .catalog {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
 
 .application-list {
   padding: 10px;
@@ -314,13 +453,6 @@ body {
 .pages {
   display: flex;
   gap: 5px;
-}
-
-.board-selector {
-  display: flex;
-  justify-content: space-between;
-  width: calc(100vw - 20px);
-  gap: 20px;
 }
 
 #posting-screen {
@@ -380,74 +512,6 @@ body {
 
 .posting-submit-btn {
   grid-area: 5 / 2 / 6 / 3;
-}
-
-.board-head {
-  display: flex;
-  justify-content: center;
-  background-color: #212121;
-  border-radius: 7px;
-  margin-top: 10px;
-  padding: 10px;
-}
-
-.board-head-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.catalog {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-  justify-content: center;
-}
-
-.post {
-  background-color: #212121;
-  padding: 10px;
-  width: 160px;
-}
-
-.post-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 95px;
-}
-
-.post-rply {
-  font-size: small;
-  color: gray;
-}
-
-.post-title {
-  word-break: break-word;
-  overflow: hidden;
-  padding: 5px;
-}
-
-.post-msg {
-  overflow: hidden;
-  white-space: pre-line;
-  word-break: break-word;
-}
-
-.image-container {
-  width: 140px;
-  height: 140px;
-}
-
-.image-container-large {
-  
-}
-
-.post-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
 }
 
 .thread {
