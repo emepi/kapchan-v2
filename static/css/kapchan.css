@@ -350,10 +350,15 @@ body {
 
 .post-body-info {
   display: flex;
-  gap: 3px;
-  height: 14px;
+  justify-content: space-between;
+  height: 17px;
   color: var(--primary);
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.replies {
+  display: flex;
+  gap: 3px;
 }
 
 .post-rply {
@@ -393,6 +398,19 @@ body {
   grid-column-start: 1;
   grid-row-start: 1;
   z-index: 2;
+}
+
+.no-img {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-primary);
+  grid-column-start: 1;
+  grid-row-start: 1;
+  z-index: 3;
+  background-color: var(--background);
+  color: var(--primary)
 }
 
 .post-bg-img {

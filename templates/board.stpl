@@ -46,6 +46,8 @@
       <% if thread.op_post.attachment.clone().is_some() && thread.op_post.attachment.clone().unwrap().file_type == "image" { %>
       <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.clone().unwrap().id %>" class="post-img">
       <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>" class="post-bg-img">
+     <% } else {%>
+       <p class="no-img">Ei kuvaa</p>
      <% } %>
     </div>
   </a>
@@ -55,10 +57,15 @@
         <p class="post-msg"><%= thread.op_post.message %></p>
       </div>
       <div class="post-body-info">
+        <div class="replies">
         <svg class="icon" viewBox="0 -960 960 960">
           <path fill="currentColor" d="M760-200v-160q0-50-35-85t-85-35H273l144 144-57 56-240-240 240-240 57 56-144 144h367q83 0 141.5 58.5T840-360v160h-80Z"/>
         </svg>
         <%= thread.replies %>
+        </div>
+        <svg class="icon" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="M240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400Z"/>
+        </svg>
       </div>
     </div>
   </div>
