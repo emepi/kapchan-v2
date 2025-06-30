@@ -36,7 +36,7 @@
     <h2 class="sub-header">Viimeisimmät Postaukset</h2>
     <div class="card card-index">
       <% for post in self.latest_posts { %>
-        <p class="post-preview"><span class="board-n"><b><%= post.board_name %></b></span>: <a href="/<%= post.board_handle %>/thread/<%= post.thread_id %>#p<%= post.post_id %>"><%= post.message %></a></p>
+        <p class="post-preview"><span class="board-n"><b><%= post.board_name %></b></span>: <a class="msg-lbl" href="/<%= post.board_handle %>/thread/<%= post.thread_id %>#p<%= post.post_id %>"><%= post.message %></a></p>
       <% } %>
     </div>
   </div>

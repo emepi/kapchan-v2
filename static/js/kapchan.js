@@ -139,4 +139,30 @@ document.addEventListener("DOMContentLoaded", (event) => {
     slider.addEventListener('mouseup', stopDragging, false);
     slider.addEventListener('mouseleave', stopDragging, false);
   }
+
+  document.querySelectorAll(".msg-lbl").forEach((msg) => {
+    let text = msg.textContent;
+
+    //Regex strings
+	let find = [
+		/<(.*?)>/g,
+		/\[spoiler\](.*?)\[\/spoiler\]/g,
+		/>([^\r\n]+)/gi,
+        /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
+	];
+
+	//Regex string replacements
+	let replace = [
+		'',
+		'<span class="spoiler">$1</span>',
+		' <span class="implying">&gt;$1</span>',
+        '<a href="$1">$1</a>',
+	];
+
+    for (let i =0; i < find.length; i++) {
+		text = text.replace(find[i], replace[i]);
+	}
+
+    msg.innerHTML = text;
+  })
 });

@@ -62,7 +62,7 @@
         <% } %>
         <div class="thread-post-body">
           <div class="thread-post-message">
-            <p class="post-message"><%= postdata.post.message %></p>
+            <p class="post-message msg-lbl"><%= postdata.post.message %></p>
           </div>
         </div>
       </div>

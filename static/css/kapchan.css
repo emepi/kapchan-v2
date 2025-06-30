@@ -747,3 +747,7 @@ body {
   flex-direction: column;
   gap: 10px;
 }
+
+.implying {
+  color: green;
+}
