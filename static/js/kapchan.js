@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
 	//Regex string replacements
 	let replace = [
-		'',
+		'&lt;$1&gt;',
 		'<span class="spoiler">$1</span>',
 		' <span class="implying">&gt;$1</span>',
         '<a href="$1">$1</a>',
