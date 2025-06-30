@@ -145,7 +145,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     //Regex strings
 	let find = [
+        /&/g,
 		/<(.*?)>/g,
+        />>(\d+)/g,
 		/\[spoiler\](.*?)\[\/spoiler\]/g,
 		/>([^\r\n]+)/gi,
         /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
@@ -153,7 +155,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
 	//Regex string replacements
 	let replace = [
+        '&amp;',
 		'&lt;$1&gt;',
+        '<span class="backlink">&gt;$1</span>',
 		'<span class="spoiler">$1</span>',
 		' <span class="implying">&gt;$1</span>',
         '<a href="$1">$1</a>',

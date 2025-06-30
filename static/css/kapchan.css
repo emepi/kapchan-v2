@@ -751,3 +751,7 @@ body {
 .implying {
   color: green;
 }
+
+.backlink {
+  color: var(--primary);
+}
