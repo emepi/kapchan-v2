@@ -487,6 +487,10 @@ body {
   font-size: 15px;
 }
 
+.posting-captcha-container {
+  width: 250px;
+}
+
 .posting-captcha-btn {
   width: calc(100% - 10px);
   color: var(--on-primary);
