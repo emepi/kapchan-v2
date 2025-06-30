@@ -22,6 +22,12 @@ a, button {
   cursor: pointer;
 }
 
+img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 body {
   display: grid;
   grid-template-rows: min-content 1fr min-content;
@@ -204,6 +210,7 @@ body {
   mask-image: linear-gradient(90deg, #000 90%, transparent);
 }
 
+.reply-btn,
 .selector-btn--active,
 .selector-btn--inactive,
 .selector-btn {
@@ -212,6 +219,7 @@ body {
   border-radius: 7px;
 }
 
+.reply-btn,
 .selector-btn {
   display: flex;
   align-items: center;
@@ -303,6 +311,7 @@ body {
   padding: 0px 20px
 }
 
+.reply-btn,
 .post-btn {
   margin: 10px 0px;
 }
@@ -588,40 +597,34 @@ body {
   }
 }
 
-
-.application-list {
-  padding: 10px;
-  background-color:#212121;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  border-radius: 7px;
-}
-
-.application-preview {
-  display: flex;
-  gap: 10px;
-  border-bottom: 1px solid white;
-  color: white;
-}
-
-.pages {
-  display: flex;
-  gap: 5px;
-}
+/*------------------------------- thread.stpl --------------------------------*/
 
 .thread {
   display: flex;
   flex-direction: column;
   margin-top: 10px;
   gap: 10px;
+  padding: 0px 20px;
 }
 
 .thread-post {
   display: flex;
   flex-direction: column;
-  background-color: #212121;
+  color: var(--on-surface);
+  background-color: var(--surface);
   padding: 10px;
+  border-radius: 5px;
+  gap: 5px;
+}
+
+.post-id,
+.username {
+  color: var(--primary);
+}
+
+.post-message {
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .thread-post-file-info {
@@ -644,19 +647,68 @@ body {
   flex-direction: column;
 }
 
-.thread-post-message {
-  padding: 5px;
-}
-
-.post-message {
-  white-space: pre-line;
-  word-break: break-word;
+.thread-post-file {
+  margin-right: 5px;
 }
 
 .reply {
-  background-color: #212121;
+  color: var(--on-surface);
+  background-color: var(--surface);
   padding: 10px;
-  margin-top: 10px;
+  margin: 10px 20px;
+  border-radius: 5px;
+}
+
+.reply-text {
+  width: 100%;
+  resize: vertical;
+  font-size: 15px;
+}
+
+.thumbnail {
+  width: 300px;
+  max-width: calc(100vw - 65px);
+}
+
+.image-container-large {
+  max-width: calc(100vw - 65px);
+}
+
+@media only screen and (max-width: 768px) {
+  .thread {
+    padding: 0px 15px;
+  }
+
+  .reply {
+    margin: 10px 15px;
+  }
+
+  .thumbnail,
+  .image-container-large {
+    max-width: calc(100vw - 55px);
+  }
+}
+
+
+.application-list {
+  padding: 10px;
+  background-color:#212121;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 7px;
+}
+
+.application-preview {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid white;
+  color: white;
+}
+
+.pages {
+  display: flex;
+  gap: 5px;
 }
 
 .reply-form {
@@ -668,11 +720,6 @@ body {
 .reply-form-btm {
   display: flex;
   justify-content: space-between;
-}
-
-.reply-text {
-  width: 100%;
-  resize: vertical;
 }
 
 .err-container {

@@ -2,6 +2,10 @@ const kapchanState = {
     current_captcha: 0,
 };
 
+const scrollToBottom = () => {
+  window.scrollTo(0, document.body.scrollHeight);
+};
+
 const logout = (event) => {
     fetch(new Request("/logout", {
             method: "POST",
@@ -71,12 +75,13 @@ const submitPost = () => {
 
 const enlargeImage = (container_id, image_id) => {
     const image_container = document.getElementById(container_id);
-    image_container.children[0].src = "/files/" + image_id;
 
-    if (image_container.classList.contains("image-container")) {
-        image_container.classList.replace("image-container", "image-container-large");
+    if (image_container.classList.contains("thumbnail")) {
+        image_container.children[0].src = "/files/" + image_id;
+        image_container.classList.replace("thumbnail", "image-container-large");
     } else {
-        image_container.classList.replace("image-container-large", "image-container");
+        image_container.classList.replace("image-container-large", "thumbnail");
+        image_container.children[0].src = "/thumbnails/" + image_id;
     }
 }
 
