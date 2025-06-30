@@ -21,7 +21,10 @@ const closePosting = () => {
 }
 
 const fetchCaptcha = () => {
+    const c = document.getElementById("captcha");
     const cc = document.getElementById("captcha-container");
+
+    c.style.display = "grid";
 
     fetch(new Request("/captcha", {
             method: "GET",
@@ -98,6 +101,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
   let startX, scrollLeft;
   const slider = document.querySelector('.selector');
 
+  const filePicker = document.getElementById('file-picker');
+  const fileChosen = document.getElementById('file-chosen');
+
+  if (filePicker && fileChosen) {
+    filePicker.addEventListener('change', () => {
+        fileChosen.textContent = filePicker.files[0].name;
+    });
+  }
+
   const startDragging = (e) => {
     mouseDown = true;
     startX = e.pageX - slider.offsetLeft;
@@ -116,7 +128,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     slider.scrollLeft = scrollLeft - scroll;
   }
 
-  if (!supportsTouch) {
+  if (!supportsTouch && slider) {
     slider.addEventListener('mousemove', move, false);
     slider.addEventListener('mousedown', startDragging, false);
     slider.addEventListener('mouseup', stopDragging, false);

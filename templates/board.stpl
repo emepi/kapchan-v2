@@ -77,22 +77,44 @@
       <div class="posting-modal">
         <header class="modal-head">
           <h3>Luo uusi lanka</h3>
-          <a class="svg-a" onClick="closePosting()">
-            <svg height="24" viewBox="0 -960 960 960" width="24"><path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
-          </a>
+          <svg class="icon hoverable" onClick="closePosting()" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+          </svg>
         </header>
         <div class="err-container" id="err-container"></div>
         <form class="posting-form" id="posting-form">
-          <input type="text" name="topic" class="posting-topic">
-          <textarea name="message" class="posting-message" rows="10" cols="30"></textarea>
+          <input type="text" placeholder="Aihe" name="topic" class="posting-topic">
+
+          <textarea name="message" class="posting-message"></textarea>
           <% if self.current_board.captcha { %>
-          <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">Hae captcha</button>
-          <input type="text" name="captcha" class="posting-captcha">
-          <div id="captcha-container" class="posting-captcha-container">
+          <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">
+            <svg class="icon" viewBox="0 -960 960 960">
+              <path fill="currentColor" d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/>
+            </svg>
+            Hae captcha
+          </button>
+          <div id="captcha" hidden>
+            <div id="captcha-container" class="posting-captcha-container"></div>
+            <input type="text" name="captcha" placeholder="Captcha" class="posting-captcha">
           </div>
           <% } %>
-          <input type="file" name="attachment" class="posting-file">
-          <button type="button" class="posting-submit-btn" onClick="submitPost()">Lähetä</button> 
+
+          <div class="modal-bottom">
+            <div class="file-picker-container">
+              <input type="file" name="attachment" id="file-picker" hidden>
+              <label for="file-picker">
+                <svg class="icon hoverable" viewBox="0 -960 960 960">
+                  <path fill="currentColor" d="M720-330q0 104-73 177T470-80q-104 0-177-73t-73-177v-370q0-75 52.5-127.5T400-880q75 0 127.5 52.5T580-700v350q0 46-32 78t-78 32q-46 0-78-32t-32-78v-370h80v370q0 13 8.5 21.5T470-320q13 0 21.5-8.5T500-350v-350q-1-42-29.5-71T400-800q-42 0-71 29t-29 71v370q-1 71 49 120.5T470-160q70 0 119-49.5T640-330v-390h80v390Z"/>
+                </svg>
+              </label>
+              <div class="file-chooser-text">
+                <span id="file-chosen">Ei tiedostoa valittuna.</span>
+              </div>
+            </div>
+            <svg onClick="submitPost()" class="icon hoverable" viewBox="0 -960 960 960">
+              <path fill="currentColor" d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/>
+            </svg>
+          </div>
         </form>
       </div>
     </div>
