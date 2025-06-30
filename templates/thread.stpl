@@ -66,7 +66,7 @@
           </div>
         </div>
       </div>
-      <p><% if postdata.replies.len() > 0 { %>Vastaukset: <% } %><% for reply in postdata.replies { %><span class="backlink">>><%= reply %></span><% } %></p>
+      <p class="msg-lbl"><% if postdata.replies.len() > 0 { %>Vastaukset: <% } %><% for reply in postdata.replies { %> >><%= reply %> <% } %></p>
     </div>
   <% } %>
   </div>

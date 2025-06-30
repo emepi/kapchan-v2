@@ -2,6 +2,14 @@ const kapchanState = {
     current_captcha: 0,
 };
 
+const showPost = (id) => {
+  console.log(id); //TODO
+}
+
+const hintPost = (id) => {
+  console.log(id); //TODO
+}
+
 const scrollToBottom = () => {
   window.scrollTo(0, document.body.scrollHeight);
 };
@@ -147,9 +155,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 	let find = [
         /&/g,
 		/<(.*?)>/g,
+        /^(?=>[^>])>([^\r\n]+)/gm,
         />>(\d+)/g,
 		/\[spoiler\](.*?)\[\/spoiler\]/g,
-		/>([^\r\n]+)/gi,
         /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
 	];
 
@@ -157,14 +165,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
 	let replace = [
         '&amp;',
 		'&lt;$1&gt;',
-        '<span class="backlink">&gt;$1</span>',
+        '<span class="implying">&gt;$1</span>',
+        '<span class="backlink" onClick="showPost($1)" onmouseenter="hintPost($1)">&gt;&gt;$1</span>',
 		'<span class="spoiler">$1</span>',
-		' <span class="implying">&gt;$1</span>',
         '<a href="$1">$1</a>',
 	];
 
     for (let i =0; i < find.length; i++) {
-		text = text.replace(find[i], replace[i]);
+	  text = text.replace(find[i], replace[i]);
 	}
 
     msg.innerHTML = text;
