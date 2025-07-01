@@ -96,6 +96,16 @@ pub async fn handle_post_creation(
         current_board.access_level
     ).await {
         Ok(_) => HttpResponse::Created().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            match e {
+                diesel::result::Error::DatabaseError(database_error_kind, _) => match database_error_kind {
+                    diesel::result::DatabaseErrorKind::ForeignKeyViolation => return HttpResponse::Forbidden().json(UserError {
+                        error: "Et voi vastata viestiin, jota ei ole olemassa!".to_owned(),
+                    }),
+                    _ => return HttpResponse::InternalServerError().finish(),
+                },
+                _ => return HttpResponse::InternalServerError().finish(),
+            }
+        },
     }
 }
