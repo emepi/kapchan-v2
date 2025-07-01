@@ -36,9 +36,9 @@
     <% } %>
     </div>
     <h3>Oletko kokenut syrjäytymistä tai eriarvoisuutta?:</h3>
-    <p class="application-expl"><span class="access-level-marker"><%= self.application.motivation %></span></p>
-    <h3>Miksi haluat liittyä kapakkaan?:</h3>
     <p class="application-expl"><span class="access-level-marker"><%= self.application.background %></span></p>
+    <h3>Miksi haluat liittyä kapakkaan?:</h3>
+    <p class="application-expl"><span class="access-level-marker"><%= self.application.motivation %></span></p>
     <h3>Muuta:</h3>
     <p class="application-expl"><span class="access-level-marker"><%= self.application.other %></span></p>
     <% if self.application.closed_at.is_none() { %>
