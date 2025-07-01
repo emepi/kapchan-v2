@@ -1,0 +1,30 @@
+<html>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/static/css/kapchan.css">
+  <body>
+  <div class="login-container">
+    <div class="register-box">
+      <div class="register-title-container">
+        <div class="register-title-sub">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M240-160q-33 0-56.5-23.5T160-240q0-33 23.5-56.5T240-320q33 0 56.5 23.5T320-240q0 33-23.5 56.5T240-160Zm0-240q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm0-240q-33 0-56.5-23.5T160-720q0-33 23.5-56.5T240-800q33 0 56.5 23.5T320-720q0 33-23.5 56.5T240-640Zm240 0q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Zm240 0q-33 0-56.5-23.5T640-720q0-33 23.5-56.5T720-800q33 0 56.5 23.5T800-720q0 33-23.5 56.5T720-640ZM480-400q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm40 240v-123l221-220q9-9 20-13t22-4q12 0 23 4.5t20 13.5l37 37q8 9 12.5 20t4.5 22q0 11-4 22.5T863-380L643-160H520Zm300-263-37-37 37 37ZM580-220h38l121-122-18-19-19-18-122 121v38Zm141-141-19-18 37 37-18-19Z"/>
+          </svg>
+          <h1 class="register-title">Hakemus</h1>
+        </div>
+        <h1 class="register-title">2/2</h1>
+      </div>
+    <% for error in self.errors { %>
+      <p><%= error %></p>
+    <% } %>
+    <p class="application-exp">Oletko hikky? Kerro tilanteestasi vapaamuotoisesti. Voit palata hakemuksen tekemiseen myöhemmin, tai jättää uuden hakemuksen, jos aiempi hakemuksesi hylätään.</p>
+    <form action=/apply method=POST class="login-form">
+      <label class="application-lbl" for="background">Oletko kokenut syrjäytymistä tai eriarvoisuutta?:</label>
+      <textarea name="background" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <label class="application-lbl" for="motivation">Miksi haluat liittyä kapakkaan?: <span class="optional">(vaihtoehtoinen)</span></label>
+      <textarea name="motivation" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <label class="application-lbl" for="other">Muuta: <span class="optional">(vaihtoehtoinen)</span></label>
+      <textarea name="other" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <button class="register-btn" type=submit>Lähetä</button>
+    </form>
+    </div>
+  </div>

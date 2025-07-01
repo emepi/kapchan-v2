@@ -766,6 +766,22 @@ body {
   align-items: center;
 }
 
+/*------------------------------- apply.stpl ---------------------------------*/
+
+.application-lbl {
+  color: var(--on-surface);
+}
+
+.optional {
+  color: var(--primary);
+  font-size: 12px;
+}
+
+.application-exp {
+  color: gray;
+  margin-bottom: 20px;
+}
+
 .application-list {
   padding: 10px;
   background-color:#212121;

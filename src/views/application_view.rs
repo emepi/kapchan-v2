@@ -3,7 +3,7 @@ use sailfish::TemplateOnce;
 
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/apply.stpl")]
+#[template(path = "apply.stpl")]
 pub struct ApplicationTemplate {
     pub errors: Vec<String>,
 }
