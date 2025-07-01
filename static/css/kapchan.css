@@ -693,6 +693,58 @@ body {
   }
 }
 
+/*------------------------------- login.stpl ---------------------------------*/
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--background);
+  padding: 15px;
+}
+
+.login-box {
+  background-color: var(--surface);
+  border-radius: 5px;
+  padding: 10px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+
+.login-title-container {
+  display: flex;
+  gap: 5px;
+  height: 35px;
+  color: var(--on-surface);
+  align-items: center;
+}
+
+.input-fld {
+  padding: 5px;
+  font-size: 15px;
+}
+
+.login-title {
+  font-size: 20px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-btn {
+  text-align: center;
+  color: var(--on-primary);
+  background-color: var(--primary);
+  border-radius: 5px;
+  width: calc(100% - 10px);
+  padding: 5px;
+  font-size: 15px;
+}
 
 .application-list {
   padding: 10px;
@@ -731,27 +783,14 @@ body {
   padding-bottom: 10px;
 }
 
-.login-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-}
-
-.login-title {
-  color: white;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .implying {
   color: green;
 }
 
 .backlink {
   color: var(--primary);
+}
+
+.link {
+  color: #8787e9;
 }

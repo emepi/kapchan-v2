@@ -3,8 +3,13 @@
   <link rel="stylesheet" href="/static/css/kapchan.css">
   <body>
     <div class="login-container">
-      <div class="card">
-    <h1 class="login-title">Kirjaudu</h1>
+      <div class="login-box">
+        <div class="login-title-container">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M480-120v-80h280v-560H480v-80h280q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H480Zm-80-160-55-58 102-102H120v-80h327L345-622l55-58 200 200-200 200Z"/>
+          </svg>
+          <h1 class="login-title">Kirjaudu</h1>
+        </div>
       <div class="err-container">
     <% for error in self.errors { %>
       <p><%= error %></p>
@@ -13,7 +18,7 @@
         <form action=/login method=POST class="login-form">
           <input type="text" class="input-fld" id="username" name="username" placeholder="Käyttäjänimi tai Sähköpostiosoite">
           <input type="password" class="input-fld" id="pwd" name="pwd" placeholder="Salasana">
-          <button type=submit>Kirjaudu sisään</button>
+          <button class="login-btn" type=submit>Kirjaudu sisään</button>
         </form>
       </div>
     </div>

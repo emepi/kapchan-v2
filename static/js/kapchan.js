@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         '<span class="implying">&gt;$1</span>',
         '<span class="backlink" onClick="showPost($1)" onmouseenter="hintPost($1)">&gt;&gt;$1</span>',
 		'<span class="spoiler">$1</span>',
-        '<a href="$1">$1</a>',
+        '<a class="link" href="$1">$1</a>',
 	];
 
     for (let i =0; i < find.length; i++) {
