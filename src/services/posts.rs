@@ -39,10 +39,9 @@ pub async fn create_post_by_thread_id(
         Ok(post) => post,
         Err(e) => return Err(e),
     };
-
-    let _ = create_attachment(&conn_pool, post.id, attachment).await;
-
+    
     let _ = Thread::bump_thread(&conn_pool, thread_id).await;
+    let _ = create_attachment(&conn_pool, post.id, attachment).await;
 
     Ok(())
 }
