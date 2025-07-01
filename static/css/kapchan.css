@@ -704,6 +704,7 @@ body {
   padding: 15px;
 }
 
+.register-box,
 .login-box {
   background-color: var(--surface);
   border-radius: 5px;
@@ -726,6 +727,7 @@ body {
   font-size: 15px;
 }
 
+.register-title,
 .login-title {
   font-size: 20px;
 }
@@ -736,6 +738,7 @@ body {
   gap: 10px;
 }
 
+.register-btn,
 .login-btn {
   text-align: center;
   color: var(--on-primary);
@@ -744,6 +747,23 @@ body {
   width: calc(100% - 10px);
   padding: 5px;
   font-size: 15px;
+}
+
+/*----------------------------- register.stpl --------------------------------*/
+
+.register-title-container {
+  display: flex;
+  justify-content: space-between;
+  color: var(--on-surface);
+  gap: 5px;
+  align-items: center;
+}
+
+.register-title-sub {
+  display: flex;
+  gap: 5px;
+  height: 35px;
+  align-items: center;
 }
 
 .application-list {
