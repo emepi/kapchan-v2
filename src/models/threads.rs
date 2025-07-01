@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::{
     prelude::*, 
     result::Error, 
@@ -269,6 +269,32 @@ impl Thread {
                     .collect();
                       
                     Ok(catalog)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn bump_thread(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        thread_id: u32,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let current_time = Utc::now().naive_utc();
+
+                    diesel::update(
+                        threads::table.find(thread_id)
+                    )
+                    .set(threads::bump_time.eq(current_time))
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
                 }.scope_boxed())
                 .await
             },

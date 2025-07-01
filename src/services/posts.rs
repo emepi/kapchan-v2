@@ -5,7 +5,7 @@ use regex::Regex;
 use sha2::{Digest, Sha256};
 use itertools::Itertools;
 
-use crate::models::posts::{Post, PostInput};
+use crate::models::{posts::{Post, PostInput}, threads::Thread};
 
 use super::files::create_attachment;
 
@@ -41,6 +41,8 @@ pub async fn create_post_by_thread_id(
     };
 
     let _ = create_attachment(&conn_pool, post.id, attachment).await;
+
+    let _ = Thread::bump_thread(&conn_pool, thread_id).await;
 
     Ok(())
 }
