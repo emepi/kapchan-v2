@@ -1,0 +1,56 @@
+<% include!("./layouts/kapchan.stpl"); %>
+<main class="content">
+  <div class="application-review-cont">
+  <h2>Hakemus <span class="access-level-marker">#<%= self.application.application_id %></span></h2>
+  <div class="application">
+    <div class="application-row">
+      <svg class="icon" viewBox="0 -960 960 960">
+        <path fill="currentColor" d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"/>
+      </svg>
+      <p>käyttäjänimi:</p> <span class="access-level-marker"><%= self.application.username %></span>
+    </div>
+    <div class="application-row">
+      <svg class="icon" viewBox="0 -960 960 960">
+        <path fill="currentColor" d="M440-520 120-720v400h400v80H120q-33 0-56.5-23.5T40-320v-480q0-33 23.5-56.5T120-880h640q33 0 56.5 23.5T840-800v200h-80v-120L440-520Zm0-80 320-200H120l320 200ZM760-80q-66 0-113-47t-47-113v-180q0-42 29-71t71-29q42 0 71 29t29 71v180h-80v-180q0-8-6-14t-14-6q-8 0-14 6t-6 14v180q0 33 23.5 56.5T760-160q33 0 56.5-23.5T840-240v-160h80v160q0 66-47 113T760-80ZM120-720v-80 480-400Z"/>
+      </svg>
+      <p>sähköposti:</p> <span class="access-level-marker"><%= self.application.email %></span>
+    </div>
+    <div class="application-row">
+      <svg class="icon" viewBox="0 -960 960 960">
+        <path fill="currentColor" d="M200-640h560v-80H200v80Zm0 0v-80 80Zm0 560q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v227q-19-9-39-15t-41-9v-43H200v400h252q7 22 16.5 42T491-80H200Zm520 40q-83 0-141.5-58.5T520-240q0-83 58.5-141.5T720-440q83 0 141.5 58.5T920-240q0 83-58.5 141.5T720-40Zm67-105 28-28-75-75v-112h-40v128l87 87Z"/>
+      </svg>
+      <p>lähetetty:</p> <span class="access-level-marker"><%= self.application.submission_time %></span>
+    </div>
+    <div class="application-row">
+      <svg class="icon" viewBox="0 -960 960 960">
+        <path fill="currentColor" d="M280-440h400v-80H280v80Zm-80 320q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z"/>
+      </svg>
+    <% if self.application.closed_at.is_some() { %>
+      <% if self.application.accepted { %>
+        <p>tila:</p> <span class="access-level-marker">hyväksytty</span>
+      <% } else {%>
+        <p>tila:</p> <span class="access-level-marker">hylätty</span>
+      <% } %>
+    <% } else {%>
+    <p>tila:</p> <span class="access-level-marker">odottaa käsittelyä</span>
+    <% } %>
+    </div>
+    <h3>Oletko kokenut syrjäytymistä tai eriarvoisuutta?:</h3>
+    <p class="application-expl"><span class="access-level-marker"><%= self.application.motivation %></span></p>
+    <h3>Miksi haluat liittyä kapakkaan?:</h3>
+    <p class="application-expl"><span class="access-level-marker"><%= self.application.background %></span></p>
+    <h3>Muuta:</h3>
+    <p class="application-expl"><span class="access-level-marker"><%= self.application.other %></span></p>
+    <% if self.application.closed_at.is_none() { %>
+    <div class="helper">
+      <form class="login-btn" action="/accept-application/<%= self.application.application_id %>" method=POST>
+        <button class="desc" type=submit>hyväksy</button>
+      </form>
+      <form class="login-btn" action="/deny-application/<%= self.application.application_id %>" method=POST>
+        <button class="desc" type=submit>hylkää</button>
+      </form>
+    </div> 
+    <% } %>
+  </div>
+  </div>
+</main>

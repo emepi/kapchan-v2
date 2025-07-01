@@ -940,25 +940,91 @@ body {
   }
 }
 
+/*--------------------------- applications.stpl ------------------------------*/
+
+.applications-cont {
+  padding: 0px 20px;
+}
+
 .application-list {
   padding: 10px;
-  background-color:#212121;
+  color: var(--on-surface);
+  background-color: var(--surface);
   display: flex;
   flex-direction: column;
   gap: 5px;
-  border-radius: 7px;
+  border-radius: 5px;
 }
 
 .application-preview {
   display: flex;
+  justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid white;
-  color: white;
+  padding: 5px;
+  color: var(--on-background);
+  background-color: var(--background);
+  border-radius: 5px;
+  height: 30px;
+}
+
+.application-user {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .pages {
   display: flex;
   gap: 5px;
+}
+
+.applications-page {
+  padding: 5px;
+  background-color: var(--primary);
+  border-radius: 5px;
+}
+
+@media only screen and (max-width: 768px) {
+  .applications-cont {
+    padding: 10px 15px;
+  }
+}
+
+/*------------------------- applications_review.stpl -------------------------*/
+
+.application-review-cont {
+  margin: 10px 20px;
+  padding: 10px;
+  color: var(--on-surface);
+  background-color: var(--surface);
+  border-radius: 5px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+
+.application {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.application-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  height: 30px;
+}
+
+.application-expl {
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+@media only screen and (max-width: 768px) {
+  .application-review-cont  {
+    margin: 10px 15px;
+  }
 }
 
 .reply-form {

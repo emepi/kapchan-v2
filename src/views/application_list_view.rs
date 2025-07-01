@@ -5,7 +5,7 @@ use crate::models::{applications::ApplicationPreview, boards::Board};
 
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/applications.stpl")]
+#[template(path = "applications.stpl")]
 pub struct ApplicationListTemplate {
     pub access_level: u8,
     pub boards: Vec<Board>,
