@@ -19,11 +19,11 @@
     <p class="application-exp">Oletko hikky? Kerro tilanteestasi vapaamuotoisesti. Voit palata hakemuksen tekemiseen myöhemmin, tai jättää uuden hakemuksen, jos aiempi hakemuksesi hylätään.</p>
     <form action=/apply method=POST class="login-form">
       <label class="application-lbl" for="background">Oletko kokenut syrjäytymistä tai eriarvoisuutta?:</label>
-      <textarea name="background" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <textarea class="application-txt" name="background" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
       <label class="application-lbl" for="motivation">Miksi haluat liittyä kapakkaan?: <span class="optional">(vaihtoehtoinen)</span></label>
-      <textarea name="motivation" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <textarea class="application-txt" name="motivation" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
       <label class="application-lbl" for="other">Muuta: <span class="optional">(vaihtoehtoinen)</span></label>
-      <textarea name="other" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <textarea class="application-txt" name="other" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
       <button class="register-btn" type=submit>Lähetä</button>
     </form>
     </div>

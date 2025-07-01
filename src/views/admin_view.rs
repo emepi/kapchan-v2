@@ -5,7 +5,7 @@ use crate::models::boards::Board;
 
 
 #[derive(TemplateOnce)]
-#[template(path = "pages/admin.stpl")]
+#[template(path = "admin.stpl")]
 pub struct AdminTemplate {
     pub access_level: u8,
     pub errors: Vec<String>,

@@ -1,0 +1,142 @@
+<% include!("./layouts/kapchan.stpl"); %>
+<main class="content">
+  <nav class="selector admin-selector">
+    <a href="/admin" class="selector-btn--active">Kapchan</a>
+    <% if self.access_level < 100 { %>
+      <a class="selector-btn--inactive">Hakemukset</a>
+    <% } else { %>
+    <a href="/applications/1" class="selector-btn">Hakemukset</a>
+    <% } %>
+    <a href="/users" class="selector-btn">Hallitse Käyttäjiä</a>
+  </nav>
+
+  <div class="admin-boards">
+
+  <div class="admin-board-head">
+    <h2>Laudat</h2>
+    <% if self.access_level >= 100 { %>
+    <svg class="icon hoverable" viewBox="0 -960 960 960" onClick="openAdminBoardCreation()">
+      <path fill="currentColor" d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/>
+    </svg>
+    <% } %>
+  </div>
+
+  <% for board in self.boards { %>
+    <div class="admin-board-container">
+      <div class="admin-board-title-container" onClick="openAdminBoard(this)">
+        <div class="admin-board-title">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="m298-262-56-56 121-122H80v-80h283L242-642l56-56 218 218-218 218Zm222-18v-80h360v80H520Zm0-320v-80h360v80H520Zm120 160v-80h240v80H640Z"/>
+          </svg>
+          <%= board.title %>
+          <% if board.nsfw { %>
+            <span class="nsfw-marker">nsfw</span>
+          <% } %>
+          <% if board.captcha { %>
+            <span class="captcha-marker">captcha</span>
+          <% } %>
+        </div>
+        <svg class="icon dropdown down" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="M480-360 280-560h400L480-360Z"/>
+        </svg>
+      </div>
+
+      <div class="admin-board-info-container">
+        <div class="h-divider"></div>
+        <div class="admin-board-info-handle">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M480-80q-61 0-125-22t-116-60q-52-38-85.5-89T120-360v-120l160 120-62 62q29 51 92 88t130 47v-357H320v-80h120v-47q-35-13-57.5-43.5T360-760q0-50 35-85t85-35q50 0 85 35t35 85q0 39-22.5 69.5T520-647v47h120v80H520v357q67-10 130-47t92-88l-62-62 160-120v120q0 58-33.5 109T721-162q-52 38-116 60T480-80Zm0-640q17 0 28.5-11.5T520-760q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760q0 17 11.5 28.5T480-720Z"/>
+          </svg>
+          lautakoodi:
+          <span class="access-level-marker">/<%= board.handle %>/</span>
+        </div>
+        <div class="admin-board-info-access">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z"/>
+          </svg>
+          käyttäjätaso:
+          <% if board.access_level == 10 { %>
+            <span class="access-level-marker">anonyymi</span>
+          <% } else if board.access_level == 20 {%>
+            <span class="access-level-marker">rekisteröitynyt käyttäjä</span>
+          <% } else if board.access_level == 30 {%>
+            <span class="access-level-marker">jäsen ehdokas</span>
+          <% } else if board.access_level == 40 {%>
+            <span class="access-level-marker">jäsen</span>
+          <% } else if board.access_level == 90 {%>
+            <span class="access-level-marker">moderaattori</span>
+          <% } else if board.access_level == 100 {%>
+            <span class="access-level-marker">admin</span>
+          <% } %>
+        </div>
+        <div class="admin-board-info-threads">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M360-240h440v-107H360v107ZM160-613h120v-107H160v107Zm0 187h120v-107H160v107Zm0 186h120v-107H160v107Zm200-186h440v-107H360v107Zm0-187h440v-107H360v107ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Z"/>
+          </svg>
+          lankaraja:
+          <span class="access-level-marker"><%= board.active_threads_limit %></span>
+        </div>
+        <div class="admin-board-info-posts">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M240-400h480v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM880-80 720-240H160q-33 0-56.5-23.5T80-320v-480q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v720ZM160-320h594l46 45v-525H160v480Zm0 0v-480 480Z"/>
+          </svg>
+          viestiraja:
+          <span class="access-level-marker"><%= board.thread_size_limit %></span>
+        </div>
+        <div class="helper">
+          <div class="admin-board-info-desc">
+            <svg class="info-desc-icon" viewBox="0 -960 960 960">
+              <path fill="currentColor" d="M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"/>
+            </svg>
+            kuvaus:
+          </div>
+          <span class="access-level-marker desc"><%= board.description %></span>
+        </div>
+        <div class="helper">
+          <button class="admin-board-info-btn">muokkaa</button>
+          <button class="admin-board-info-btn">poista</button>
+        </div>
+      </div>
+    </div>
+  <% } %>
+  </div>
+
+  <div class="board-creation-bg" id="board-creation">
+    <div class="board-creation-cont">
+      <header class="modal-head">
+        <h3>Luo uusi lauta</h3>
+        <svg class="icon hoverable" onClick="closeAdminBoardCreation()" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+        </svg>
+      </header>
+      <form class="board-creation-form" action=/boards method=POST>
+        <input type="text" class="input-fld" id="handle" placeholder="lautakoodi" name="handle" autocomplete="off">
+        <input type="text" class="input-fld" id="title" placeholder="nimi" name="title" autocomplete="off">
+        <label for="description">Kuvaus:</label>
+        <textarea name="description" class="application-txt" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+        <label for="access_level">käyttäjätaso:</label>
+        <select class="input-fld" name="access_level" id="access_level">
+          <option value="10">anonyymi</option>
+          <option value="20">rekisteröitynyt</option>
+          <option value="30">jäsen ehdokas</option>
+          <option value="40">jäsen</option>
+          <option value="90">moderaattori</option>
+          <option value="100">admin</option>
+        </select>
+        <label for="threads_limit">lankaraja:</label>
+        <input class="input-fld" type="number" id="threads_limit" name="threads_limit" min="0" />
+        <label for="thread_size">viestiraja (per lanka):</label>
+        <input class="input-fld" type="number" id="thread_size" name="thread_size" min="0" />
+        <div class="board-creation-form-v">
+          <input type="checkbox" id="captcha" name="captcha" />
+          <label for="captcha">captcha</label>
+        </div>
+        <div class="board-creation-form-v">
+          <input type="checkbox" id="nsfw" name="nsfw" />
+          <label for="nsfw">nsfw</label>
+        </div>
+        <button class="register-btn" type=submit>Luo lauta</button>
+      </form>
+    </div>
+  </div>
+</main>

@@ -2,6 +2,38 @@ const kapchanState = {
     current_captcha: 0,
 };
 
+
+const openAdminBoard = (e) => {
+  let icon = e.querySelector('.dropdown');
+  let container = e.parentElement.querySelector('.admin-board-info-container');
+
+  if (icon.classList.contains("down")) {
+    container.style.display = "flex";
+    icon.classList.replace("down", "up");
+    icon.children[0].setAttribute('d', "m280-400 200-200 200 200H280Z");
+  } else {
+    container.style.display = "none";
+    icon.classList.replace("up", "down");
+    icon.children[0].setAttribute('d', "M480-360 280-560h400L480-360Z");
+  }
+}
+
+const openAdminBoardCreation = () => {
+  const bc = document.getElementById("board-creation");
+
+  if (bc) {
+    bc.style.display = "flex";
+  }
+}
+
+const closeAdminBoardCreation = () => {
+  const bc = document.getElementById("board-creation");
+
+  if (bc) {
+    bc.style.display = "none";
+  }
+}
+
 const showPost = (id) => {
   console.log(id); //TODO
 }
