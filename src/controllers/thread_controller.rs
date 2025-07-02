@@ -106,6 +106,10 @@ pub async fn thread(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    if user_data.access_level < current_board.access_level {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
+
     let thread = match Thread::by_id(thread_id, &conn_pool).await {
         Ok(thread) => thread,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),

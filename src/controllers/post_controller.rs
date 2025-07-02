@@ -2,8 +2,9 @@ use actix_identity::Identity;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
+use serde::{Deserialize, Serialize};
 
-use crate::{models::{boards::Board, error::UserError, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
+use crate::{models::{boards::Board, error::UserError, posts::Post, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -108,4 +109,40 @@ pub async fn handle_post_creation(
             }
         },
     }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PostDetailsOutput {
+    pub thread_id: u32,
+    pub board_handle: String,
+}
+
+pub async fn handle_post_details(
+    path: web::Path<u32>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+) -> impl Responder {
+    let post_id = path.into_inner();
+
+    let post = match Post::by_id(post_id, &conn_pool).await {
+        Ok(post) => post,
+        Err(e) => match e {
+            diesel::result::Error::NotFound => return HttpResponse::NotFound().finish(),
+            _ => return HttpResponse::InternalServerError().finish(),
+        },
+    };
+
+    let thread = match Thread::thread_by_id(post.thread_id, &conn_pool).await {
+        Ok(thread) => thread,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let board = match Board::by_id(thread.board_id, &conn_pool).await {
+        Ok(board) => board,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    
+    HttpResponse::Ok().json(PostDetailsOutput {
+        thread_id: thread.id,
+        board_handle: board.handle,
+    })
 }

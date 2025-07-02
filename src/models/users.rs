@@ -4,8 +4,7 @@ use diesel::{
     result::Error, 
     sql_function, 
     ExpressionMethods, 
-    QueryDsl, 
-    SelectableHelper
+    QueryDsl
 };
 use diesel_async::{
     pooled_connection::deadpool::Pool, 

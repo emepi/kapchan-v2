@@ -3,8 +3,7 @@ use diesel::{
     result::Error, 
     sql_function, 
     ExpressionMethods, 
-    QueryDsl, 
-    SelectableHelper
+    QueryDsl
 };
 use diesel_async::{
     pooled_connection::deadpool::Pool, 
@@ -41,6 +40,27 @@ pub struct Post {
 }
 
 impl Post {
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Post, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let post = posts::table
+                    .find(id)
+                    .first::<Post>(conn)
+                    .await?;
+        
+                    Ok(post)
+                }.scope_boxed())
+                .await
+            },
+    
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn insert_post_by_thread_id(
         thread_id: u32,
         conn_pool: &Pool<AsyncMysqlConnection>,

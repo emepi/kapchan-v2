@@ -34,6 +34,27 @@ pub struct Board {
 }
 
 impl Board {
+    pub async fn by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Board, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let board = boards::table
+                    .find(id)
+                    .first::<Board>(conn)
+                    .await?;
+        
+                    Ok(board)
+                }.scope_boxed())
+                .await
+            },
+    
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn by_handle(
         conn_pool: &Pool<AsyncMysqlConnection>,
         hdl: &String,

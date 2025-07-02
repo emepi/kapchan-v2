@@ -167,6 +167,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(post_controller::handle_post_creation))
             )
             .service(
+                web::resource("/post-details/{id}")
+                    .route(web::get().to(post_controller::handle_post_details))
+            )
+            .service(
                 web::resource("/files/{id}")
                 .route(web::get().to(file_controller::serve_files))
             )

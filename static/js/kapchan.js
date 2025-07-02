@@ -1,5 +1,6 @@
 const kapchanState = {
-    current_captcha: 0,
+  current_captcha: 0,
+  hightlighted_msg: null,
 };
 
 
@@ -34,8 +35,19 @@ const closeAdminBoardCreation = () => {
   }
 }
 
-const showPost = (id) => {
-  console.log(id); //TODO
+const showPost = (post_id) => {
+  fetch(new Request("/post-details/" + post_id, {
+    method: "GET",
+  }))
+  .then(res => res.json())
+  .then(post_info => {
+    location.replace(
+      "/" + post_info.board_handle + "/thread/" + post_info.thread_id + "#p" + post_id
+    );
+  })
+  .catch((error) => {
+    console.log(error)
+  });
 }
 
 const hintPost = (id) => {
@@ -185,22 +197,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     //Regex strings
 	let find = [
-        /&/g,
+    /&/g,
 		/<(.*?)>/g,
-        /^(?=>[^>])>([^\r\n]+)/gm,
-        />>(\d+)/g,
+    /^(?=>[^>])>([^\r\n]+)/gm,
+    />>(\d+)/g,
 		/\[spoiler\](.*?)\[\/spoiler\]/g,
-        /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
+    /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
 	];
 
 	//Regex string replacements
 	let replace = [
-        '&amp;',
+    '&amp;',
 		'&lt;$1&gt;',
-        '<span class="implying">&gt;$1</span>',
-        '<span class="backlink" onClick="showPost($1)" onmouseenter="hintPost($1)">&gt;&gt;$1</span>',
+    '<span class="implying">&gt;$1</span>',
+    '<span class="backlink" onClick="showPost($1)" onmouseenter="hintPost($1)">&gt;&gt;$1</span>',
 		'<span class="spoiler">$1</span>',
-        '<a class="link" href="$1">$1</a>',
+    '<a class="link" href="$1">$1</a>',
 	];
 
     for (let i =0; i < find.length; i++) {
@@ -209,4 +221,36 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     msg.innerHTML = text;
   })
+  
+  if (window.location.href.includes("#p")) {
+    let post_id = window.location.href.match(/p(\d+)/g)[0];
+    if (post_id) {
+      const post = document.getElementById(post_id);
+      if (post) {
+        kapchanState.hightlighted_msg = post_id;
+        post.style.border = "solid #FF4500"; 
+      }
+    }
+  };
+});
+
+window.addEventListener("popstate", (event) => {
+  if (kapchanState.hightlighted_msg) {
+    const prev_post = document.getElementById(kapchanState.hightlighted_msg);
+
+    if (prev_post) {
+      prev_post.style.border = "";
+    }
+  }
+
+  if (window.location.href.includes("#p")) {
+    let post_id = window.location.href.match(/p(\d+)/g)[0];
+    if (post_id) {
+      const post = document.getElementById(post_id);
+      if (post) {
+        kapchanState.hightlighted_msg = post_id;
+        post.style.border = "solid #FF4500"; 
+      }
+    }
+  }
 });
