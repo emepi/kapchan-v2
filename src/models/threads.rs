@@ -195,7 +195,7 @@ impl Thread {
                     let inactive_thread = threads::table
                     .filter(threads::board_id.eq(input.board_id))
                     .filter(threads::archived.eq(false))
-                    .order((threads::pinned.eq(true), threads::bump_time.desc()))
+                    .order((threads::pinned.eq(false), threads::bump_time.desc()))
                     .limit(1)
                     .offset(active_threads_limit.into())
                     .load::<Thread>(conn)
@@ -230,7 +230,7 @@ impl Thread {
                     let threads = threads::table
                     .filter(threads::board_id.eq(board_id))
                     .filter(threads::archived.eq(false))
-                    .order((threads::pinned.eq(true), threads::bump_time.desc()))
+                    .order((threads::pinned.eq(false), threads::bump_time.desc()))
                     .load::<Thread>(conn)
                     .await?;
 
@@ -291,6 +291,31 @@ impl Thread {
                         threads::table.find(thread_id)
                     )
                     .set(threads::bump_time.eq(current_time))
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn pin_thread(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        thread_id: u32,
+        pin_status: bool,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::update(
+                        threads::table.find(thread_id)
+                    )
+                    .set(threads::pinned.eq(pin_status))
                     .execute(conn)
                     .await?;
 

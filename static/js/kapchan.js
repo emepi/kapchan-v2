@@ -54,6 +54,42 @@ const hintPost = (id) => {
   console.log(id); //TODO
 }
 
+const pinThread = (thread_id) => {
+  fetch(new Request("/pin-thread/" + thread_id, {
+    method: "GET",
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
+const unpinThread = (thread_id) => {
+  fetch(new Request("/unpin-thread/" + thread_id, {
+    method: "GET",
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
+const showThreadMenu = (e) => {
+  const dd = e.parentElement.querySelector('.thread-dropdown');
+
+  if (dd.classList.contains("up")) {
+    dd.style.display = "flex";
+    dd.classList.replace("up", "down");
+  } else {
+    dd.style.display = "none";
+    dd.classList.replace("down", "up");
+  }
+}
+
 const scrollToBottom = () => {
   window.scrollTo(0, document.body.scrollHeight);
 };

@@ -350,6 +350,17 @@ body {
   border-radius: 5px;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
   min-width: 0;
+  position: relative;
+}
+
+.post-pin {
+  height: 25px;
+  width: auto;
+  position: absolute;
+  z-index: 4;
+  color: var(--primary);
+  background-color: var(--background);
+  border-radius: 5px;
 }
 
 .post-body {
@@ -441,7 +452,7 @@ body {
   background-color: rgba(0, 0, 0, 0.5);
   width: 100vw;
   height: 100vh;
-  z-index: 4;
+  z-index: 6;
 }
 
 #posting-container {
@@ -542,6 +553,38 @@ body {
 
 .hoverable:hover {
   color: var(--primary);
+}
+
+.thread-menu-opt {
+  position: relative;
+}
+
+.thread-dropdown {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background-color: var(--surface);
+  padding: 10px;
+  position: absolute;
+  z-index: 5;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  right: 0;
+}
+
+.thread-dropdown-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  height: 25px;
+  white-space: nowrap;
+  font-size: 15px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.thread-dropdown-row:hover {
+  background-color: var(--background);
+  border-radius: 5px;
 }
 
 @media only screen and (max-width: 768px) {

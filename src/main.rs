@@ -168,6 +168,14 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(post_controller::handle_post_creation))
             )
             .service(
+                web::resource("/pin-thread/{id}")
+                    .route(web::get().to(thread_controller::handle_thread_pin))
+            )
+            .service(
+                web::resource("/unpin-thread/{id}")
+                    .route(web::get().to(thread_controller::handle_thread_unpin))
+            )
+            .service(
                 web::resource("/post-details/{id}")
                     .route(web::get().to(post_controller::handle_post_details))
             )

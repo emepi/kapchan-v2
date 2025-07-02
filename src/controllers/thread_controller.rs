@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, error::UserError, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{forbidden_view::{self, ForbiddenTemplate}, thread_view::{self, ThreadTemplate}}};
+use crate::{models::{boards::Board, error::UserError, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{forbidden_view::{self, ForbiddenTemplate}, thread_view::{self, ThreadTemplate}}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -42,7 +42,7 @@ pub async fn handle_thread_creation(
     };
 
     if current_board.access_level > user_data.access_level {
-        return HttpResponse::Forbidden().finish()
+        return HttpResponse::Forbidden().finish();
     }
 
     if current_board.captcha {
@@ -124,4 +124,50 @@ pub async fn thread(
         current_board,
         thread,
     }).await
+}
+
+pub async fn handle_thread_pin(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let thread_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Moderator as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    match Thread::pin_thread(&conn_pool, thread_id, true).await {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+pub async fn handle_thread_unpin(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let thread_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Moderator as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    match Thread::pin_thread(&conn_pool, thread_id, false).await {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }
