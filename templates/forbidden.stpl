@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/static/css/kapchan.css">
+  <script type="text/javascript" src="/static/js/kapchan.js"></script>
+  <title>Sinulla ei ole käyttöoikeuksia tälle sivulle</title>
+  <body>
+    <div class="forbidden-container-bg">
+      <div class="forbidden-container">
+        <img class="forbidden-img" src="/static/img/f27b81ce50076b6b230a13a638b291ef.png">
+        <h1>Sinulla ei ole käyttöoikeuksia tälle sivulle</h1>
+        <% if self.required_access_level == 40 { %>
+        <p class="forbidden-exp">Tämä sivu on näkyvissä ainoastaan kapakan jäsenille.</p>
+        <% } %>
+        <% if self.required_access_level >= 90 { %>
+        <p class="forbidden-exp">Tämä sivu on näkyvissä ainoastaan kapakan ylläpitäjille.</p>
+        <% } %>
+      </div>
+    </div>

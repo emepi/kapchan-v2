@@ -3,7 +3,7 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, error::UserError, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::thread_view::{self, ThreadTemplate}};
+use crate::{models::{boards::Board, error::UserError, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{forbidden_view::{self, ForbiddenTemplate}, thread_view::{self, ThreadTemplate}}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -107,7 +107,10 @@ pub async fn thread(
     };
 
     if user_data.access_level < current_board.access_level {
-        return Ok(HttpResponse::Forbidden().finish());
+        return forbidden_view::render(ForbiddenTemplate {
+            required_access_level: current_board.access_level,
+        })
+        .await;
     }
 
     let thread = match Thread::by_id(thread_id, &conn_pool).await {

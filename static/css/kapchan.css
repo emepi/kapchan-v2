@@ -1054,3 +1054,38 @@ body {
 .link {
   color: #8787e9;
 }
+
+/*------------------------------ forbidden.stpl ------------------------------*/
+
+.forbidden-container-bg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--background);
+}
+
+.forbidden-container {
+  padding: 10px;
+  background-color: var(--surface);
+  color: var(--on-surface);
+  border-radius: 5px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  margin: 15px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.forbidden-exp {
+  color: var(--primary);
+}
+
+.forbidden-img {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+}
