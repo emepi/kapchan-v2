@@ -42,7 +42,36 @@
   <% for (i, postdata) in self.thread.posts.into_iter().enumerate() { %>
     <div class="thread-post" id="p<%= postdata.post.id %>">
       <div class="thread-post-info">
-        <p class="post-info"><% if i == 0 { %><b><%=self.thread.thread.title%></b> <% } %><span class="username"> Anonyymi </span> <%= fi_datetime(postdata.post.created_at) %> No. <span class="post-id"><%= postdata.post.id %></span></p>
+        <p class="post-info"><% if i == 0 { %><b><%=self.thread.thread.title%></b> <% } %><span class="username"> Anonyymi </span> <%= fi_datetime(postdata.post.created_at) %> <span class="post-id-column">No. <span class="post-id"><%= postdata.post.id %></span></span></p>
+        <div class="thread-menu-opt">
+          <svg class="icon thread-menu-icon" onClick="showThreadMenu(this)" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"/>
+          </svg>
+          <div class="thread-dropdown up">
+            <div class="thread-dropdown-row">
+              <svg class="icon" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M200-120v-680h360l16 80h224v400H520l-16-80H280v280h-80Zm300-440Zm86 160h134v-240H510l-16-80H280v240h290l16 80Z"/>
+              </svg>
+              ilmianna
+            </div>
+            <% if (self.access_level >= 90 || self.user_id == postdata.post.user_id) && i != 0 { %>
+            <div class="thread-dropdown-row" onClick="deletePost(<%= postdata.post.id %>)">
+              <svg class="icon" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+              </svg>
+              poista
+            </div>
+            <% } %>
+            <% if (self.access_level >= 90 || self.user_id == postdata.post.user_id) && i == 0 { %>
+            <div class="thread-dropdown-row" onClick="deleteThread(<%= postdata.post.thread_id %>)">
+              <svg class="icon" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+              </svg>
+              poista lanka
+            </div>
+            <% } %>
+          </div>
+        </div>
       </div>
       <% if postdata.attachment.clone().is_some() { %>
       <% let attachment = &postdata.attachment.clone().unwrap(); %>
@@ -66,7 +95,9 @@
           </div>
         </div>
       </div>
-      <p class="msg-lbl"><% if postdata.replies.len() > 0 { %>Vastaukset: <% } %><% for reply in postdata.replies { %> >><%= reply %> <% } %></p>
+      <div class="thread-post-btm">
+        <p class="msg-lbl"><% if postdata.replies.len() > 0 { %>Vastaukset: <% } %><% for reply in postdata.replies { %> >><%= reply %> <% } %></p>
+      </div>
     </div>
   <% } %>
   </div>

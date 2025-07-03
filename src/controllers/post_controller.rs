@@ -1,10 +1,12 @@
+use std::fs::remove_file;
+
 use actix_identity::Identity;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::{Deserialize, Serialize};
 
-use crate::{models::{boards::Board, error::UserError, posts::Post, threads::Thread}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
+use crate::{models::{boards::Board, error::UserError, posts::Post, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -151,4 +153,60 @@ pub async fn handle_post_details(
         thread_id: thread.id,
         board_handle: board.handle,
     })
+}
+
+pub async fn delete_post(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let post_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let post_wrapper = match Post::full_post_by_id(post_id, &conn_pool).await {
+        Ok(post) => post,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Moderator as u8 && user_data.id != post_wrapper.post.user_id {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let thread_op_post = match Thread::get_op_post(&conn_pool, post_wrapper.post.thread_id).await {
+        Ok(op_post) => op_post,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if thread_op_post.id == post_wrapper.post.id {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    if let Some(attachment) = &post_wrapper.attachment {
+        let file_location = format!("{}/{}", &attachment.file_location, &attachment.file_name);
+        let thumbnail_location = format!("{}/{}", &attachment.thumbnail_location, &attachment.file_name);
+
+        match remove_file(file_location) {
+            Ok(_) => (),
+            Err(e) => {
+                println!("Error while removing file: {:?}", e);
+            },
+        };
+
+        match remove_file(thumbnail_location) {
+            Ok(_) => (),
+            Err(e) => {
+                println!("Error while removing file: {:?}", e);
+            },
+        };
+    }
+
+    match Post::delete_post(&conn_pool, post_wrapper.post.id).await {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }

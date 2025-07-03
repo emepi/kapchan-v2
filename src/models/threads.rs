@@ -379,6 +379,33 @@ impl Thread {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn get_op_post(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        thread_id: u32,
+    ) -> Result<Post, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let thread = threads::table
+                    .find(thread_id)
+                    .first::<Thread>(conn)
+                    .await?;
+
+                    let op_post = Post::belonging_to(&thread)
+                    .order_by(posts::id)
+                    .limit(1)
+                    .first::<Post>(conn)
+                    .await?;
+
+                    Ok(op_post)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]

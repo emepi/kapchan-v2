@@ -61,6 +61,40 @@ impl Post {
         }
     }
 
+    pub async fn full_post_by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<PostData, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let post = posts::table
+                    .find(id)
+                    .left_join(attachments::table)
+                    .first::<(Post, Option<Attachment>)>(conn)
+                    .await?;
+
+                    let replies = Reply::belonging_to(&post.0)
+                    .select(Reply::as_select())
+                    .load::<Reply>(conn)
+                    .await?
+                    .into_iter()
+                    .map(|reply| reply.reply_id)
+                    .collect();
+        
+                    Ok(PostData {
+                        post: post.0,
+                        attachment: post.1,
+                        replies,
+                    })
+                }.scope_boxed())
+                .await
+            },
+    
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn insert_post_by_thread_id(
         thread_id: u32,
         conn_pool: &Pool<AsyncMysqlConnection>,
@@ -142,6 +176,29 @@ impl Post {
                     .collect();
 
                     Ok(posts)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn delete_post(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        post_id: u32,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::delete(
+                        posts::table.find(post_id)
+                    )
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
                 }.scope_boxed())
                 .await
             },

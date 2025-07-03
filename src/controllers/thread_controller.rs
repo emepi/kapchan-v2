@@ -123,6 +123,7 @@ pub async fn thread(
 
     thread_view::render(ThreadTemplate {
         access_level: user_data.access_level,
+        user_id: user_data.id,
         boards,
         current_board,
         thread,

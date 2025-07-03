@@ -10,6 +10,7 @@ use crate::services::files::display_filesize;
 #[template(path = "thread.stpl")]
 pub struct ThreadTemplate {
     pub access_level: u8,
+    pub user_id: u64,
     pub boards: Vec<Board>,
     pub current_board: Board,
     pub thread: ThreadData,

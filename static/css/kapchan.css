@@ -673,9 +673,26 @@ body {
   gap: 5px;
 }
 
+.thread-post-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.thread-menu-icon {
+  min-height: 20px;
+  height: 20px;
+  width: auto;
+}
+
 .post-id,
 .username {
   color: var(--primary);
+}
+
+.post-id-column {
+  white-space: nowrap;
 }
 
 .post-message {
