@@ -105,7 +105,7 @@
   <div class="reply">
     <div class="err-container" id="err-container"></div>
     <form class="reply-form" id="posting-form">
-      <textarea name="message" class="reply-text" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <textarea name="message" class="reply-text" spellcheck="false" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
 
       <% if self.current_board.captcha { %>
       <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">

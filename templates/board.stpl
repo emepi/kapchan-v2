@@ -148,9 +148,9 @@
         </header>
         <div class="err-container" id="err-container"></div>
         <form class="posting-form" id="posting-form">
-          <input type="text" placeholder="Aihe" name="topic" class="posting-topic">
+          <input type="text" placeholder="Aihe" name="topic" spellcheck="false" class="posting-topic">
 
-          <textarea name="message" class="posting-message"></textarea>
+          <textarea name="message" class="posting-message" spellcheck="false"></textarea>
           <% if self.current_board.captcha { %>
           <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">
             <svg class="icon" viewBox="0 -960 960 960">
