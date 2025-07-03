@@ -15,6 +15,7 @@ pub async fn create_post_by_thread_id(
     user_id: u64,
     thread_id: u32,
     message: String,
+    ip_address: String,
     attachment: TempFile,
     access_level: u8,
 ) -> Result<(), Error> {
@@ -30,6 +31,7 @@ pub async fn create_post_by_thread_id(
         show_username: false,
         message,
         message_hash,
+        ip_address,
         country_code: None,
         reply_ids,
         sage: false,

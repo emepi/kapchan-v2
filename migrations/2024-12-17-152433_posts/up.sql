@@ -7,6 +7,7 @@ CREATE TABLE posts (
     sage               BOOLEAN          NOT NULL,
     message            TEXT             NOT NULL,
     message_hash       VARCHAR(64)      NOT NULL,
+    ip_address         VARCHAR(45)      NOT NULL,
     country_code       VARCHAR(2),
     mod_note           TEXT,
     created_at         DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,

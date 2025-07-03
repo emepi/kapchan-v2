@@ -71,6 +71,8 @@ diesel::table! {
         message -> Text,
         #[max_length = 64]
         message_hash -> Varchar,
+        #[max_length = 45]
+        ip_address -> Varchar,
         #[max_length = 2]
         country_code -> Nullable<Varchar>,
         mod_note -> Nullable<Text>,

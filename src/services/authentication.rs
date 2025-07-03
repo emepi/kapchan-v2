@@ -35,7 +35,7 @@ pub async fn resolve_user(
     };
 
     //TODO: configure for proxy
-    let ip_addr = request.peer_addr().unwrap().to_string();
+    let ip_addr = request.peer_addr().unwrap().ip().to_string();
     let user_agent = request.headers().get("User-Agent")
     .map(|agent| agent.to_str())
     .map(|val| val.unwrap_or("").to_string())

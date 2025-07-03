@@ -167,6 +167,7 @@ impl Thread {
                         show_username: input.post.show_username,
                         message: &input.post.message,
                         message_hash: &input.post.message_hash,
+                        ip_address: &input.post.ip_address,
                         country_code: input.post.country_code.as_deref(),
                         access_level: input.post.access_level,
                         sage: input.post.sage,

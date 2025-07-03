@@ -106,7 +106,8 @@ pub async fn handle_post_creation(
         &conn_pool,
         user_data.id, 
         thread_id, 
-        input.message.to_string(), 
+        input.message.to_string(),
+        user_data.ip_addr,
         input.attachment,
         current_board.access_level
     ).await {
