@@ -1,3 +1,5 @@
+use std::fs::remove_file;
+
 use actix_identity::Identity;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
@@ -197,6 +199,56 @@ pub async fn handle_thread_lock(
     }
 
     match Thread::lock_thread(&conn_pool, thread_id, input.lock_status).await {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+pub async fn delete_thread(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let thread_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let thread_wrapper = match Thread::by_id(thread_id, &conn_pool).await {
+        Ok(thread) => thread,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Moderator as u8 && user_data.id != thread_wrapper.thread.user_id {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    // Delete files
+    thread_wrapper.posts.iter().for_each(|post| {
+        if let Some(attachment) = &post.attachment {
+            let file_location = format!("{}/{}", &attachment.file_location, &attachment.file_name);
+            let thumbnail_location = format!("{}/{}", &attachment.thumbnail_location, &attachment.file_name);
+
+            match remove_file(file_location) {
+                Ok(_) => (),
+                Err(e) => {
+                    println!("Error while removing file: {:?}", e);
+                },
+            };
+
+            match remove_file(thumbnail_location) {
+                Ok(_) => (),
+                Err(e) => {
+                    println!("Error while removing file: {:?}", e);
+                },
+            };
+        }
+    });
+
+    match Thread::delete_thread(&conn_pool, thread_id).await {
         Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

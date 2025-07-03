@@ -97,6 +97,18 @@ const lockThread = (thread_id, lock_status) => {
   });
 }
 
+const deleteThread = (thread_id) => {
+  fetch(new Request("/delete-thread/" + thread_id, {
+    method: "POST",
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
 const showThreadMenu = (e) => {
   const dd = e.parentElement.querySelector('.thread-dropdown');
 

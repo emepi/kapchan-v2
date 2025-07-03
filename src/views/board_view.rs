@@ -8,6 +8,7 @@ use crate::models::{boards::Board, threads::ThreadCatalogOutput};
 #[template(path = "board.stpl")]
 pub struct BoardTemplate {
     pub access_level: u8,
+    pub user_id: u64,
     pub handle: String,
     pub boards: Vec<Board>,
     pub current_board: Board,

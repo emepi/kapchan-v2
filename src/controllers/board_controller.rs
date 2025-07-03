@@ -42,6 +42,7 @@ pub async fn board(
 
     board_view::render(BoardTemplate {
         access_level: user_data.access_level,
+        user_id: user_data.id,
         handle,
         boards,
         current_board,

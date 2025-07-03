@@ -256,6 +256,7 @@ impl Thread {
 
                         ThreadCatalogOutput {
                             id: thread.id,
+                            user_id: thread.user_id,
                             title: thread.title,
                             pinned: thread.pinned,
                             locked: thread.locked,
@@ -355,6 +356,29 @@ impl Thread {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn delete_thread(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        thread_id: u32,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::delete(
+                        threads::table.find(thread_id)
+                    )
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]
@@ -381,6 +405,7 @@ pub struct ThreadInput {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThreadCatalogOutput {
     pub id: u32,
+    pub user_id: u64,
     pub title: String,
     pub pinned: bool,
     pub locked: bool,
