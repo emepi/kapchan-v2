@@ -58,7 +58,7 @@
     <a href="/<%= self.current_board.handle %>/thread/<%= thread.id %>">
       <div class="image-container">
       <% if thread.op_post.attachment.clone().is_some() && thread.op_post.attachment.clone().unwrap().file_type == "image" { %>
-      <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.clone().unwrap().id %>" class="post-img">
+      <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.clone().unwrap().id %>" class="post-img" onerror="reloadImg(this)">
       <img loading="lazy" src="/thumbnails/<%= &thread.op_post.attachment.unwrap().id %>" class="post-bg-img">
      <% } else {%>
        <p class="no-img">Ei kuvaa</p>

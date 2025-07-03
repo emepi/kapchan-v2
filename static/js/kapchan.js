@@ -204,6 +204,15 @@ const fetchCaptcha = () => {
     });
 }
 
+const reloadImg = (img) => {
+  let originalSrc = img.src;
+  img.src = "/static/img/infinite-spinner.svg";
+
+  setTimeout(() => {
+    img.src = originalSrc;
+  }, 3000);
+}
+
 const submitPost = () => {
     const pf = document.getElementById("posting-form");
     const data = new FormData(pf);

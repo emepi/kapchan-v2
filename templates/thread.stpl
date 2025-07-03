@@ -85,7 +85,7 @@
         <% let attachment = &postdata.attachment.clone().unwrap(); %>
         <div class="thread-post-file">
           <div class="thumbnail" id="i<%= attachment.id %>" onClick="enlargeImage(this.id, <%= attachment.id %>)">
-            <img loading="lazy" src="/thumbnails/<%= attachment.id %>">
+            <img loading="lazy" src="/thumbnails/<%= attachment.id %>" onerror="reloadImg(this)">
           </div>
         </div>
         <% } %>
