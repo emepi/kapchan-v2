@@ -180,6 +180,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(thread_controller::handle_thread_lock))
             )
             .service(
+                web::resource("/delete-board/{id}")
+                    .route(web::post().to(board_controller::delete_board))
+            )
+            .service(
                 web::resource("/delete-thread/{id}")
                     .route(web::post().to(thread_controller::delete_thread))
             )

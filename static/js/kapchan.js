@@ -109,6 +109,18 @@ const deleteThread = (thread_id) => {
   });
 }
 
+const deleteBoard = (board_id) => {
+  fetch(new Request("/delete-board/" + board_id, {
+    method: "POST",
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
 const deletePost = (post_id) => {
   fetch(new Request("/delete-post/" + post_id, {
     method: "POST",

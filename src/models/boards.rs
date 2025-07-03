@@ -15,7 +15,9 @@ use diesel_async::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::schema::boards;
+use crate::schema::{attachments, boards, threads};
+
+use super::{posts::{Attachment, Post, PostData}, threads::{Thread, ThreadData}};
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
@@ -89,6 +91,73 @@ impl Board {
                     .await?;
             
                     Ok(boards)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn list_all_threads_and_posts(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        board_id: u32,
+    ) -> Result<Vec<ThreadData>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let threads = threads::table
+                    .filter(threads::board_id.eq(board_id))
+                    .load::<Thread>(conn)
+                    .await?;
+
+                    let thread_posts: Vec<(Post, Option<Attachment>)> = Post::belonging_to(&threads)
+                    .left_join(attachments::table)
+                    .load::<(Post, Option<Attachment>)>(conn)
+                    .await?;
+
+                    let catalog = thread_posts
+                    .grouped_by(&threads)
+                    .into_iter()
+                    .zip(threads)
+                    .map(|(posts, thread)| {
+                        ThreadData {
+                            thread,
+                            posts: posts.into_iter().map(|post| {
+                                PostData {
+                                    post: post.0,
+                                    attachment: post.1,
+                                    replies: vec![], //TODO: fetch replies if needed for anything
+                                }
+                            }).collect(),
+                        }
+                    })
+                    .collect::<Vec<ThreadData>>();
+            
+                    Ok(catalog)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn delete_board(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        board_id: u32,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::delete(
+                        boards::table.find(board_id)
+                    )
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
                 }.scope_boxed())
                 .await
             },

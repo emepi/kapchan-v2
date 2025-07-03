@@ -94,7 +94,7 @@
         </div>
         <div class="helper">
           <button class="admin-board-info-btn">muokkaa</button>
-          <button class="admin-board-info-btn">poista</button>
+          <button class="admin-board-info-btn" onClick="deleteBoard(<%= board.id %>)">poista</button>
         </div>
       </div>
     </div>

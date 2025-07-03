@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::{applications::Application, boards::{Board, BoardModel}, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}}};
+use crate::{models::{applications::Application, boards::{Board, BoardModel}, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
 
 
 pub async fn admin(
@@ -19,7 +19,10 @@ pub async fn admin(
     };
 
     if user_data.access_level < AccessLevel::Moderator as u8 {
-        return Ok(HttpResponse::Forbidden().finish())
+        return forbidden_view::render(ForbiddenTemplate {
+            required_access_level: AccessLevel::Moderator as u8,
+        })
+        .await;
     }
 
     let boards = match Board::list_all(&conn_pool).await {
@@ -134,7 +137,10 @@ pub async fn applications_list(
     };
 
     if user_data.access_level < AccessLevel::Admin as u8 {
-        return Ok(HttpResponse::Forbidden().finish())
+        return forbidden_view::render(ForbiddenTemplate {
+            required_access_level: AccessLevel::Admin as u8,
+        })
+        .await;
     }
 
     let page = path.into_inner();
@@ -174,7 +180,10 @@ pub async fn application_review(
     };
 
     if user_data.access_level < AccessLevel::Admin as u8 {
-        return Ok(HttpResponse::Forbidden().finish())
+        return forbidden_view::render(ForbiddenTemplate {
+            required_access_level: AccessLevel::Admin as u8,
+        })
+        .await;
     }
 
     let application_id = path.into_inner();

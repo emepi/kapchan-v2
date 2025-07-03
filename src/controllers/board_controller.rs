@@ -1,8 +1,10 @@
+use std::fs::remove_file;
+
 use actix_identity::Identity;
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, threads::Thread}, services::authentication::resolve_user, views::{board_view::{self, BoardTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
+use crate::{models::{boards::Board, threads::Thread, users::AccessLevel}, services::authentication::resolve_user, views::{board_view::{self, BoardTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
 
 
 pub async fn board(
@@ -48,4 +50,56 @@ pub async fn board(
         current_board,
         threads,
     }).await
+}
+
+pub async fn delete_board(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let board_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Admin as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let catalog = match Board::list_all_threads_and_posts(&conn_pool, board_id).await {
+        Ok(catalog) => catalog,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    // Delete files
+    catalog.iter().for_each(|thread| {
+        thread.posts.iter().for_each(|post| {
+            if let Some(attachment) = &post.attachment {
+                let file_location = format!("{}/{}", &attachment.file_location, &attachment.file_name);
+                let thumbnail_location = format!("{}/{}", &attachment.thumbnail_location, &attachment.file_name);
+        
+                match remove_file(file_location) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Error while removing file: {:?}", e);
+                    },
+                };
+        
+                match remove_file(thumbnail_location) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Error while removing file: {:?}", e);
+                    },
+                };
+            }
+        });
+    });
+
+    match Board::delete_board(&conn_pool, board_id).await {
+        Ok(_) => HttpResponse::Found().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }
