@@ -4,7 +4,7 @@ use actix_identity::Identity;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, threads::Thread, users::AccessLevel}, services::authentication::resolve_user, views::{board_view::{self, BoardTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
+use crate::{models::{boards::Board, threads::Thread, users::AccessLevel}, services::authentication::resolve_user, views::{board_view::{self, BoardTemplate}, forbidden_view::{self, ForbiddenTemplate}, not_found_view}};
 
 
 pub async fn board(
@@ -22,7 +22,12 @@ pub async fn board(
 
     let current_board = match Board::by_handle(&conn_pool, &handle).await {
         Ok(board) => board,
-        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+        Err(e) => match e {
+            diesel::result::Error::NotFound => {
+                return not_found_view::render().await;
+            },
+            _ => return Ok(HttpResponse::InternalServerError().finish()),
+        },
     };
 
     if current_board.access_level > user_data.access_level {

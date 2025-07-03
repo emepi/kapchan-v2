@@ -1156,3 +1156,27 @@ body {
   max-width: 600px;
   height: auto;
 }
+
+/*-------------------------------- 404.stpl ----------------------------------*/
+
+.not-found-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 15px;
+  color: var(--on-background);
+  font-size: 20px;
+}
+
+.not-found-img {
+  max-width: 800px;
+  height: auto;
+  border-radius: 5px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+
+.not-found {
+  font-size: 100px;
+}

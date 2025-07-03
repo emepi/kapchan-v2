@@ -6,7 +6,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::Deserialize;
 
-use crate::{models::{boards::Board, error::UserError, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{forbidden_view::{self, ForbiddenTemplate}, thread_view::{self, ThreadTemplate}}};
+use crate::{models::{boards::Board, error::UserError, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{forbidden_view::{self, ForbiddenTemplate}, not_found_view, thread_view::{self, ThreadTemplate}}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -125,7 +125,12 @@ pub async fn thread(
 
     let thread = match Thread::by_id(thread_id, &conn_pool).await {
         Ok(thread) => thread,
-        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+        Err(e) => match e {
+            diesel::result::Error::NotFound => {
+                return not_found_view::render().await;
+            },
+            _ => return Ok(HttpResponse::InternalServerError().finish()),
+        },
     };
 
     thread_view::render(ThreadTemplate {

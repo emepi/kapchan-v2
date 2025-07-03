@@ -3,7 +3,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="/static/css/kapchan.css">
 <script type="text/javascript" src="/static/js/kapchan.js"></script>
-<title>Avaruuskapakka</title>
+<title>404 - Sivua ei löytynyt!</title>
 <body class="content">
-  <h1>Sivua ei löytynyt!</h1>
+  <div class="not-found-container">
+    <img class="not-found-img" src="/static/img/860c21f01c23f6920c710e4bb481ea9a.jpg">
+    <h1 class="not-found">404</h1>
+    <p>Sivua ei löytynyt!</p>
+  </div>
 </body>
