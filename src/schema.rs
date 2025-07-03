@@ -92,6 +92,7 @@ diesel::table! {
         board_id -> Unsigned<Integer>,
         title -> Tinytext,
         pinned -> Bool,
+        locked -> Bool,
         archived -> Bool,
         bump_time -> Datetime,
     }

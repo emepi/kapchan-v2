@@ -31,6 +31,7 @@ pub struct Thread {
     pub board_id: u32,
     pub title: String,
     pub pinned: bool,
+    pub locked: bool,
     pub archived: bool,
     pub bump_time: NaiveDateTime,
 }
@@ -148,6 +149,7 @@ impl Thread {
                         board_id: input.board_id,
                         title: &input.title,
                         pinned: input.pinned,
+                        locked: input.locked,
                         archived: input.archived,
                     })
                     .execute(conn)
@@ -256,6 +258,7 @@ impl Thread {
                             id: thread.id,
                             title: thread.title,
                             pinned: thread.pinned,
+                            locked: thread.locked,
                             op_post: PostOutput {
                                 id: op_post.0.id,
                                 show_username: op_post.0.show_username,
@@ -327,6 +330,31 @@ impl Thread {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn lock_thread(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        thread_id: u32,
+        lock_status: bool,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::update(
+                        threads::table.find(thread_id)
+                    )
+                    .set(threads::locked.eq(lock_status))
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]
@@ -336,6 +364,7 @@ pub struct ThreadModel<'a> {
     pub board_id: u32,
     pub title: &'a str,
     pub pinned: bool,
+    pub locked: bool,
     pub archived: bool,
 }
 
@@ -344,6 +373,7 @@ pub struct ThreadInput {
     pub board_id: u32,
     pub title: String,
     pub pinned: bool,
+    pub locked: bool,
     pub archived: bool,
     pub post: PostInput,
 }
@@ -353,6 +383,7 @@ pub struct ThreadCatalogOutput {
     pub id: u32,
     pub title: String,
     pub pinned: bool,
+    pub locked: bool,
     pub op_post: PostOutput,
     pub replies: usize,
 }

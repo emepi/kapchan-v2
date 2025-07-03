@@ -67,6 +67,12 @@ pub async fn handle_post_creation(
         });
     }
 
+    if current_thread.locked {
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Lanka on lukittu, eikä siihen voi enää vastata!".to_owned(),
+        });
+    }
+
     if current_board.captcha {
         if input.captcha.is_some() && input.captcha_id.is_some() {
             match verify_captcha(

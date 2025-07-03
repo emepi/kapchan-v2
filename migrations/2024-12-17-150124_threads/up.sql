@@ -4,6 +4,7 @@ CREATE TABLE threads (
     board_id        INTEGER UNSIGNED NOT NULL,
     title           TINYTEXT         NOT NULL,
     pinned          BOOLEAN          NOT NULL,
+    locked          BOOLEAN          NOT NULL,
     archived        BOOLEAN          NOT NULL,
     bump_time       DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),

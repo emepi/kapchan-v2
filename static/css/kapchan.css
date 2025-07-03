@@ -353,12 +353,18 @@ body {
   position: relative;
 }
 
-.post-pin {
+.icon-overlay {
   height: 25px;
   width: auto;
   position: absolute;
   z-index: 4;
   color: var(--primary);
+  display: flex;
+  gap: 3px;
+}
+
+.icon-overlay-item {
+  padding: 5px;
   background-color: var(--background);
   border-radius: 5px;
 }
@@ -557,6 +563,7 @@ body {
 
 .thread-menu-opt {
   position: relative;
+  cursor: pointer;
 }
 
 .thread-dropdown {

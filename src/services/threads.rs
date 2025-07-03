@@ -29,6 +29,7 @@ pub async fn create_thread(
         board_id,
         title: topic,
         pinned: false,
+        locked: false,
         archived: false,
         post: PostInput {
             user_id,

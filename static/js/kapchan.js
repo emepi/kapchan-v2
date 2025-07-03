@@ -78,6 +78,25 @@ const unpinThread = (thread_id) => {
   });
 }
 
+const lockThread = (thread_id, lock_status) => {
+  fetch(new Request("/lock-thread/" + thread_id, {
+    method: "POST",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      lock_status: lock_status
+    })
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
 const showThreadMenu = (e) => {
   const dd = e.parentElement.querySelector('.thread-dropdown');
 

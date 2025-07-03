@@ -176,6 +176,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(thread_controller::handle_thread_unpin))
             )
             .service(
+                web::resource("/lock-thread/{id}")
+                    .route(web::post().to(thread_controller::handle_thread_lock))
+            )
+            .service(
                 web::resource("/post-details/{id}")
                     .route(web::get().to(post_controller::handle_post_details))
             )

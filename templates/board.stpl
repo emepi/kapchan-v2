@@ -41,10 +41,19 @@
   <div class="catalog">
   <% for thread in self.threads { %>
   <div class="post" id="p<%= thread.op_post.id %>">
-    <% if thread.pinned { %>
-      <svg class="post-pin" viewBox="0 -960 960 960">
-        <path fill="currentColor" d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/>
-      </svg>
+    <% if thread.pinned || thread.locked { %>
+      <div class="icon-overlay">
+        <% if thread.pinned {%>
+        <svg class="icon icon-overlay-item" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/>
+        </svg>
+        <% } %>
+        <% if thread.locked {%>
+        <svg class="icon icon-overlay-item" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z"/>
+        </svg>
+        <% } %>
+      </div>
     <% } %>
     <a href="/<%= self.current_board.handle %>/thread/<%= thread.id %>">
       <div class="image-container">
@@ -90,17 +99,26 @@
             <% } else {%>
             <div class="thread-dropdown-row" onClick="unpinThread(<%= thread.id %>)">
               <svg class="icon" viewBox="0 -960 960 960">
-                <path fill="currentColor" d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/>
+                <path fill="currentColor" d="M680-840v80h-40v327l-80-80v-247H400v87l-87-87-33-33v-47h400ZM480-40l-40-40v-240H240v-80l80-80v-46L56-792l56-56 736 736-58 56-264-264h-6v240l-40 40ZM354-400h92l-44-44-2-2-46 46Zm126-193Zm-78 149Z"/>
               </svg>
               poista kiinnitys
             </div>
             <% } %>
-            <div class="thread-dropdown-row">
+            <% if !thread.locked { %>
+            <div class="thread-dropdown-row" onClick="lockThread(<%= thread.id %>, true)">
               <svg class="icon" viewBox="0 -960 960 960">
                 <path fill="currentColor" d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z"/>
               </svg>
               lukitse
             </div>
+            <% } else {%>
+            <div class="thread-dropdown-row" onClick="lockThread(<%= thread.id %>, false)">
+              <svg class="icon" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M240-640h360v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85h-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640Zm0 480h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM240-160v-400 400Z"/>
+              </svg>
+              poista lukitus
+            </div>
+            <% } %>
             <div class="thread-dropdown-row">
               <svg class="icon" viewBox="0 -960 960 960">
                 <path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
