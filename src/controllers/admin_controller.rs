@@ -125,6 +125,93 @@ pub async fn handle_board_creation(
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct EditBoardForm {
+    #[validate(
+        length(
+            min = "1",
+            max = "8",
+            message = "Handle must be 1-8 characters long."
+        ),
+        regex(
+            path = Regex::new(r"[a-zA-Z]+").unwrap(),
+            message = "Handle must contain only alphabets."
+        )
+    )]
+    pub handle: String,
+    #[validate(
+        length(
+            min = "1",
+            max = "255",
+            message = "Title must be 1-255 characters long."
+        )
+    )]
+    pub title: String,
+    pub description: String,
+    pub access_level: u8,
+    pub threads_limit: u32,
+    pub thread_size: u32,
+    pub captcha: Option<String>,
+    pub nsfw: Option<String>,
+}
+
+pub async fn handle_board_edit(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    input: web::Form<EditBoardForm>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> actix_web::Result<HttpResponse> {
+    let board_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    if user_data.access_level < AccessLevel::Admin as u8 {
+        return Ok(HttpResponse::Forbidden().finish())
+    }
+
+    match input.validate() {
+        Ok(_) => (),
+        Err(e) => {
+            let errors = e.field_errors()
+            .iter()
+            .map(|err| err.1.iter().map(|k| k.to_string()).collect::<Vec<String>>())
+            .flat_map(|errors| errors)
+            .collect();
+
+            let boards = match Board::list_all(&conn_pool).await {
+                Ok(boards) => boards,
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+
+            let template = AdminTemplate {
+                errors,
+                access_level: user_data.access_level,
+                boards,
+            };
+
+            return admin_view::render(template).await;
+        },
+    };
+
+    match Board::update_board(&conn_pool, board_id, BoardModel {
+        handle: &input.handle,
+        title: &input.title,
+        description: &input.description,
+        access_level: input.access_level,
+        active_threads_limit: input.threads_limit,
+        thread_size_limit: input.thread_size,
+        captcha: input.captcha.is_some(),
+        nsfw: input.nsfw.is_some(),
+    }).await {
+        Ok(_) => Ok(HttpResponse::Found().append_header(("Location", "/admin")).finish()),
+        Err(_) => Ok(HttpResponse::InternalServerError().finish()),
+    }
+}
+
 pub async fn applications_list(
     path: web::Path<u32>,
     user: Option<Identity>,

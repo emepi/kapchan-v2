@@ -165,6 +165,31 @@ impl Board {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn update_board<'a>(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        board_id: u32,
+        model: BoardModel<'a>,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::update(
+                        boards::table.find(board_id)
+                    )
+                    .set(model)
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]

@@ -93,9 +93,49 @@
           <span class="access-level-marker desc"><%= board.description %></span>
         </div>
         <div class="helper">
-          <button class="admin-board-info-btn">muokkaa</button>
+          <button class="admin-board-info-btn" onClick="openAdminBoardEdit()">muokkaa</button>
           <button class="admin-board-info-btn" onClick="deleteBoard(<%= board.id %>)">poista</button>
         </div>
+
+        <div class="admin-board-edit-bg board-creation-bg" id="board-edit">
+          <div class="admin-board-edit board-creation-cont">
+            <header class="modal-head">
+              <h3>Muokkaa lautaa</h3>
+              <svg class="icon hoverable" onClick="closeAdminBoardEdit()" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </header>
+            <form class="board-creation-form" id="board-edit-form" action=/edit-board/<%= board.id %> method=POST>
+              <input type="text" class="input-fld" id="handle" placeholder="lautakoodi" name="handle" value="<%= board.handle %>" autocomplete="off">
+              <input type="text" class="input-fld" id="title" placeholder="nimi" name="title" value="<%= board.title %>" autocomplete="off">
+              <label for="description">Kuvaus:</label>
+              <textarea name="description" class="application-txt" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'><%= board.description %></textarea>
+              <label for="access_level">käyttäjätaso:</label>
+              <select class="input-fld" name="access_level" id="access_level">
+                <option value="10">anonyymi</option>
+                <option value="20">rekisteröitynyt</option>
+                <option value="30">jäsen ehdokas</option>
+                <option value="40">jäsen</option>
+                <option value="90">moderaattori</option>
+                <option value="100">admin</option>
+              </select>
+              <label for="threads_limit">lankaraja:</label>
+              <input class="input-fld" type="number" id="threads_limit" name="threads_limit" value="<%= board.active_threads_limit %>" min="0" />
+              <label for="thread_size">viestiraja (per lanka):</label>
+              <input class="input-fld" type="number" id="thread_size" name="thread_size" value="<%= board.thread_size_limit %>" min="0" />
+              <div class="board-creation-form-v">
+                <input type="checkbox" id="captcha" name="captcha" />
+                <label for="captcha">captcha</label>
+              </div>
+              <div class="board-creation-form-v">
+                <input type="checkbox" id="nsfw" name="nsfw" />
+                <label for="nsfw">nsfw</label>
+              </div>
+              <button type='submit' class="register-btn">Muokkaa</button>
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
   <% } %>

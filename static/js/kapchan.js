@@ -35,6 +35,22 @@ const closeAdminBoardCreation = () => {
   }
 }
 
+const openAdminBoardEdit = () => {
+  const bc = document.getElementById("board-edit");
+
+  if (bc) {
+    bc.style.display = "flex";
+  }
+}
+
+const closeAdminBoardEdit = () => {
+  const bc = document.getElementById("board-edit");
+
+  if (bc) {
+    bc.style.display = "none";
+  }
+}
+
 const showPost = (post_id) => {
   fetch(new Request("/post-details/" + post_id, {
     method: "GET",

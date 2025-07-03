@@ -154,6 +154,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(admin_controller::handle_board_creation))
             )
             .service(
+                web::resource("/edit-board/{id}")
+                    .route(web::post().to(admin_controller::handle_board_edit))
+            )
+            .service(
                 web::resource("/captcha")
                     .route(web::get().to(captcha_controller::captcha))
             )
