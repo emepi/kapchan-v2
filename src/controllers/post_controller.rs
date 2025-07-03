@@ -31,6 +31,12 @@ pub async fn handle_post_creation(
         });
     }
 
+    if input.message.len() > 40_000 {
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Viesti on liian pitkä (yli 40 000 merkkiä)".to_owned(),
+        });
+    }
+
     let user_data = match resolve_user(user, req, &conn_pool).await {
         Ok(usr_data) => usr_data,
         Err(_) => return HttpResponse::InternalServerError().finish(),

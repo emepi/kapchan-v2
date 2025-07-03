@@ -31,6 +31,12 @@ pub async fn handle_thread_creation(
             error: "Viesti ei voi olla tyhjä!".to_owned(),
         });
     }
+
+    if input.message.len() > 40_000 {
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Viesti on liian pitkä (yli 40 000 merkkiä)".to_owned(),
+        });
+    }
     
     let user_data = match resolve_user(user, req, &conn_pool).await {
         Ok(usr_data) => usr_data,
