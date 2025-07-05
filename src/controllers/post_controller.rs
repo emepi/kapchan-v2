@@ -43,7 +43,7 @@ pub async fn handle_post_creation(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    if user_data.banned.is_some() {
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
         return HttpResponse::Forbidden().json(UserError {
             error: "Käyttäjätilisi on bannattu!".to_owned(),
         });
@@ -187,6 +187,10 @@ pub async fn delete_post(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
     if user_data.access_level < AccessLevel::Moderator as u8 && user_data.id != post_wrapper.post.user_id {
         return HttpResponse::Forbidden().finish();
     }
@@ -244,6 +248,10 @@ pub async fn ban_user_by_post_id(
         Ok(usr_data) => usr_data,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
 
     let post_data = match Post::by_id(post_id, &conn_pool).await {
         Ok(post_data) => post_data,

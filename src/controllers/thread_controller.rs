@@ -6,7 +6,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::Deserialize;
 
-use crate::{models::{boards::Board, error::UserError, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{forbidden_view::{self, ForbiddenTemplate}, not_found_view, thread_view::{self, ThreadTemplate}}};
+use crate::{models::{boards::Board, error::UserError, posts::Post, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, threads::create_thread}, views::{banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, not_found_view, thread_view::{self, ThreadTemplate}}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -43,7 +43,7 @@ pub async fn handle_thread_creation(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    if user_data.banned.is_some() {
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
         return HttpResponse::Forbidden().json(UserError {
             error: "Käyttäjätilisi on bannattu!".to_owned(),
         });
@@ -110,6 +110,23 @@ pub async fn thread(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
     let boards = match Board::list_all(&conn_pool).await {
         Ok(board) => board,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
@@ -161,6 +178,10 @@ pub async fn handle_thread_pin(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
     if user_data.access_level < AccessLevel::Moderator as u8 {
         return HttpResponse::Forbidden().finish();
     }
@@ -183,6 +204,10 @@ pub async fn handle_thread_unpin(
         Ok(usr_data) => usr_data,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
 
     if user_data.access_level < AccessLevel::Moderator as u8 {
         return HttpResponse::Forbidden().finish();
@@ -213,6 +238,10 @@ pub async fn handle_thread_lock(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
     if user_data.access_level < AccessLevel::Moderator as u8 {
         return HttpResponse::Forbidden().finish();
     }
@@ -235,6 +264,10 @@ pub async fn delete_thread(
         Ok(usr_data) => usr_data,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
 
     let thread_wrapper = match Thread::by_id(thread_id, &conn_pool).await {
         Ok(thread) => thread,

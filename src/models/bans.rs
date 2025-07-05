@@ -19,7 +19,7 @@ use serde::Serialize;
 use crate::schema::bans::{self, expires_at};
 
 
-#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Clone)]
 #[diesel(table_name = bans)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Ban {

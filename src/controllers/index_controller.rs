@@ -3,9 +3,9 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
 use crate::{
-    models::{boards::Board, posts::Post}, 
+    models::{boards::Board, posts::Post, users::AccessLevel}, 
     services::authentication::resolve_user, 
-    views::index_view::{self, IndexTemplate}
+    views::{banned_view::{self, BannedTemplate}, index_view::{self, IndexTemplate}}
 };
 
 
@@ -18,6 +18,23 @@ pub async fn index(
         Ok(usr_data) => usr_data,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
 
     let boards = match Board::list_all(&conn_pool).await {
         Ok(boards) => boards,

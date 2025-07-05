@@ -4,7 +4,7 @@ use actix_identity::Identity;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::{boards::Board, threads::Thread, users::AccessLevel}, services::authentication::resolve_user, views::{board_view::{self, BoardTemplate}, forbidden_view::{self, ForbiddenTemplate}, not_found_view}};
+use crate::{models::{boards::Board, posts::Post, threads::Thread, users::AccessLevel}, services::authentication::resolve_user, views::{banned_view::{self, BannedTemplate}, board_view::{self, BoardTemplate}, forbidden_view::{self, ForbiddenTemplate}, not_found_view}};
 
 
 pub async fn board(
@@ -17,6 +17,23 @@ pub async fn board(
         Ok(usr_data) => usr_data,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
 
     let handle = path.into_inner();
 
@@ -69,6 +86,10 @@ pub async fn delete_board(
         Ok(usr_data) => usr_data,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
 
     if user_data.access_level < AccessLevel::Admin as u8 {
         return HttpResponse::Forbidden().finish();

@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::{applications::Application, boards::{Board, BoardModel}, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
+use crate::{models::{applications::Application, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
 
 
 pub async fn admin(
@@ -173,6 +173,23 @@ pub async fn handle_board_edit(
         return Ok(HttpResponse::Forbidden().finish())
     }
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
     match input.validate() {
         Ok(_) => (),
         Err(e) => {
@@ -230,6 +247,23 @@ pub async fn applications_list(
         .await;
     }
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
     let page = path.into_inner();
 
     let previews = match load_application_previews(&conn_pool, page.into(), 20).await {
@@ -273,6 +307,23 @@ pub async fn application_review(
         .await;
     }
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
     let application_id = path.into_inner();
 
     let application = match Application::by_id(&conn_pool, application_id).await {
@@ -303,8 +354,12 @@ pub async fn handle_application_accept(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
+
     if user_data.access_level < AccessLevel::Admin as u8 {
-        return Ok(HttpResponse::Forbidden().finish())
+        return Ok(HttpResponse::Forbidden().finish());
     }
 
     let application_id = path.into_inner();
@@ -342,6 +397,10 @@ pub async fn handle_application_deny(
 
     if user_data.access_level < AccessLevel::Admin as u8 {
         return Ok(HttpResponse::Forbidden().finish())
+    }
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return Ok(HttpResponse::Forbidden().finish());
     }
 
     let application_id = path.into_inner();

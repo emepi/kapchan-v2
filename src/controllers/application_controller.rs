@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::users::AccessLevel, services::{applications::submit_application, authentication::resolve_user, users::register_user}, views::{application_view::{self, ApplicationTemplate}, register_view::{self, RegisterTemplate}}};
+use crate::{models::{posts::Post, users::AccessLevel}, services::{applications::submit_application, authentication::resolve_user, users::register_user}, views::{application_view::{self, ApplicationTemplate}, banned_view::{self, BannedTemplate}, register_view::{self, RegisterTemplate}}};
 
 
 pub async fn register() -> actix_web::Result<HttpResponse> {
@@ -63,6 +63,10 @@ pub async fn handle_registration(
         return Ok(HttpResponse::Forbidden().finish())
     }
 
+    if user_data.banned.is_some() {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
+
     match input.validate() {
         Ok(_) => (),
         Err(e) => {
@@ -117,6 +121,23 @@ pub async fn application(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
     if user_data.access_level != AccessLevel::Registered as u8 {
         return Ok(HttpResponse::Forbidden().finish())
     }
@@ -146,6 +167,10 @@ pub async fn handle_application(
 
     if user_data.access_level != AccessLevel::Registered as u8 {
         return Ok(HttpResponse::Forbidden().finish())
+    }
+
+    if user_data.banned.is_some() {
+        return Ok(HttpResponse::Forbidden().finish());
     }
 
     let res = submit_application(

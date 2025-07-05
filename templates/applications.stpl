@@ -3,7 +3,7 @@
   <nav class="selector">
     <a href="/admin" class="selector-btn">Kapchan</a>
     <a href="/applications/1" class="selector-btn--active">Hakemukset</a>
-    <a href="/users" class="selector-btn">Käyttäjät</a>
+    <a href="/users" class="selector-btn">Hallitse Käyttäjiä</a>
   </nav>
   <div class="application-list">
     <h2>Hakemukset</h2>

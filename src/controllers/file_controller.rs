@@ -5,7 +5,7 @@ use actix_identity::Identity;
 use actix_web::{web, HttpRequest};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 
-use crate::{models::posts::Attachment, services::authentication::resolve_user};
+use crate::{models::{posts::Attachment, users::AccessLevel}, services::authentication::resolve_user};
 
 
 pub async fn serve_files(
@@ -33,7 +33,7 @@ pub async fn serve_files(
         return Err(actix_web::error::ErrorForbidden("Ei käyttöoikeutta!"));
     }
 
-    if user_data.banned.is_some() {
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8  {
         return Err(actix_web::error::ErrorForbidden("Käyttäjätili on bannattu!"));
     }
 
@@ -72,7 +72,7 @@ pub async fn serve_thumbnails(
         return Err(actix_web::error::ErrorForbidden("Ei käyttöoikeutta!"));
     }
 
-    if user_data.banned.is_some() {
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
         return Err(actix_web::error::ErrorForbidden("Käyttäjätili on bannattu!"));
     }
 

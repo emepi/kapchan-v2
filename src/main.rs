@@ -29,6 +29,7 @@ mod views {
     pub mod application_list_view;
     pub mod application_review_view;
     pub mod application_view;
+    pub mod banned_view;
     pub mod board_view;
     pub mod forbidden_view;
     pub mod index_view;
