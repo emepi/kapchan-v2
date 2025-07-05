@@ -3,10 +3,11 @@ use std::fs::remove_file;
 use actix_identity::Identity;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use chrono::{Duration, Utc};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::{Deserialize, Serialize};
 
-use crate::{models::{boards::Board, error::UserError, posts::Post, threads::Thread, users::AccessLevel}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
+use crate::{models::{bans::BanModel, boards::Board, error::UserError, posts::Post, threads::Thread, users::{AccessLevel, User}}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -213,6 +214,57 @@ pub async fn delete_post(
     }
 
     match Post::delete_post(&conn_pool, post_wrapper.post.id).await {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct BanUserInput {
+    pub ban_duration_days: i64,
+    pub reason: String,
+}
+
+pub async fn ban_user_by_post_id(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<BanUserInput>,
+    req: HttpRequest,
+) -> impl Responder {
+    let post_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let post_data = match Post::by_id(post_id, &conn_pool).await {
+        Ok(post_data) => post_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let poster_user_data = match User::by_id(post_data.user_id, &conn_pool).await {
+        Ok(poster_user_data) => poster_user_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Moderator as u8 || user_data.access_level <= poster_user_data.access_level {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let expires_at = (Utc::now() + Duration::days(input.ban_duration_days)).naive_utc();
+
+    let ban_model = BanModel {
+        moderator_id: user_data.id,
+        user_id: Some(poster_user_data.id),
+        post_id: Some(post_data.id),
+        reason: Some(&input.reason),
+        ip_address: &post_data.ip_address,
+        expires_at,
+    };
+
+    match ban_model.insert(&conn_pool).await {
         Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

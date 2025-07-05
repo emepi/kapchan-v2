@@ -70,6 +70,14 @@
               poista lanka
             </div>
             <% } %>
+            <% if self.access_level >= 90 { %>
+            <div class="thread-dropdown-row" onClick="openBanMenu(<%= postdata.post.id %>)">
+              <svg class="icon" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="M791-55 686-160H160v-112q0-34 17.5-62.5T224-378q45-23 91.5-37t94.5-21L55-791l57-57 736 736-57 57ZM240-240h366L486-360h-6q-56 0-111 13.5T260-306q-9 5-14.5 14t-5.5 20v32Zm496-138q29 14 46 42.5t18 61.5L666-408q18 7 35.5 14t34.5 16ZM568-506l-59-59q23-9 37-29.5t14-45.5q0-33-23.5-56.5T480-720q-25 0-45.5 14T405-669l-59-59q23-34 58-53t76-19q66 0 113 47t47 113q0 41-19 76t-53 58Zm38 266H240h366ZM457-617Z"/>
+              </svg>
+              bannaa käyttäjä
+            </div>
+            <% } %>
           </div>
         </div>
       </div>
@@ -101,6 +109,36 @@
     </div>
   <% } %>
   </div>
+
+  <% if self.access_level >= 90 { %>
+      <div class="ban-menu" id="banMenu" data-post="" hidden>
+        <div class="ban-menu-container">
+          <div class="ban-menu-modal">
+            <header class="modal-head">
+              <h3>Bannaa käyttäjä</h3>
+              <svg class="icon hoverable" onClick="closeBanMenu()" viewBox="0 -960 960 960">
+                <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </header>
+            <form class="ban-form" id="ban-form">
+              <div class="ban-form-numbers">
+                <div class="bfn-row">
+                  <label for="post_id">Viestin id:</label>
+                  <input class="input-fld" id="post-id-field" type="number" name="post_id" min="0" />
+                </div>
+                <div class="bfn-row">
+                  <label for="ban_duration">Bannien kesto (päivää):</label>
+                  <input class="input-fld" type="number" name="ban_duration" min="0" />
+                </div>
+              </div>
+              <label for="reason">Bannien syy:</label>
+              <textarea name="reason" class="application-txt" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+              <button type="button" class="register-btn" onclick="banUserByPostId()">bannaa käyttäjä</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% } %>
 
   <div class="reply">
     <div class="err-container" id="err-container"></div>

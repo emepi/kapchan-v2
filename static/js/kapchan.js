@@ -51,6 +51,35 @@ const closeAdminBoardEdit = () => {
   }
 }
 
+const banUserByPostId = () => {
+  const bf = document.getElementById("ban-form");
+  const data = new FormData(bf);
+
+  let post_id = Number(data.get("post_id"));
+  let ban_duration = Number(data.get("ban_duration"));
+  let reason = data.get("reason");
+
+  if (!post_id || !ban_duration) return;
+
+  fetch(new Request("/ban-user-by-post/" + post_id, {
+    method: "POST",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ban_duration_days: ban_duration,
+      reason: reason
+    })
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
 const showPost = (post_id) => {
   fetch(new Request("/post-details/" + post_id, {
     method: "GET",
@@ -172,6 +201,19 @@ const logout = (event) => {
     )
     .then(() => location.replace("/"));
 };
+
+const openBanMenu = (post_id) => {
+  const bm = document.getElementById("banMenu");
+  bm.hidden = false;
+
+  const bif = document.getElementById("post-id-field");
+  bif.value=post_id;
+}
+
+const closeBanMenu = () => {
+  const bm = document.getElementById("banMenu");
+  bm.hidden = true;
+}
 
 const openPosting = () => {
     const ps = document.getElementById("posting-screen");

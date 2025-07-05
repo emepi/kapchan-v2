@@ -451,6 +451,7 @@ body {
   z-index: 1;
 }
 
+.ban-menu,
 #posting-screen {
   position: fixed;
   left: 0;
@@ -461,6 +462,7 @@ body {
   z-index: 6;
 }
 
+.ban-menu-container,
 #posting-container {
   height: 100%;
   display: flex;
@@ -469,12 +471,25 @@ body {
   padding: 15px;
 }
 
+.ban-menu-modal,
 .posting-modal {
   background-color: var(--surface);
   color: var(--on-surface);
   padding: 10px;
   width: 100%;
   max-width: 800px;
+}
+
+.ban-form-numbers {
+  display: flex;
+  gap: 10px;
+}
+
+.bfn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
 .modal-head {
@@ -484,6 +499,7 @@ body {
   height: 30px;
 }
 
+.ban-form,
 .posting-form {
   display: flex;
   flex-direction: column;

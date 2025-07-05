@@ -40,6 +40,7 @@ mod views {
 
 mod models {
     pub mod applications;
+    pub mod bans;
     pub mod boards;
     pub mod files;
     pub mod users;
@@ -194,6 +195,10 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/delete-post/{id}")
                     .route(web::post().to(post_controller::delete_post))
+            )
+            .service(
+                web::resource("/ban-user-by-post/{id}")
+                    .route(web::post().to(post_controller::ban_user_by_post_id))
             )
             .service(
                 web::resource("/post-details/{id}")

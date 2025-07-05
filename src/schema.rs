@@ -37,6 +37,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    bans (id) {
+        id -> Unsigned<Integer>,
+        moderator_id -> Unsigned<Bigint>,
+        user_id -> Nullable<Unsigned<Bigint>>,
+        post_id -> Nullable<Unsigned<Integer>>,
+        reason -> Nullable<Text>,
+        #[max_length = 45]
+        ip_address -> Varchar,
+        expires_at -> Datetime,
+        created_at -> Datetime,
+    }
+}
+
+diesel::table! {
     boards (id) {
         id -> Unsigned<Integer>,
         #[max_length = 8]
@@ -118,6 +132,7 @@ diesel::joinable!(application_reviews -> applications (application_id));
 diesel::joinable!(application_reviews -> users (reviewer_id));
 diesel::joinable!(applications -> users (user_id));
 diesel::joinable!(attachments -> posts (id));
+diesel::joinable!(bans -> posts (post_id));
 diesel::joinable!(posts -> threads (thread_id));
 diesel::joinable!(posts -> users (user_id));
 diesel::joinable!(threads -> boards (board_id));
@@ -127,6 +142,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     application_reviews,
     applications,
     attachments,
+    bans,
     boards,
     captchas,
     posts,
