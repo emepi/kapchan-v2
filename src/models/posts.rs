@@ -260,6 +260,28 @@ impl Attachment {
             Err(_) => Err(Error::BrokenTransactionManager),
         }
     }
+
+    pub async fn with_post_by_id(
+        id: u32,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<(Attachment,Post), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let attachment = attachments::table
+                    .find(id)
+                    .inner_join(posts::table)
+                    .first::<(Attachment, Post)>(conn)
+                    .await?;
+        
+                    Ok(attachment)
+                }.scope_boxed())
+                .await
+            },
+    
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]
