@@ -1,5 +1,6 @@
 use actix_identity::Identity;
 use actix_web::{http::StatusCode, HttpMessage, HttpRequest};
+use chrono::Utc;
 use diesel::result::Error;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use password_hash::{Output, PasswordHash, PasswordVerifier, Salt, SaltString};
@@ -41,10 +42,16 @@ pub async fn resolve_user(
     .map(|val| val.unwrap_or("").to_string())
     .unwrap_or(String::default());
 
-    let ban = match Ban::get_last_ban(&conn_pool, user.id, ip_addr.clone()).await {
+    let mut ban = match Ban::get_last_ban(&conn_pool, user.id, ip_addr.clone()).await {
         Ok(ban) => ban,
         Err(e) => return Err(e),
     };
+
+    if let Some(ref ban_history) = ban {
+        if Utc::now().timestamp() > ban_history.expires_at.and_utc().timestamp() {
+            ban = None;
+        }
+    }
 
     Ok(UserData {
         id: user.id,
