@@ -17,6 +17,8 @@ use serde::Serialize;
 
 use crate::schema::users;
 
+use super::bans::Ban;
+
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
 #[diesel(table_name = users)]
@@ -194,6 +196,7 @@ pub struct UserData {
     pub access_level: u8,
     pub ip_addr: String,
     pub user_agent: String,
+    pub banned: Option<Ban>,
 }
 
 sql_function!(fn last_insert_id() -> Unsigned<BigInt>);

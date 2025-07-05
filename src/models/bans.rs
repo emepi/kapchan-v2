@@ -16,7 +16,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::bans;
+use crate::schema::bans::{self, expires_at};
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
@@ -31,6 +31,39 @@ pub struct Ban {
     pub ip_address: String,
     pub expires_at: NaiveDateTime,
     pub created_at: NaiveDateTime,
+}
+
+impl Ban {
+    pub async fn get_last_ban(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        user_id: u64,
+        ip_address: String,
+    ) -> Result<Option<Ban>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                
+                    let mut ban = bans::table
+                    .filter(bans::user_id.eq(user_id).or(bans::ip_address.eq(ip_address)))
+                    .order(expires_at.desc())
+                    .limit(1)
+                    .load::<Ban>(conn)
+                    .await?;
+
+                    let ban = if ban.is_empty() {
+                        None
+                    } else {
+                        Some(ban.remove(0))
+                    };
+            
+                    Ok(ban)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
 }
 
 #[derive(Debug, Insertable, AsChangeset)]

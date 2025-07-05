@@ -7,7 +7,7 @@ use pbkdf2::{pbkdf2_hmac, Algorithm, Params, Pbkdf2};
 use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
 
-use crate::models::users::{User, UserData};
+use crate::models::{bans::Ban, users::{User, UserData}};
 
 use super::users::create_anonymous_user;
 
@@ -41,11 +41,17 @@ pub async fn resolve_user(
     .map(|val| val.unwrap_or("").to_string())
     .unwrap_or(String::default());
 
+    let ban = match Ban::get_last_ban(&conn_pool, user.id, ip_addr.clone()).await {
+        Ok(ban) => ban,
+        Err(e) => return Err(e),
+    };
+
     Ok(UserData {
         id: user.id,
         access_level: user.access_level,
         ip_addr,
         user_agent,
+        banned: ban,
     })
 }
 

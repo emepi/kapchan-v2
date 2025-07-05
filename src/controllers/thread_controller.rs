@@ -43,6 +43,12 @@ pub async fn handle_thread_creation(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
+    if user_data.banned.is_some() {
+        return HttpResponse::Forbidden().json(UserError {
+            error: "Käyttäjätilisi on bannattu!".to_owned(),
+        });
+    }
+
     let handle = path.into_inner();
 
     let current_board = match Board::by_handle(&conn_pool, &handle).await {
