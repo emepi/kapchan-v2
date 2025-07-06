@@ -2,7 +2,11 @@
 <main class="content applications-cont">
   <nav class="selector">
     <a href="/admin" class="selector-btn">Kapchan</a>
+    <% if self.access_level < 100 { %>
+      <a class="selector-btn--inactive">Hakemukset</a>
+    <% } else { %>
     <a href="/applications/1" class="selector-btn">Hakemukset</a>
+    <% } %>
     <a href="/users/1" class="selector-btn--active">Hallitse Käyttäjiä</a>
   </nav>
   <div class="application-list">

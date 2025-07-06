@@ -92,10 +92,12 @@
           </div>
           <span class="access-level-marker desc"><%= board.description %></span>
         </div>
+        <% if self.access_level >= 100 { %>
         <div class="helper">
           <button class="admin-board-info-btn" onClick="openAdminBoardEdit()">muokkaa</button>
           <button class="admin-board-info-btn" onClick="deleteBoard(<%= board.id %>)">poista</button>
         </div>
+        <% } %>
 
         <div class="admin-board-edit-bg board-creation-bg" id="board-edit">
           <div class="admin-board-edit board-creation-cont">
