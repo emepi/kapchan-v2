@@ -188,7 +188,13 @@ const hintPost = (element, id) => {
     fetch(new Request("/full-post/" + id, {
       method: "GET",
     }))
-    .then(res => res.json())
+    .then(res => {
+      if (res.ok) {
+        return res.json()
+      }
+
+      throw new Error("Post can't be fetched");
+    })
     .then(post => {
       const container = document.createElement("div");
       container.classList.add("highlight-container");
@@ -210,15 +216,11 @@ const hintPost = (element, id) => {
         file_cont.innerHTML = `<div class="thumbnail"><img class="thumbnail-img" loading="lazy" onerror="reloadImg(this)"></div>`;
         container.querySelector(".thumbnail-img").src = "/thumbnails/" + post.post_id;
       }
-  
-      container.addEventListener('mouseout', (event) => {
-        element.removeChild(container);  
-      });
-  
+
       element.append(container);
+      renderMessages(container);
     })
     .catch((error) => {
-      console.log(error)
     });
   }, 200);
 }
@@ -439,6 +441,38 @@ const enlargeImage = (container_id, image_id) => {
         image_container.classList.replace("image-container-large", "thumbnail");
         image_container.children[0].src = "/thumbnails/" + image_id;
     }
+}
+
+const renderMessages = (element) => {
+  element.querySelectorAll(".msg-lbl").forEach((msg) => {
+    let text = msg.textContent;
+
+    //Regex strings
+	let find = [
+    /&/g,
+		/<(.*?)>/g,
+    /^(?=>[^>])>([^\r\n]+)/gm,
+    />>(\d+)/g,
+		/\[spoiler\](.*?)\[\/spoiler\]/g,
+    /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
+	];
+
+	//Regex string replacements
+	let replace = [
+    '&amp;',
+		'&lt;$1&gt;',
+    '<span class="implying">&gt;$1</span>',
+    '<span class="backlink">&gt;&gt;$1</span>',
+		'<span class="spoiler">$1</span>',
+    '<a class="link" href="$1">$1</a>',
+	];
+
+    for (let i =0; i < find.length; i++) {
+	  text = text.replace(find[i], replace[i]);
+	}
+
+    msg.innerHTML = text;
+  })
 }
 
 const openMobileMenu = () => {
