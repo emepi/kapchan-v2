@@ -687,6 +687,7 @@ body {
   padding: 10px;
   border-radius: 5px;
   gap: 5px;
+  width: 100%;
 }
 
 .thread-post-info {
@@ -1135,6 +1136,7 @@ body {
 
 .backlink {
   color: var(--primary);
+  position: relative;
 }
 
 .link {
@@ -1314,4 +1316,12 @@ body {
 
 .msg-lbl {
   cursor: pointer;
+}
+
+.highlight-container {
+  position: absolute;
+  display: flex;
+  z-index: 6;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  width: 800px;
 }

@@ -1,6 +1,7 @@
 const kapchanState = {
   current_captcha: 0,
   hightlighted_msg: null,
+  timeout: null,
 };
 
 
@@ -182,8 +183,54 @@ const showPost = (post_id) => {
   });
 }
 
-const hintPost = (id) => {
-  console.log(id); //TODO
+const hintPost = (element, id) => {
+  kapchanState.timeout = setTimeout(() => {
+    fetch(new Request("/full-post/" + id, {
+      method: "GET",
+    }))
+    .then(res => res.json())
+    .then(post => {
+      const container = document.createElement("div");
+      container.classList.add("highlight-container");
+  
+      container.innerHTML = `<div class="thread-post"><div class="thread-post-info"><p class="post-info"><span class="username">Anonyymi</span><span class="time"></span> <span class="post-id-column">No. <span class="post-id"></span></span></p></div><div class="thread-post-file-info" hidden><p class="file-info"></p></div><div class="thread-post-content"><div class="thread-post-file" hidden></div><div class="thread-post-body"><div class="thread-post-message"><p class="post-message msg-lbl"></p></div></div></div></div>`;
+  
+      container.querySelector(".time").textContent = post.post_date;
+      container.querySelector(".post-id").textContent = post.post_id;
+      container.querySelector(".post-message").textContent = post.message;
+  
+      if (post.attachment) {
+        let file_info_cont = container.querySelector(".thread-post-file-info");
+        file_info_cont.hidden = false;
+        
+        container.querySelector(".file-info").textContent = "Tiedosto: " + post.file_name + " " + post.file_info;
+        
+        let file_cont = container.querySelector(".thread-post-file");
+        file_cont.hidden = false;
+        file_cont.innerHTML = `<div class="thumbnail"><img class="thumbnail-img" loading="lazy" onerror="reloadImg(this)"></div>`;
+        container.querySelector(".thumbnail-img").src = "/thumbnails/" + post.post_id;
+      }
+  
+      container.addEventListener('mouseout', (event) => {
+        element.removeChild(container);  
+      });
+  
+      element.append(container);
+    })
+    .catch((error) => {
+      console.log(error)
+    });
+  }, 200);
+}
+
+const unhintPost = (element) => {
+  clearTimeout(kapchanState.timeout);
+  
+  let hlc = element.querySelector(".highlight-container");
+
+  if (hlc) {
+    element.removeChild(hlc);
+  }
 }
 
 const pinThread = (thread_id) => {
@@ -467,7 +514,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     '&amp;',
 		'&lt;$1&gt;',
     '<span class="implying">&gt;$1</span>',
-    '<span class="backlink" onClick="showPost($1)" onmouseenter="hintPost($1)">&gt;&gt;$1</span>',
+    '<span class="backlink" onClick="showPost($1)" onpointerenter="hintPost(this, $1)" onpointerleave="unhintPost(this)">&gt;&gt;$1</span>',
 		'<span class="spoiler">$1</span>',
     '<a class="link" href="$1">$1</a>',
 	];

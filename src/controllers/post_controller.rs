@@ -3,11 +3,11 @@ use std::fs::remove_file;
 use actix_identity::Identity;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use chrono::{Duration, Utc};
+use chrono::{Duration, NaiveDateTime, Utc};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::{Deserialize, Serialize};
 
-use crate::{models::{bans::BanModel, boards::Board, error::UserError, posts::Post, threads::Thread, users::{AccessLevel, User}}, services::{authentication::resolve_user, captchas::verify_captcha, posts::create_post_by_thread_id}};
+use crate::{models::{bans::BanModel, boards::Board, error::UserError, posts::Post, threads::Thread, users::{AccessLevel, User}}, services::{authentication::resolve_user, captchas::verify_captcha, files::display_filesize, posts::create_post_by_thread_id, time::fi_datetime}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -166,6 +166,69 @@ pub async fn handle_post_details(
     HttpResponse::Ok().json(PostDetailsOutput {
         thread_id: thread.id,
         board_handle: board.handle,
+    })
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct FullPostOutput {
+    post_id: u32,
+    post_date: String,
+    message: String,
+    attachment: bool,
+    file_type: Option<String>,
+    file_name: Option<String>,
+    file_info: Option<String>,
+    replies: Vec<u32>,
+}
+
+pub async fn get_post_by_id(
+    user: Option<Identity>,
+    path: web::Path<u32>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let post_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let post = match Post::full_post_by_id(post_id, &conn_pool).await {
+        Ok(post) => post,
+        Err(e) => match e {
+            diesel::result::Error::NotFound => return HttpResponse::NotFound().finish(),
+            _ => return HttpResponse::InternalServerError().finish(),
+        },
+    };
+
+    if post.post.access_level > user_data.access_level {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let mut file_name: Option<String> = None;
+    let mut file_info: Option<String> = None;
+    let mut file_type: Option<String> = None;
+
+    if let Some(ref attachment) = post.attachment {
+        file_name = Some(attachment.file_name.clone());
+        file_type = Some(attachment.file_type.clone());
+        file_info = Some(format!("({},{}x{})", display_filesize(attachment.file_size_bytes), attachment.width, attachment.height));
+    }
+    
+    HttpResponse::Ok().json(FullPostOutput {
+        post_id: post.post.id,
+        post_date: fi_datetime(post.post.created_at),
+        message: post.post.message,
+        attachment: post.attachment.is_some(),
+        file_type,
+        file_name,
+        file_info,
+        replies: post.replies,
     })
 }
 

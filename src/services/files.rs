@@ -1,11 +1,10 @@
-use std::{fs::Metadata, io::{BufReader, Cursor, Read, Seek}, thread};
+use std::{io::BufReader, thread};
 
 use actix_multipart::form::tempfile::TempFile;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use image::ImageReader;
-use mime::Mime;
 
-use crate::models::{files::FileInfo, posts::{Attachment, AttachmentModel}};
+use crate::models::posts::{Attachment, AttachmentModel};
 
 
 pub async fn create_attachment(
