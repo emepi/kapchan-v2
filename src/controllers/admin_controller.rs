@@ -1,5 +1,5 @@
 use actix_identity::Identity;
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -601,5 +601,46 @@ pub async fn handle_ban_deletion(
     match Ban::delete_ban(&conn_pool, ban_id).await {
         Ok(_) => Ok(HttpResponse::Found().finish()),
         Err(_) => Ok(HttpResponse::InternalServerError().finish()),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ModifyUserInput {
+    pub access_level: u8,
+    pub username: Option<String>,
+    pub email: Option<String>,
+}
+
+pub async fn modify_user_by_id(
+    path: web::Path<u64>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<ModifyUserInput>,
+    req: HttpRequest,
+) -> impl Responder {
+    let user_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+    
+    if user_data.access_level < AccessLevel::Admin as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    match User::update_user(
+        user_id, 
+        input.access_level, 
+        input.username.clone(), 
+        input.email.clone(), 
+        &conn_pool
+    ).await {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }

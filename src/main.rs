@@ -196,6 +196,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(thread_controller::handle_thread_lock))
             )
             .service(
+                web::resource("/modify-user/{id}")
+                    .route(web::post().to(admin_controller::modify_user_by_id))
+            )
+            .service(
                 web::resource("/delete-board/{id}")
                     .route(web::post().to(board_controller::delete_board))
             )

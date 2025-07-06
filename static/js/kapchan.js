@@ -51,6 +51,22 @@ const closeAdminBoardCreation = () => {
   }
 }
 
+const openUserEdit = () => {
+  const bc = document.getElementById("user-modify");
+
+  if (bc) {
+    bc.style.display = "flex";
+  }
+}
+
+const closeUserEdit = () => {
+  const bc = document.getElementById("user-modify");
+
+  if (bc) {
+    bc.style.display = "none";
+  }
+}
+
 const openAdminBoardEdit = () => {
   const bc = document.getElementById("board-edit");
 
@@ -90,6 +106,36 @@ const searchUser = () => {
   }
 
   location.replace(searchString + query);
+}
+
+const modifyUserById = (user_id) => {
+  const bf = document.getElementById("user-modify-form");
+  const data = new FormData(bf);
+
+  let object = {
+    access_level: Number(data.get("access_level"))
+  };
+
+  let username = data.get("username");
+  let email = data.get("email");
+
+  if (username) object.username = username;
+  if (email) object.email = email;
+
+  fetch(new Request("/modify-user/" + user_id, {
+    method: "POST",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(object)
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
 }
 
 const banUserByPostId = () => {

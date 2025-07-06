@@ -99,5 +99,37 @@
         <% } %>
       </div>
     </div>
+
+    <% if self.access_level >= 100 { %>
+    <div class="helper">
+      <button class="desc login-btn" type="button" onclick="openUserEdit()">muokkaa</button>
+    </div>
+    <% } %>
+
+
+    <div class="board-creation-bg" id="user-modify">
+    <div class="board-creation-cont">
+      <header class="modal-head">
+        <h3>Muokkaa käyttäjää</h3>
+        <svg class="icon hoverable" onClick="closeUserEdit()" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+        </svg>
+      </header>
+      <form class="board-creation-form" id="user-modify-form">
+        <input type="text" class="input-fld" id="handle" placeholder="käyttäjänimi (jätä tyhjäksi säilyttääksesi ennallaan)" name="username" autocomplete="off">
+        <input type="text" class="input-fld" id="email" placeholder="sähköposti (jätä tyhjäksi säilyttääksesi ennallaan)" name="email" autocomplete="off">
+        <label for="access_level">käyttäjätaso:</label>
+        <select class="input-fld" name="access_level" id="access_level">
+          <option value="10">anonyymi</option>
+          <option value="20">rekisteröitynyt</option>
+          <option value="30">jäsen ehdokas</option>
+          <option value="40">jäsen</option>
+          <option value="90">moderaattori</option>
+          <option value="100">admin</option>
+        </select>
+        <button class="register-btn" type="button" onclick="modifyUserById(<%= self.user.id %>)">muokkaa</button>
+      </form>
+    </div>
+  </div>
   <div>
 </main>

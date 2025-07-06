@@ -118,6 +118,44 @@ impl User {
         }
     }
 
+    pub async fn update_user(
+        target_user_id: u64,
+        access_lvl: u8,
+        username: Option<String>,
+        email: Option<String>,
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<usize, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let res = diesel::update(users::table.find(target_user_id))
+                    .set(users::access_level.eq(access_lvl))
+                    .execute(conn)
+                    .await?;
+
+                    if let Some(username) = username {
+                        let _ = diesel::update(users::table.find(target_user_id))
+                        .set(users::username.eq(username))
+                        .execute(conn)
+                        .await?;
+                    }
+
+                    if let Some(email) = email {
+                        let _ = diesel::update(users::table.find(target_user_id))
+                        .set(users::email.eq(email))
+                        .execute(conn)
+                        .await?;
+                    }
+            
+                    Ok(res)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
     pub async fn count_users(
         conn_pool: &Pool<AsyncMysqlConnection>,
         target_username: Option<String>,
