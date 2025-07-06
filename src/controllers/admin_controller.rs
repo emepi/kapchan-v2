@@ -1,11 +1,14 @@
 use actix_identity::Identity;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use chrono::{Duration, Utc};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::{applications::Application, bans::Ban, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, user_view::{self, UserTemplate}, users_view::{self, UsersTemplate}}};
+use crate::{models::{applications::Application, bans::{Ban, BanModel}, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, user_view::{self, UserTemplate}, users_view::{self, UsersTemplate}}};
+
+use super::post_controller::BanUserInput;
 
 
 pub async fn admin(
@@ -640,6 +643,50 @@ pub async fn modify_user_by_id(
         input.email.clone(), 
         &conn_pool
     ).await {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+pub async fn ban_user_by_id(
+    path: web::Path<u64>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<BanUserInput>,
+    req: HttpRequest,
+) -> impl Responder {
+    let user_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let target_user = match User::by_id(user_id, &conn_pool).await {
+        Ok(poster_user_data) => poster_user_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.access_level < AccessLevel::Moderator as u8 || user_data.access_level <= target_user.access_level {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let expires_at = (Utc::now() + Duration::days(input.ban_duration_days)).naive_utc();
+
+    let ban_model = BanModel {
+        moderator_id: user_data.id,
+        user_id: Some(target_user.id),
+        post_id: None,
+        reason: Some(&input.reason),
+        ip_address: "",
+        expires_at,
+    };
+
+    match ban_model.insert(&conn_pool).await {
         Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

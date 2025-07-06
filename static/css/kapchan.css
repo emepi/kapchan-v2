@@ -1137,6 +1137,7 @@ body {
 .backlink {
   color: var(--primary);
   position: relative;
+  cursor: pointer;
 }
 
 .link {

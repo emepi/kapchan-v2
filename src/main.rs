@@ -220,6 +220,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(post_controller::ban_user_by_post_id))
             )
             .service(
+                web::resource("/ban-user-by-id/{id}")
+                    .route(web::post().to(admin_controller::ban_user_by_id))
+            )
+            .service(
                 web::resource("/post-details/{id}")
                     .route(web::get().to(post_controller::handle_post_details))
             )

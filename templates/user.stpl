@@ -107,6 +107,7 @@
     <% if self.access_level >= 100 { %>
     <div class="helper">
       <button class="desc login-btn" type="button" onclick="openUserEdit()">muokkaa</button>
+      <button class="desc login-btn" type="button" onclick="openUserBan()">bannaa käyttäjä</button>
     </div>
     <% } %>
 
@@ -135,5 +136,26 @@
       </form>
     </div>
   </div>
+
+  <div class="board-creation-bg" id="user-ban">
+    <div class="board-creation-cont">
+      <header class="modal-head">
+        <h3>Bannaa käyttäjä</h3>
+        <svg class="icon hoverable" onClick="closeUserBan()" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+        </svg>
+      </header>
+      <form class="board-creation-form" id="usr-ban-form">
+        <div class="bfn-row">
+          <label for="ban_duration">Bannien kesto (päivää):</label>
+          <input class="input-fld" type="number" name="ban_duration" min="0" />
+        </div>
+        <label for="reason">Bannien syy:</label>
+        <textarea name="reason" class="application-txt" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+        <button class="register-btn" type="button" onclick="banUserById(<%= self.user.id %>)">bannaa käyttäjä</button>
+      </form>
+    </div>
+  </div>
+
   <div>
 </main>

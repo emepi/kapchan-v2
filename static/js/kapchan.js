@@ -20,6 +20,22 @@ const openAdminBoard = (e) => {
   }
 }
 
+const openUserBan = () => {
+  const bc = document.getElementById("user-ban");
+
+  if (bc) {
+    bc.style.display = "flex";
+  }
+}
+
+const closeUserBan = () => {
+  const bc = document.getElementById("user-ban");
+
+  if (bc) {
+    bc.style.display = "none";
+  }
+}
+
 const openAdminUserSearch = () => {
   const bc = document.getElementById("usr-search");
 
@@ -107,6 +123,34 @@ const searchUser = () => {
   }
 
   location.replace(searchString + query);
+}
+
+const banUserById = (user_id) => {
+  const bf = document.getElementById("usr-ban-form");
+  const data = new FormData(bf);
+
+  let ban_duration = Number(data.get("ban_duration"));
+  let reason = data.get("reason");
+
+  if (!ban_duration || ban_duration === 0) return;
+
+  fetch(new Request("/ban-user-by-id/" + user_id, {
+    method: "POST",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ban_duration_days: ban_duration,
+      reason: reason
+    })
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
 }
 
 const modifyUserById = (user_id) => {
