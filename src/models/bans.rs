@@ -16,7 +16,9 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::bans::{self, expires_at};
+use crate::schema::{bans::{self, expires_at}, users};
+
+use super::users::User;
 
 
 #[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Clone)]
@@ -57,6 +59,53 @@ impl Ban {
                     };
             
                     Ok(ban)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn get_bans_by_user(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        user_id: u64,
+    ) -> Result<Vec<(Ban, User)>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                
+                    let ban = bans::table
+                    .filter(bans::user_id.eq(user_id))
+                    .inner_join(users::table.on(users::id.eq(bans::moderator_id)))
+                    .order(expires_at.desc())
+                    .load::<(Ban, User)>(conn)
+                    .await?;
+
+                    Ok(ban)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn delete_ban(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        ban_id: u32,
+    ) -> Result<(), Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    diesel::delete(
+                        bans::table.find(ban_id)
+                    )
+                    .execute(conn)
+                    .await?;
+
+                    Ok(())
                 }.scope_boxed())
                 .await
             },

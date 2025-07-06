@@ -37,6 +37,7 @@ mod views {
     pub mod not_found_view;
     pub mod register_view;
     pub mod thread_view;
+    pub mod user_view;
     pub mod users_view;
 }
 
@@ -145,6 +146,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::get().to(admin_controller::users_list))
             )
             .service(
+                web::resource("/user/{user_id}")
+                    .route(web::get().to(admin_controller::user))
+            )
+            .service(
                 web::resource("/application-review/{application_id}")
                     .route(web::get().to(admin_controller::application_review))
             )
@@ -197,6 +202,10 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/delete-thread/{id}")
                     .route(web::post().to(thread_controller::delete_thread))
+            )
+            .service(
+                web::resource("/delete-ban/{id}")
+                    .route(web::post().to(admin_controller::handle_ban_deletion))
             )
             .service(
                 web::resource("/delete-post/{id}")

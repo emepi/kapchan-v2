@@ -74,21 +74,22 @@ const searchUser = () => {
   let min_access = Number(data.get("min_access"));
   let target_user = data.get("target_user");
 
-  let searchString = window.location.href.split('?')[0] + "?";
+  let searchString = window.location.href.split('?')[0];
+  let query = "?";
 
   if (min_access) {
-    searchString += ("min_access=" + min_access);
+    query += ("min_access=" + min_access);
   }
 
   if (min_access && target_user) {
-    searchString += "&";
+    query += "&";
   }
 
   if (target_user) {
-    searchString += ("target_user=" + target_user);
+    query += ("target_user=" + target_user);
   }
 
-  location.replace(searchString);
+  location.replace(searchString + query);
 }
 
 const banUserByPostId = () => {
@@ -184,6 +185,18 @@ const lockThread = (thread_id, lock_status) => {
 
 const deleteThread = (thread_id) => {
   fetch(new Request("/delete-thread/" + thread_id, {
+    method: "POST",
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
+const deleteBan = (ban_id) => {
+  fetch(new Request("/delete-ban/" + ban_id, {
     method: "POST",
   }))
   .then(res => {

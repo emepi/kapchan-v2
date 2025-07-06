@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::{applications::Application, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, users_view::{self, UsersTemplate}}};
+use crate::{models::{applications::Application, bans::Ban, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, user_view::{self, UserTemplate}, users_view::{self, UsersTemplate}}};
 
 
 pub async fn admin(
@@ -470,9 +470,9 @@ pub async fn users_list(
         .await;
     }
 
-    if user_data.access_level < AccessLevel::Admin as u8 {
+    if user_data.access_level < AccessLevel::Moderator as u8 {
         return forbidden_view::render(ForbiddenTemplate {
-            required_access_level: AccessLevel::Admin as u8,
+            required_access_level: AccessLevel::Moderator as u8,
         })
         .await;
     }
@@ -514,4 +514,92 @@ pub async fn users_list(
         users,
     })
     .await;
+}
+
+pub async fn user(
+    path: web::Path<u64>,
+    user: Option<Identity>,
+    req: HttpRequest,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+) -> actix_web::Result<HttpResponse> {
+    let target_user_id = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
+    if user_data.access_level < AccessLevel::Moderator as u8 {
+        return forbidden_view::render(ForbiddenTemplate {
+            required_access_level: AccessLevel::Moderator as u8,
+        })
+        .await;
+    }
+
+    let boards = match Board::list_all(&conn_pool).await {
+        Ok(boards) => boards,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    let user = match User::by_id(target_user_id, &conn_pool).await {
+        Ok(user) => user,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    let bans = match Ban::get_bans_by_user(&conn_pool, target_user_id).await {
+        Ok(bans) => bans,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    return user_view::render(UserTemplate {
+        access_level: user_data.access_level,
+        boards,
+        user,
+        bans,
+    })
+    .await;
+}
+
+pub async fn handle_ban_deletion(
+    path: web::Path<u32>,
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    req: HttpRequest,
+) -> actix_web::Result<HttpResponse> {
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
+
+    if user_data.access_level < AccessLevel::Moderator as u8 {
+        return Ok(HttpResponse::Forbidden().finish())
+    }
+
+    let ban_id = path.into_inner();
+
+    match Ban::delete_ban(&conn_pool, ban_id).await {
+        Ok(_) => Ok(HttpResponse::Found().finish()),
+        Err(_) => Ok(HttpResponse::InternalServerError().finish()),
+    }
 }
