@@ -559,6 +559,36 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     msg.innerHTML = text;
   })
+
+  document.querySelectorAll(".soft-render").forEach((msg) => {
+    let text = msg.textContent;
+
+    //Regex strings
+	let find = [
+    /&/g,
+		/<(.*?)>/g,
+    /^(?=>[^>])>([^\r\n]+)/gm,
+    />>(\d+)/g,
+		/\[spoiler\](.*?)\[\/spoiler\]/g,
+    /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
+	];
+
+	//Regex string replacements
+	let replace = [
+    '&amp;',
+		'&lt;$1&gt;',
+    '<span class="implying">&gt;$1</span>',
+    '<span class="backlink">&gt;&gt;$1</span>',
+		'<span class="spoiler">$1</span>',
+    '<a class="link" href="$1">$1</a>',
+	];
+
+    for (let i =0; i < find.length; i++) {
+	  text = text.replace(find[i], replace[i]);
+	}
+
+    msg.innerHTML = text;
+  })
   
   if (window.location.href.includes("#p")) {
     let post_id = window.location.href.match(/p(\d+)/g)[0];

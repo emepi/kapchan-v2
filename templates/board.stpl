@@ -68,7 +68,7 @@
     <div class="post-body">
       <div class="post-body-text">
         <p class="post-title"><b><%= thread.title %></b></p>
-        <p class="post-msg msg-lbl"><%= thread.op_post.message %></p>
+        <p class="post-msg soft-render"><%= thread.op_post.message %></p>
       </div>
       <div class="post-body-info">
         <div class="replies">
