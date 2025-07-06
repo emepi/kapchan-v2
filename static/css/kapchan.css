@@ -1062,9 +1062,12 @@ body {
 }
 
 .applications-page {
-  padding: 5px;
   background-color: var(--primary);
-  border-radius: 5px;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media only screen and (max-width: 768px) {
@@ -1251,4 +1254,17 @@ body {
   background-color: var(--background);
   padding: 15px;
   border-radius: 5px;
+}
+
+/*------------------------------ users.stpl ----------------------------------*/
+
+.users-header {
+  display: flex;
+  justify-content: space-between;
+  height: 30px;
+}
+
+.username-n {
+  overflow: hidden;
+  white-space: nowrap;
 }

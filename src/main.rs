@@ -37,6 +37,7 @@ mod views {
     pub mod not_found_view;
     pub mod register_view;
     pub mod thread_view;
+    pub mod users_view;
 }
 
 mod models {
@@ -138,6 +139,10 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/applications/{page}")
                     .route(web::get().to(admin_controller::applications_list))
+            )
+            .service(
+                web::resource("/users/{page}")
+                    .route(web::get().to(admin_controller::users_list))
             )
             .service(
                 web::resource("/application-review/{application_id}")

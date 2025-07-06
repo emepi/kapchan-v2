@@ -19,6 +19,22 @@ const openAdminBoard = (e) => {
   }
 }
 
+const openAdminUserSearch = () => {
+  const bc = document.getElementById("usr-search");
+
+  if (bc) {
+    bc.style.display = "flex";
+  }
+}
+
+const closeAdminUserSearch = () => {
+  const bc = document.getElementById("usr-search");
+
+  if (bc) {
+    bc.style.display = "none";
+  }
+}
+
 const openAdminBoardCreation = () => {
   const bc = document.getElementById("board-creation");
 
@@ -49,6 +65,30 @@ const closeAdminBoardEdit = () => {
   if (bc) {
     bc.style.display = "none";
   }
+}
+
+const searchUser = () => {
+  const sf = document.getElementById("search-form");
+  const data = new FormData(sf);
+
+  let min_access = Number(data.get("min_access"));
+  let target_user = data.get("target_user");
+
+  let searchString = window.location.href.split('?')[0] + "?";
+
+  if (min_access) {
+    searchString += ("min_access=" + min_access);
+  }
+
+  if (min_access && target_user) {
+    searchString += "&";
+  }
+
+  if (target_user) {
+    searchString += ("target_user=" + target_user);
+  }
+
+  location.replace(searchString);
 }
 
 const banUserByPostId = () => {

@@ -1,0 +1,65 @@
+<% include!("./layouts/kapchan.stpl"); %>
+<main class="content applications-cont">
+  <nav class="selector">
+    <a href="/admin" class="selector-btn">Kapchan</a>
+    <a href="/applications/1" class="selector-btn">Hakemukset</a>
+    <a href="/users/1" class="selector-btn--active">Hallitse Käyttäjiä</a>
+  </nav>
+  <div class="application-list">
+    <div class="users-header">
+      <h2>Käyttäjät</h2>
+      <svg class="icon" onclick="openAdminUserSearch()" viewBox="0 -960 960 960">
+        <path fill="currentColor" d="M360-240ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q32 0 64.5 3.5T489-425q-13 17-22.5 35.5T451-351q-23-5-45.5-7t-45.5-2q-56 0-111 13.5T140-306q-9 5-14.5 14t-5.5 20v32h323q4 22 11 42t18 38H40Zm320-320q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47Zm400-160q0 66-47 113t-113 47q-11 0-28-2.5t-28-5.5q27-32 41.5-71t14.5-81q0-42-14.5-81T544-792q14-5 28-6.5t28-1.5q66 0 113 47t47 113Zm-400 80q33 0 56.5-23.5T440-640q0-33-23.5-56.5T360-720q-33 0-56.5 23.5T280-640q0 33 23.5 56.5T360-560Zm0-80Zm320 440q34 0 56.5-20t23.5-60q1-34-22.5-57T680-360q-34 0-57 23t-23 57q0 34 23 57t57 23Zm0 80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 23-5.5 43.5T818-198L920-96l-56 56-102-102q-18 11-38.5 16.5T680-120Z"/>
+      </svg>
+    </div>
+
+    <% for user in self.users { %>
+      <div class="application-preview hoverable">
+        <div class="application-user">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"/>
+          </svg>
+          <% if user.username.is_some() { %>
+            <p class="username-n"><%= user.username.unwrap() %></p>
+          <% } else { %>
+            <p class="username-n">anonyymi <%= user.id %></p>
+          <% } %>
+        </div>
+        <svg class="icon" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z"/>
+        </svg>
+      </div>
+      <div>
+      </div>
+    <% } %>
+
+    <div class="pages">
+      <% for n in 1..=self.pages { %>
+        <a class="applications-page" href="/users/<%= n %>"><%= n %></a>
+      <% } %>
+    </div>
+  <div>
+
+  <div class="board-creation-bg" id="usr-search">
+    <div class="board-creation-cont">
+      <header class="modal-head">
+        <h3>Etsi käyttäjiä</h3>
+        <svg class="icon hoverable" onClick="closeAdminUserSearch()" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+        </svg>
+      </header>
+      <form class="board-creation-form" id="search-form">
+        <select class="input-fld" name="min_access" id="access_level">
+          <option value="10">anonyymi</option>
+          <option value="20">rekisteröitynyt</option>
+          <option value="30">jäsen ehdokas</option>
+          <option value="40">jäsen</option>
+          <option value="90">moderaattori</option>
+          <option value="100">admin</option>
+        </select>
+        <input type="text" class="input-fld" id="handle" placeholder="nimi" name="target_user" autocomplete="off">
+        <button type="button" class="register-btn" onclick="searchUser()">Hae</button>
+      </form>
+    </div>
+  </div>
+</main>

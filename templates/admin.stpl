@@ -7,7 +7,7 @@
     <% } else { %>
     <a href="/applications/1" class="selector-btn">Hakemukset</a>
     <% } %>
-    <a href="/users" class="selector-btn">Hallitse Käyttäjiä</a>
+    <a href="/users/1" class="selector-btn">Hallitse Käyttäjiä</a>
   </nav>
 
   <div class="admin-boards">

@@ -15,7 +15,7 @@ use diesel_async::{
 };
 use serde::Serialize;
 
-use crate::schema::users;
+use crate::schema::{bans::{self, user_id}, users};
 
 use super::bans::Ban;
 
@@ -97,19 +97,85 @@ impl User {
     }
 
     pub async fn update_access_level(
-        user_id: u64,
+        target_user_id: u64,
         access_lvl: u8,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<usize, Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
-                    let res = diesel::update(users::table.find(user_id))
+                    let res = diesel::update(users::table.find(target_user_id))
                     .set(users::access_level.eq(access_lvl))
                     .execute(conn)
                     .await?;
             
                     Ok(res)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn count_users(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        target_username: Option<String>,
+        min_access_level: u8,
+    ) -> Result<i64, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let mut query = users::table.into_boxed()
+                    .filter(users::access_level.ge(min_access_level));
+
+                    if let Some(name) = target_username {
+                        let pattern = format!("%{}%", name);
+                        query = query.filter(users::username.like(pattern));
+                    }
+
+                    let count = query
+                    .count()
+                    .get_result(conn)
+                    .await?;
+            
+                    Ok(count)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+
+    pub async fn load_users_data(
+        conn_pool: &Pool<AsyncMysqlConnection>,
+        target_username: Option<String>,
+        min_access_level: u8,
+        page_size: i64,
+        offset: i64,
+    ) -> Result<Vec<User>, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+
+                    let mut query = users::table.into_boxed()
+                    .filter(users::access_level.ge(min_access_level));
+
+                    if let Some(name) = target_username {
+                        let pattern = format!("%{}%", name);
+                        query = query.filter(users::username.like(pattern));
+                    }
+
+                    let users = query
+                    .limit(page_size)
+                    .offset(offset)
+                    .select(User::as_select())
+                    .load::<User>(conn)
+                    .await?;
+
+                    Ok(users)
                 }.scope_boxed())
                 .await
             },
@@ -157,13 +223,13 @@ impl UserModel<'_> {
 
     pub async fn update_by_id(
         &self,
-        user_id: u64,
+        other_user_id: u64,
         conn_pool: &Pool<AsyncMysqlConnection>,
     ) -> Result<usize, Error> {
         match conn_pool.get().await {
             Ok(mut conn) => {
                 conn.transaction::<_, Error, _>(|conn| async move {
-                    let res = diesel::update(users::table.find(user_id))
+                    let res = diesel::update(users::table.find(other_user_id))
                     .set(self)
                     .execute(conn)
                     .await?;

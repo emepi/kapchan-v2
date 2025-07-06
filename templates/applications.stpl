@@ -3,7 +3,7 @@
   <nav class="selector">
     <a href="/admin" class="selector-btn">Kapchan</a>
     <a href="/applications/1" class="selector-btn--active">Hakemukset</a>
-    <a href="/users" class="selector-btn">Hallitse Käyttäjiä</a>
+    <a href="/users/1" class="selector-btn">Hallitse Käyttäjiä</a>
   </nav>
   <div class="application-list">
     <h2>Hakemukset</h2>
@@ -24,7 +24,7 @@
     <% } %>
     <div class="pages">
     <% for n in 1..=self.pages { %>
-    <a class="applications-page" href="/applications/<%= n %>"><%= n %></a>
+    <a class="applications-page" href="/users/<%= n %>"><%= n %></a>
     <% } %>
     </div>
   <div>

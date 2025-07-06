@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::{applications::Application, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}}};
+use crate::{models::{applications::Application, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, users_view::{self, UsersTemplate}}};
 
 
 pub async fn admin(
@@ -17,6 +17,23 @@ pub async fn admin(
         Ok(usr_data) => usr_data,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
 
     if user_data.access_level < AccessLevel::Moderator as u8 {
         return forbidden_view::render(ForbiddenTemplate {
@@ -77,6 +94,10 @@ pub async fn handle_board_creation(
         Ok(usr_data) => usr_data,
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
 
     if user_data.access_level < AccessLevel::Admin as u8 {
         return Ok(HttpResponse::Forbidden().finish())
@@ -169,25 +190,12 @@ pub async fn handle_board_edit(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
-    if user_data.access_level < AccessLevel::Admin as u8 {
-        return Ok(HttpResponse::Forbidden().finish())
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return Ok(HttpResponse::Forbidden().finish());
     }
 
-    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
-        let mut ban_post: Option<Post> = None;
-
-        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
-            match Post::by_id(post_id, &conn_pool).await {
-                Ok(post) => ban_post = Some(post),
-                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
-            };
-        }
-
-        return banned_view::render(BannedTemplate {
-            ban: user_data.banned.unwrap(),
-            post: ban_post,
-        })
-        .await;
+    if user_data.access_level < AccessLevel::Admin as u8 {
+        return Ok(HttpResponse::Forbidden().finish())
     }
 
     match input.validate() {
@@ -423,4 +431,87 @@ pub async fn handle_application_deny(
         Ok(_) => Ok(HttpResponse::Found().append_header(("Location", "/applications/1")).finish()),
         Err(_) => Ok(HttpResponse::InternalServerError().finish()),
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UsersRequest {
+   min_access: Option<u8>,
+   target_user: Option<String>,
+}
+
+pub async fn users_list(
+    path: web::Path<u32>,
+    info: web::Query<UsersRequest>,
+    user: Option<Identity>,
+    req: HttpRequest,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+) -> actix_web::Result<HttpResponse> {
+    let page = path.into_inner();
+
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        let mut ban_post: Option<Post> = None;
+
+        if let Some(post_id) = user_data.banned.clone().unwrap().post_id {
+            match Post::by_id(post_id, &conn_pool).await {
+                Ok(post) => ban_post = Some(post),
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+        }
+
+        return banned_view::render(BannedTemplate {
+            ban: user_data.banned.unwrap(),
+            post: ban_post,
+        })
+        .await;
+    }
+
+    if user_data.access_level < AccessLevel::Admin as u8 {
+        return forbidden_view::render(ForbiddenTemplate {
+            required_access_level: AccessLevel::Admin as u8,
+        })
+        .await;
+    }
+
+    let boards = match Board::list_all(&conn_pool).await {
+        Ok(boards) => boards,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    let pages = match User::count_users(
+        &conn_pool, 
+        info.target_user.clone(), 
+        info.min_access.unwrap_or(AccessLevel::Anonymous as u8)
+    ).await {
+        Ok(count) => {
+            let count = u64::try_from(count).unwrap();
+            count.div_ceil(20)
+        },
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    let offset = (page - 1) * 20;
+
+    let users = match User::load_users_data(
+        &conn_pool, 
+        info.target_user.clone(), 
+        info.min_access.unwrap_or(AccessLevel::Anonymous as u8), 
+        20, 
+        offset.into()
+    ).await {
+        Ok(users) => users,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    return users_view::render(UsersTemplate {
+        access_level: user_data.access_level,
+        boards,
+        pages,
+        users,
+    })
+    .await;
 }
