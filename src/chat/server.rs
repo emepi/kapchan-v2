@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
 
-use actix::{Actor, Context, Handler, Message, MessageResult, Recipient};
 use serde_json::json;
+use tokio::sync::{mpsc, oneshot};
 
 
 const USER_JOINED: u8 = 1;
@@ -22,141 +22,184 @@ pub struct MessagesChanged<'a> {
     pub room: &'a str,
 }
 
+pub type ConnId = u64;
+pub type Room = String;
+pub type User = String;
+pub type Msg = String;
 
-#[derive(Message, Clone)]
-#[rtype(result = "()")]
-pub struct ServerMessage(pub String);
+#[derive(Debug)]
+enum Command {
+    Connect {
+        user: User,
+        conn_tx: mpsc::UnboundedSender<Msg>,
+        res_tx: oneshot::Sender<ConnId>,
+    },
 
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct ClientMessage {
-    pub id: u64,
-    pub message: String,
-    pub room: String,
+    Disconnect {
+        conn: ConnId,
+    },
+
+    ListRoom {
+        res_tx: oneshot::Sender<Vec<Room>>,
+    },
+
+    ListUser {
+        res_tx: oneshot::Sender<Vec<User>>,
+    },
+
+    Message {
+        msg: Msg,
+        res_tx: oneshot::Sender<()>,
+    },
 }
-
-#[derive(Message)]
-#[rtype(u64)]
-pub struct Connect {
-    pub addr: Recipient<ServerMessage>,
-    pub username: String,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct Disconnect {
-    pub id: u64,
-}
-
-#[derive(Message)]
-#[rtype(result = "Vec<String>")]
-pub struct ListRooms;
-
-#[derive(Message)]
-#[rtype(result = "Vec<String>")]
-pub struct ListUsers;
-
 
 #[derive(Debug)]
 pub struct ChatServer {
-    sessions: HashMap<u64, Recipient<ServerMessage>>,
-    users: HashMap<u64, String>,
-    rooms: Vec<String>,
+    sessions: HashMap<ConnId, mpsc::UnboundedSender<Msg>>,
+    users: HashMap<ConnId, User>,
+    rooms: Vec<Room>,
+    cmd_rx: mpsc::UnboundedReceiver<Command>,
 }
 
 impl ChatServer {
-    pub fn new(
-        rooms: Vec<String>
-    ) -> ChatServer {
-        ChatServer {
-            sessions: HashMap::new(),
-            users: HashMap::new(),
-            rooms,
-        }
+    pub fn new(rooms: Vec<Room>) -> (Self, ChatServerHandle) {
+
+        let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+
+        (
+            Self {
+                sessions: HashMap::new(),
+                users: HashMap::new(),
+                rooms,
+                cmd_rx,
+            },
+            ChatServerHandle { cmd_tx },
+        )
     }
 
-    fn send_message(
-        &self,
-        message: &str,
-    ) {
+    async fn send_message(&self, msg: impl Into<Msg>) {
+        let msg = msg.into();
+
         for (_, session) in self.sessions.iter() {
-            session.do_send(ServerMessage(message.to_owned()));
+            let _ = session.send(msg.clone());
         }
     }
-}
 
-impl Actor for ChatServer {
-    type Context = Context<Self>;
-}
-
-impl Handler<Connect> for ChatServer {
-    type Result = u64;
-
-    fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
-
-        self.send_message(&json!(UsersChanged { 
+    async fn connect(&mut self, user: User, tx: mpsc::UnboundedSender<Msg>) -> ConnId {
+        self.send_message(json!(UsersChanged { 
             event: USER_JOINED, 
-            username: &msg.username, 
-        }).to_string());
-
+            username: &user,
+        }).to_string()).await;
 
         let id = self.sessions.keys().len();
-        self.sessions.insert(id.try_into().unwrap(), msg.addr);
-        self.users.insert(id.try_into().unwrap(), msg.username);
-        
+        self.sessions.insert(id.try_into().unwrap(), tx);
+        self.users.insert(id.try_into().unwrap(), user);
+
         id.try_into().unwrap()
     }
-}
 
-impl Handler<Disconnect> for ChatServer {
-    type Result = ();
+    async fn disconnect(&mut self, conn_id: ConnId) {
+        self.sessions.remove(&conn_id);
 
-    fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
-        self.sessions.remove(&msg.id);
-
-        if let Some(username) = self.users.remove(&msg.id) {
+        if let Some(username) = self.users.remove(&conn_id) {
             self.send_message(&json!(UsersChanged { 
                 event: USER_LEFT, 
                 username: &username, 
-            }).to_string());
+            }).to_string()).await;
         }
     }
-}
 
-impl Handler<ClientMessage> for ChatServer {
-    type Result = ();
-
-    fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
-        self.send_message(&json!(MessagesChanged { 
-            event: NEW_MESSAGE, 
-            username: match self.users.get(&msg.id) {
-                Some(usr_name) => usr_name,
-                None => "",
-            }, 
-            message: &msg.message, 
-            room: &msg.room, 
-        }).to_string());
+    fn list_rooms(&self) -> Vec<Room> {
+        self.rooms.clone()
     }
-}
 
-impl Handler<ListRooms> for ChatServer {
-    type Result = MessageResult<ListRooms>;
-
-    fn handle(&mut self, _: ListRooms, _: &mut Context<Self>) -> Self::Result {
-        MessageResult(self.rooms.clone())
-    }
-}
-
-impl Handler<ListUsers> for ChatServer {
-    type Result = MessageResult<ListUsers>;
-
-    fn handle(&mut self, _: ListUsers, _: &mut Context<Self>) -> Self::Result {
+    fn list_users(&self) -> Vec<User> {
         let mut usernames = Vec::new();
 
         for (_, username) in self.users.iter() {
             usernames.push(username.to_owned());
         }
 
-        MessageResult(usernames)
+        usernames
+    }
+
+    pub async fn run(mut self) -> io::Result<()> {
+        while let Some(cmd) = self.cmd_rx.recv().await {
+            match cmd {
+                Command::Connect { conn_tx, res_tx, user } => {
+                    let conn_id = self.connect(user, conn_tx).await;
+                    let _ = res_tx.send(conn_id);
+                }
+
+                Command::Disconnect { conn } => {
+                    self.disconnect(conn).await;
+                }
+
+                Command::ListRoom { res_tx } => {
+                    let _ = res_tx.send(self.list_rooms());
+                }
+
+                Command::ListUser { res_tx } => {
+                    let _ = res_tx.send(self.list_users());
+                }
+
+                Command::Message { msg, res_tx } => {
+                    self.send_message(msg).await;
+                    let _ = res_tx.send(());
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ChatServerHandle {
+    cmd_tx: mpsc::UnboundedSender<Command>,
+}
+
+impl ChatServerHandle {
+    pub async fn connect(&self, user: User, conn_tx: mpsc::UnboundedSender<Msg>) -> ConnId {
+        let (res_tx, res_rx) = oneshot::channel();
+
+        self.cmd_tx
+            .send(Command::Connect { user, conn_tx, res_tx })
+            .unwrap();
+
+        res_rx.await.unwrap()
+    }
+
+    pub async fn list_rooms(&self) -> Vec<Room> {
+        let (res_tx, res_rx) = oneshot::channel();
+
+        self.cmd_tx.send(Command::ListRoom { res_tx }).unwrap();
+
+        res_rx.await.unwrap()
+    }
+
+    pub async fn list_users(&self) -> Vec<User> {
+        let (res_tx, res_rx) = oneshot::channel();
+
+        self.cmd_tx.send(Command::ListUser { res_tx }).unwrap();
+
+        res_rx.await.unwrap()
+    }
+
+    pub async fn send_message(&self, msg: impl Into<Msg>) {
+        let (res_tx, res_rx) = oneshot::channel();
+
+        self.cmd_tx
+            .send(Command::Message {
+                msg: msg.into(),
+                res_tx,
+            })
+            .unwrap();
+
+        res_rx.await.unwrap();
+    }
+
+    pub fn disconnect(&self, conn: ConnId) {
+        self.cmd_tx.send(Command::Disconnect { conn }).unwrap();
     }
 }
