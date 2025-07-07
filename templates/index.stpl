@@ -28,10 +28,6 @@
     <div class="card card-index">
       <p class="kapakka-desc"><span class="board-n">Kapakka</span> on kuvalauta ja chat syrjäytyneille ja muille normaalista poikkeaville. <br>Sisäänkirjautuneena pääset useammalle alueelle ja saat muita ominaisuuksia käyttöösi.</p>
     </div>
-    
-    <h2 class="sub-header">Uutiset</h2>
-    <div class="card card-index">
-    </div>
 
     <h2 class="sub-header">Viimeisimmät Postaukset</h2>
     <div class="card card-index">

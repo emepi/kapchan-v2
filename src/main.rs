@@ -12,6 +12,10 @@ use services::users::update_root_user;
 use views::not_found_view;
 
 
+mod chat {
+    pub mod server;
+}
+
 mod controllers {
     pub mod admin_controller;
     pub mod application_controller;
