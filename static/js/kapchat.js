@@ -1,0 +1,172 @@
+const kapchatState = {
+  socket: null,
+  rooms: null,
+  users: [],
+  current_room: null,
+};
+
+const connect = () => {
+    const { location } = window
+
+    const proto = location.protocol.startsWith('https') ? 'wss' : 'ws'
+    const wsUri = `${proto}://${location.host}/ws`
+
+    console.log('Connecting...')
+    kapchatState.socket = new WebSocket(wsUri)
+
+    kapchatState.socket.onopen = () => {
+      console.log('Connected')
+      kapchatState.socket.send(JSON.stringify({
+        event: 2,
+      }));
+
+      kapchatState.socket.send(JSON.stringify({
+        event: 3,
+      }));
+    }
+
+    kapchatState.socket.onmessage = ev => {
+      let message = JSON.parse(ev.data);
+
+      switch (message.event) {
+        case 5:
+          updateChatRooms(message.data);
+          break;
+
+        case 4:
+          updateUsers(message.data);
+          break;
+        
+        case 3:
+          addMessage(message.username, message.message, message.room)
+          break;
+
+        case 2:
+          deleteUser(message.username);
+          break;
+
+        case 1:
+          addUser(message.username);
+          break;
+
+        default:
+      }
+    }
+
+    kapchatState.socket.onclose = () => {
+      console.log('Disconnected')
+      socket = null
+    }
+}
+
+const addMessage = (username, message, roomm) => {
+  let room = kapchatState.rooms.get(roomm);
+  room.add(username + ": " + message);
+
+  renderRoom(roomm);
+}
+
+const renderRoom = (roomm) => {
+    let room = kapchatState.rooms.get(roomm);
+    let container = document.querySelector(".chat-messages");
+    container.innerHTML = "";
+
+    room.forall(message => {
+      let textBlock = document.createElement("div");
+      textBlock.classList.add("text-block");
+      textBlock.textContent = message;
+
+      container.appendChild(textBlock);
+    })
+}
+
+const deleteUser = (user) => {
+  let index = kapchatState.users.indexOf(user);
+
+  if (index != -1) {
+    kapchatState.users.splice(index, 1);
+    updateUsers(kapchatState.users);
+  }
+}
+
+const addUser = (user) => {
+  kapchatState.users.push(user);
+  updateUsers(kapchatState.users);
+}
+
+const updateUsers = (users) => {
+  kapchatState.users = users;
+
+  let container = document.querySelector(".chat-users");
+  container.innerHTML = "";
+
+  users
+  .filter((value, index, array) => array.indexOf(value) === index)
+  .forEach((user) => {
+    let userBlock = document.createElement("div");
+    userBlock.classList.add("user-block");
+    userBlock.textContent = user;
+
+    container.appendChild(userBlock);
+  })
+}
+
+const updateChatRooms = (rooms) => {
+  kapchatState.rooms = new Map();
+  kapchatState.current_room = rooms[0];
+
+  rooms.forEach((room) => {
+    kapchatState.rooms.set(room, make_CRS_Buffer(50))
+  });
+
+  let container = document.querySelector(".chat-rooms");
+  container.innerHTML = "";
+
+  rooms.forEach((room) => {
+    let roomBlock = document.createElement("div");
+    roomBlock.classList.add("room-block");
+    roomBlock.textContent = room;
+
+    container.appendChild(roomBlock);
+  })
+}
+
+const disconnect = () => {
+  if (kapchatState.socket) {
+    log('Disconnecting...')
+    socket.close()
+    socket = null
+  }
+}
+
+const sendMessage = () => {
+  let input = document.getElementById("chat-input");
+
+  kapchatState.socket.send(JSON.stringify({
+    event: 1,
+    message: input.value,
+    room: kapchatState.current_room,
+  }));
+
+  input.value = "";
+}
+
+connect()
+
+function make_CRS_Buffer(size) {
+  return {
+    A:  [],
+    Ai: 0,
+    Asz:    size,
+    add:    function(value) {
+      this.A[ this.Ai ] = value;
+      this.Ai = (this.Ai + 1) % this.Asz;
+    },
+    forall: function(callback) {
+      var mAi = this.A.length < this.Asz ? 0 : this.Ai;
+      for (var i = 0; i < this.A.length; i++) {
+        callback(this.A[ (mAi + i) % this.Asz ]);
+      }
+    }
+  };
+}

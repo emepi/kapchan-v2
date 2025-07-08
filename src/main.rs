@@ -5,14 +5,17 @@ use actix_identity::IdentityMiddleware;
 use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{cookie::{time::Duration, Key}, web, App, HttpServer};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use controllers::{admin_controller, application_controller, board_controller, captcha_controller, file_controller, index_controller, post_controller, thread_controller, user_controller};
+use chat::server::ChatServer;
+use controllers::{admin_controller, application_controller, board_controller, captcha_controller, chat_controller, file_controller, index_controller, post_controller, thread_controller, user_controller};
 use diesel_async::pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager};
 use dotenvy::dotenv;
 use services::users::update_root_user;
+use tokio::{spawn, try_join};
 use views::not_found_view;
 
 
 mod chat {
+    pub mod handler;
     pub mod server;
 }
 
@@ -21,6 +24,7 @@ mod controllers {
     pub mod application_controller;
     pub mod board_controller;
     pub mod captcha_controller;
+    pub mod chat_controller;
     pub mod file_controller;
     pub mod index_controller;
     pub mod post_controller;
@@ -35,6 +39,7 @@ mod views {
     pub mod application_view;
     pub mod banned_view;
     pub mod board_view;
+    pub mod chat_view;
     pub mod forbidden_view;
     pub mod index_view;
     pub mod login_view;
@@ -105,8 +110,16 @@ async fn main() -> std::io::Result<()> {
 
     update_root_user(&mysql_connection_pool, &root_pwd).await.unwrap();
 
-    HttpServer::new(move || {
+    // Create a chat server
+    let (chat_server, server_tx) = ChatServer::new(vec![
+        "päähuone".to_owned()
+    ]);
+
+    let chat_server = spawn(chat_server.run());
+
+    let http_server = HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(server_tx.clone()))
             .app_data(web::Data::new(mysql_connection_pool.clone()))
             .wrap(IdentityMiddleware::default())
             .wrap(SessionMiddleware::builder(CookieSessionStore::default(), private_key.clone())
@@ -117,6 +130,14 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/")
                     .route(web::get().to(index_controller::index))
+            )
+            .service(
+                web::resource("/ws")
+                    .route(web::get().to(chat_controller::chat_ws))
+            )
+            .service(
+                web::resource("/chat")
+                    .route(web::get().to(chat_controller::chat))
             )
             .service(
                 web::resource("/login")
@@ -251,6 +272,9 @@ async fn main() -> std::io::Result<()> {
             .default_service(web::to(not_found_view::render))
     })
     .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    .run();
+
+    try_join!(http_server, async move { chat_server.await.unwrap() })?;
+
+    Ok(())
 }

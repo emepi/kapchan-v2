@@ -1,12 +1,13 @@
 use std::{collections::HashMap, io};
 
+use rand::Rng;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
 
 
 const USER_JOINED: u8 = 1;
 const USER_LEFT: u8 = 2;
-const NEW_MESSAGE: u8 = 3;
+pub const NEW_MESSAGE: u8 = 3;
 
 #[derive(serde::Serialize)]
 pub struct UsersChanged<'a> {
@@ -91,11 +92,11 @@ impl ChatServer {
             username: &user,
         }).to_string()).await;
 
-        let id = self.sessions.keys().len();
-        self.sessions.insert(id.try_into().unwrap(), tx);
-        self.users.insert(id.try_into().unwrap(), user);
+        let id = rand::rng().random::<ConnId>();
+        self.sessions.insert(id, tx);
+        self.users.insert(id, user);
 
-        id.try_into().unwrap()
+        id
     }
 
     async fn disconnect(&mut self, conn_id: ConnId) {

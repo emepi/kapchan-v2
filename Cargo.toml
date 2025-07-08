@@ -23,6 +23,7 @@ itertools = "0.13.0"
 mime = "0.3.17"
 password-hash = "0.5.0"
 pbkdf2 = { version = "0.12.2", features = ["simple"] }
+rand = "0.9.1"
 rand_core = "0.6.4"
 regex = "1.11.1"
 sailfish = "0.9"
@@ -30,4 +31,5 @@ serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.140"
 validator = { version = "0.18.1", features = ["derive"] }
 sha2 = "0.10.8"
-tokio = "1.42.0"
+tokio = { version = "1.46.1", features = ["rt", "time", "macros"] }
+futures-util = "0.3.31"

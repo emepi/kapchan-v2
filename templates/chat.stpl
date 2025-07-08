@@ -1,0 +1,21 @@
+<% include!("./layouts/kapchat.stpl"); %>
+<body class="content">
+  <div class="chat-container">
+    <div class="chat-rooms">
+    </div>
+    <div class="chat-middle">
+      <div class="chat-mid-msg">
+        <div class="chat-messages">
+        </div>
+        <div class="chat-input-wrapper">
+          <textarea id="chat-input" class="chat-input" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+          <svg onClick="sendMessage()" class="send-icon hoverable" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="chat-users">
+      </div>
+    </div>
+  </div>
+</body>
