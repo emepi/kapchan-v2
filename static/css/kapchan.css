@@ -169,6 +169,7 @@ body {
 .content {
   grid-row: 2;
   min-height: 100vh;
+  height: 100vh;
 }
 
 @media only screen and (max-width: 768px) {
@@ -1329,8 +1330,10 @@ body {
   display: flex;
   flex-direction: column;
   width: calc(100% - 30px);
+  height: calc(100% - 30px);
   margin: 15px;
   background-color: var(--surface);
+  overflow: hidden;
 }
 
 .chat-rooms {
@@ -1341,13 +1344,17 @@ body {
 .chat-middle {
   display: flex;
   height: 100%;
+  flex: 1;
+  overflow: hidden;
 }
 
 .chat-mid-msg {
-  width: 100%;
+  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow: hidden;
 }
 
 .chat-users {
@@ -1369,6 +1376,10 @@ body {
 .chat-messages {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   gap: 5px;
   padding: 5px;
 }
