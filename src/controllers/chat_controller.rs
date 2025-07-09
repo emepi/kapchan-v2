@@ -3,7 +3,7 @@ use actix_web::{Error, web, HttpRequest, HttpResponse};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use tokio::task::spawn_local;
 
-use crate::{chat::{handler, server::ChatServerHandle}, models::{boards::Board, posts::Post, users::AccessLevel}, services::authentication::resolve_user, views::{banned_view::{self, BannedTemplate}, chat_view::{self, ChatTemplate}}};
+use crate::{chat::{handler, server::ChatServerHandle}, models::{boards::Board, posts::Post, users::{AccessLevel, User}}, services::authentication::resolve_user, views::{banned_view::{self, BannedTemplate}, chat_view::{self, ChatTemplate}}};
 
 
 pub async fn chat_ws(
@@ -23,9 +23,14 @@ pub async fn chat_ws(
     if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
         return Ok(HttpResponse::Forbidden().finish());
     }
+
+    let user = match User::by_id(user_data.id, &conn_pool).await {
+        Ok(user) => user,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
     
     spawn_local(handler::chat_ws(
-        format!("anonyymi {}", user_data.id),
+        user.username.unwrap_or(format!("anonyymi-{}", user_data.id)),
         (**chat_server).clone(),
         session,
         msg_stream,

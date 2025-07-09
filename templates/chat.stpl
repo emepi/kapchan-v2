@@ -8,7 +8,7 @@
         <div class="chat-messages" id="chat-messages">
         </div>
         <div class="chat-input-wrapper">
-          <textarea id="chat-input" class="chat-input" onkeypress="sendFromText(event);"></textarea>
+          <textarea spellcheck="false" id="chat-input" class="chat-input" onkeypress="sendFromText(event);"></textarea>
           <svg onClick="sendMessage()" class="send-icon hoverable" viewBox="0 -960 960 960">
             <path fill="currentColor" d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/>
           </svg>
