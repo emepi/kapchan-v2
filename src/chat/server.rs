@@ -4,6 +4,8 @@ use rand::Rng;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
 
+use crate::models::chat_rooms::ChatRoom;
+
 
 const USER_JOINED: u8 = 1;
 const USER_LEFT: u8 = 2;
@@ -58,12 +60,12 @@ enum Command {
 pub struct ChatServer {
     sessions: HashMap<ConnId, mpsc::UnboundedSender<Msg>>,
     users: HashMap<ConnId, User>,
-    rooms: Vec<Room>,
+    rooms: Vec<ChatRoom>,
     cmd_rx: mpsc::UnboundedReceiver<Command>,
 }
 
 impl ChatServer {
-    pub fn new(rooms: Vec<Room>) -> (Self, ChatServerHandle) {
+    pub fn new(rooms: Vec<ChatRoom>) -> (Self, ChatServerHandle) {
 
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
 
@@ -112,6 +114,9 @@ impl ChatServer {
 
     fn list_rooms(&self) -> Vec<Room> {
         self.rooms.clone()
+        .into_iter()
+        .map(|room| room.name)
+        .collect()
     }
 
     fn list_users(&self) -> Vec<User> {

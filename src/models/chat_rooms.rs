@@ -18,7 +18,7 @@ use serde::Serialize;
 use crate::schema::chat_rooms;
 
 
-#[derive(Debug, Queryable, Identifiable, Selectable, Serialize)]
+#[derive(Debug, Queryable, Identifiable, Selectable, Serialize, Clone)]
 #[diesel(table_name = chat_rooms)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct ChatRoom {
