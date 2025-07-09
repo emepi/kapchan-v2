@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{models::{applications::Application, bans::{Ban, BanModel}, boards::{Board, BoardModel}, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, user_view::{self, UserTemplate}, users_view::{self, UsersTemplate}}};
+use crate::{models::{applications::Application, bans::{Ban, BanModel}, boards::{Board, BoardModel}, chat_rooms::ChatRoom, posts::Post, users::{AccessLevel, User}}, services::{applications::{count_preview_pages, is_reviewed, load_application_previews, review_application}, authentication::resolve_user}, views::{admin_view::{self, AdminTemplate}, application_list_view::{self, ApplicationListTemplate}, application_review_view::{self, ApplicationReviewTemplate}, banned_view::{self, BannedTemplate}, forbidden_view::{self, ForbiddenTemplate}, user_view::{self, UserTemplate}, users_view::{self, UsersTemplate}}};
 
 use super::post_controller::BanUserInput;
 
@@ -50,10 +50,16 @@ pub async fn admin(
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
 
+    let chat_rooms = match ChatRoom::list_all(&conn_pool).await {
+        Ok(chats) => chats,
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
     admin_view::render(AdminTemplate {
         access_level: user_data.access_level,
         errors: vec![],
         boards,
+        chat_rooms,
     }).await
 }
 
@@ -120,10 +126,16 @@ pub async fn handle_board_creation(
                 Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
             };
 
+            let chat_rooms = match ChatRoom::list_all(&conn_pool).await {
+                Ok(chats) => chats,
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+
             let template = AdminTemplate {
                 errors,
                 access_level: user_data.access_level,
                 boards,
+                chat_rooms,
             };
 
             return admin_view::render(template).await;
@@ -215,10 +227,16 @@ pub async fn handle_board_edit(
                 Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
             };
 
+            let chat_rooms = match ChatRoom::list_all(&conn_pool).await {
+                Ok(chats) => chats,
+                Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+            };
+
             let template = AdminTemplate {
                 errors,
                 access_level: user_data.access_level,
                 boards,
+                chat_rooms,
             };
 
             return admin_view::render(template).await;

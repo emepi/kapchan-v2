@@ -54,6 +54,7 @@ mod models {
     pub mod applications;
     pub mod bans;
     pub mod boards;
+    pub mod chat_rooms;
     pub mod files;
     pub mod users;
     pub mod threads;
@@ -193,6 +194,14 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/edit-board/{id}")
                     .route(web::post().to(admin_controller::handle_board_edit))
+            )
+            .service(
+                web::resource("/create-chat")
+                    .route(web::post().to(chat_controller::create_chat_room))
+            )
+            .service(
+                web::resource("/delete-chat/{id}")
+                    .route(web::post().to(chat_controller::delete_chat_room))
             )
             .service(
                 web::resource("/captcha")

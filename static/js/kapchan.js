@@ -20,6 +20,22 @@ const openAdminBoard = (e) => {
   }
 }
 
+const openChatCreation = () => {
+  const bc = document.getElementById("chat-creation");
+
+  if (bc) {
+    bc.style.display = "flex";
+  }
+}
+
+const closeChatCreation = () => {
+  const bc = document.getElementById("chat-creation");
+
+  if (bc) {
+    bc.style.display = "none";
+  }
+}
+
 const openUserBan = () => {
   const bc = document.getElementById("user-ban");
 
@@ -123,6 +139,46 @@ const searchUser = () => {
   }
 
   location.replace(searchString + query);
+}
+
+const deleteChat = (id) => {
+  fetch(new Request("/delete-chat/" + id, {
+    method: "POST",
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
+}
+
+const createChat = () => {
+  const bf = document.getElementById("chat-creation-form");
+  const data = new FormData(bf);
+
+  let access_level = Number(data.get("access_level"));
+  let name = data.get("title");
+
+  if (!access_level || !name) return;
+
+  fetch(new Request("/create-chat", {
+    method: "POST",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: name,
+      access_level: access_level,
+    })
+  }))
+  .then(res => {
+    window.location.reload();
+  })
+  .catch((error) => {
+    console.log(error)
+  });
 }
 
 const banUserById = (user_id) => {

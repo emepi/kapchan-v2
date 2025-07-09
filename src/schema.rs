@@ -75,6 +75,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    chat_rooms (id) {
+        id -> Unsigned<Integer>,
+        #[max_length = 255]
+        name -> Varchar,
+        access_level -> Unsigned<Tinyint>,
+    }
+}
+
+diesel::table! {
     posts (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Bigint>,
@@ -145,6 +154,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     bans,
     boards,
     captchas,
+    chat_rooms,
     posts,
     replies,
     threads,

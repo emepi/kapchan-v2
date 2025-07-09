@@ -181,4 +181,73 @@
       </form>
     </div>
   </div>
+
+  <div class="admin-boards">
+
+  <div class="admin-board-head">
+    <h2>Chathuoneet</h2>
+    <% if self.access_level >= 100 { %>
+    <svg class="icon hoverable" viewBox="0 -960 960 960" onClick="openChatCreation()">
+      <path fill="currentColor" d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/>
+    </svg>
+    <% } %>
+  </div>
+
+  <% for chat_room in self.chat_rooms { %>
+  <div class="admin-board-container">
+    <div class="admin-board-title-container">
+        <div class="admin-board-title">
+          <svg class="icon" viewBox="0 -960 960 960">
+            <path fill="currentColor" d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"/>
+          </svg>
+          <%= chat_room.name %>
+          <% if chat_room.access_level == 10 { %>
+            <span class="access-level-marker">anonyymi</span>
+          <% } else if chat_room.access_level == 20 {%>
+            <span class="access-level-marker">rekisteröitynyt käyttäjä</span>
+          <% } else if chat_room.access_level == 30 {%>
+            <span class="access-level-marker">jäsen ehdokas</span>
+          <% } else if chat_room.access_level == 40 {%>
+            <span class="access-level-marker">jäsen</span>
+          <% } else if chat_room.access_level == 90 {%>
+            <span class="access-level-marker">moderaattori</span>
+          <% } else if chat_room.access_level == 100 {%>
+            <span class="access-level-marker">admin</span>
+          <% } %>
+        </div>
+        <% if self.access_level >= 100 { %>
+        <svg class="icon dropdown down" viewBox="0 -960 960 960" onclick="deleteChat(<%= chat_room.id %>)">
+          <path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+        </svg>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+
+  </div>
+
+  <div class="board-creation-bg" id="chat-creation">
+    <div class="board-creation-cont">
+      <header class="modal-head">
+        <h3>Luo uusi chathuone</h3>
+        <svg class="icon hoverable" onClick="closeChatCreation()" viewBox="0 -960 960 960">
+          <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+        </svg>
+      </header>
+      <form class="board-creation-form" id="chat-creation-form">
+        <input type="text" class="input-fld" id="title" placeholder="nimi" name="title" autocomplete="off">
+        <label for="access_level">käyttäjätaso:</label>
+        <select class="input-fld" name="access_level" id="access_level">
+          <option value="10">anonyymi</option>
+          <option value="20">rekisteröitynyt</option>
+          <option value="30">jäsen ehdokas</option>
+          <option value="40">jäsen</option>
+          <option value="90">moderaattori</option>
+          <option value="100">admin</option>
+        </select>
+        <button class="register-btn" type="button" onclick="createChat()">Luo chathuone</button>
+      </form>
+    </div>
+  </div>
+
 </main>

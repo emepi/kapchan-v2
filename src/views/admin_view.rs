@@ -1,7 +1,7 @@
 use actix_web::{error::InternalError, http::StatusCode, HttpResponse};
 use sailfish::TemplateOnce;
 
-use crate::models::boards::Board;
+use crate::models::{boards::Board, chat_rooms::ChatRoom};
 
 
 #[derive(TemplateOnce)]
@@ -10,6 +10,7 @@ pub struct AdminTemplate {
     pub access_level: u8,
     pub errors: Vec<String>,
     pub boards: Vec<Board>,
+    pub chat_rooms: Vec<ChatRoom>,
 }
 
 pub async fn render(
