@@ -1398,6 +1398,7 @@ body {
 
 .text-block {
   color: var(--on-surface);
+  white-space: pre-wrap;
 }
 
 .chat-input {
@@ -1405,10 +1406,21 @@ body {
   padding: 5px;
   font-size: 15px;
   height: 30px;
+  resize: none;
 }
 
 .send-icon {
   height: 30px;
   width: auto;
   color: white;
+}
+
+.chat-text-cont {
+  display: flex;
+  gap: 5px;
+}
+
+.user-block {
+  color: var(--primary);
+  font-weight: bold;
 }

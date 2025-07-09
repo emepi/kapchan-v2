@@ -61,7 +61,10 @@ const connect = () => {
 
 const addMessage = (username, message, roomm) => {
   let room = kapchatState.rooms.get(roomm);
-  room.add(username + ": " + message);
+  room.add({
+    username: username,
+    message: message,
+  });
 
   renderRoom(roomm);
 }
@@ -72,11 +75,21 @@ const renderRoom = (roomm) => {
     container.innerHTML = "";
 
     room.forall(message => {
+      let chatTextCont = document.createElement("div");
+      chatTextCont.classList.add("chat-text-cont");
+
       let textBlock = document.createElement("div");
       textBlock.classList.add("text-block");
-      textBlock.textContent = message;
 
-      container.appendChild(textBlock);
+      let userBlock = document.createElement("span");
+      userBlock.classList.add("user-block");
+
+      userBlock.textContent = message.username + ":";
+      textBlock.textContent = message.message;
+
+      chatTextCont.appendChild(userBlock);
+      chatTextCont.appendChild(textBlock);
+      container.appendChild(chatTextCont);
     })
 }
 
@@ -142,13 +155,24 @@ const disconnect = () => {
 const sendMessage = () => {
   let input = document.getElementById("chat-input");
 
-  kapchatState.socket.send(JSON.stringify({
-    event: 1,
-    message: input.value,
-    room: kapchatState.current_room,
-  }));
+  if (input.value) {
+    kapchatState.socket.send(JSON.stringify({
+      event: 1,
+      message: input.value,
+      room: kapchatState.current_room,
+    }));
+  }
 
   input.value = "";
+}
+
+const sendFromText = (event) => {
+  let key = event.keyCode;
+
+  if (key === 13) {
+    event.preventDefault();
+    sendMessage()
+  }
 }
 
 connect()
@@ -170,3 +194,19 @@ function make_CRS_Buffer(size) {
     }
   };
 }
+
+document.addEventListener("DOMContentLoaded", (event) => {
+  const scrollingElement = document.getElementById("chat-messages");
+  const config = { childList: true };
+
+  const callback = function (mutationsList, observer) {
+    for (let mutation of mutationsList) {
+      if (mutation.type === "childList") {
+        scrollingElement.scrollTo(0, scrollingElement.scrollHeight);
+      }
+    }
+  };
+
+  const observer = new MutationObserver(callback);
+  observer.observe(scrollingElement, config);
+});
