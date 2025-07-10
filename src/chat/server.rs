@@ -54,6 +54,13 @@ enum Command {
         msg: Msg,
         res_tx: oneshot::Sender<()>,
     },
+
+    ChatMessage {
+        room: Room,
+        access_level: u8,
+        msg: Msg,
+        res_tx: oneshot::Sender<()>,
+    },
 }
 
 #[derive(Debug)]
@@ -85,6 +92,17 @@ impl ChatServer {
 
         for (_, session) in self.sessions.iter() {
             let _ = session.send(msg.clone());
+        }
+    }
+
+    async fn send_chat_message(&self, access_level: u8, room: Room, msg: impl Into<Msg>) {
+        let msg = msg.into();
+
+        for rm in self.rooms.iter() {
+            if rm.name.eq(&room) && rm.access_level <= access_level {
+                self.send_message(msg.clone()).await;
+                break;
+            }
         }
     }
 
@@ -153,6 +171,11 @@ impl ChatServer {
                     self.send_message(msg).await;
                     let _ = res_tx.send(());
                 }
+
+                Command::ChatMessage { room, access_level, msg, res_tx } => {
+                    self.send_chat_message(access_level, room, msg).await;
+                    let _ = res_tx.send(());
+                }
             }
         }
 
@@ -199,6 +222,21 @@ impl ChatServerHandle {
             .send(Command::Message {
                 msg: msg.into(),
                 res_tx,
+            })
+            .unwrap();
+
+        res_rx.await.unwrap();
+    }
+
+    pub async fn send_chat_message(&self, access_level: u8, room: Room, msg: impl Into<Msg>) {
+        let (res_tx, res_rx) = oneshot::channel();
+
+        self.cmd_tx
+            .send(Command::ChatMessage { 
+                room, 
+                access_level, 
+                msg: msg.into(), 
+                res_tx, 
             })
             .unwrap();
 

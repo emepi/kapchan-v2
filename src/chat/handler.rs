@@ -16,6 +16,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub async fn chat_ws(
     user: User,
+    access_level: u8,
     chat_server: ChatServerHandle,
     mut session: actix_ws::Session,
     msg_stream: actix_ws::MessageStream,
@@ -46,7 +47,7 @@ pub async fn chat_ws(
                     }
 
                     AggregatedMessage::Text(text) => {
-                        process_text_msg(user.clone(), &chat_server, &mut session, &text)
+                        process_text_msg(user.clone(), access_level, &chat_server, &mut session, &text)
                             .await;
                     }
 
@@ -99,6 +100,7 @@ pub struct OutputCommand {
 
 async fn process_text_msg(
     user: User,
+    access_level: u8,
     chat_server: &ChatServerHandle,
     session: &mut actix_ws::Session,
     text: &str,
@@ -140,12 +142,16 @@ async fn process_text_msg(
         },
 
         SEND_MESSAGE => {
-            chat_server.send_message(json!(MessagesChanged { 
-                event: NEW_MESSAGE, 
-                username: &user, 
-                message: &command.message.unwrap_or_default(), 
-                room: &command.room.unwrap_or_default() 
-            }).to_string()).await
+            chat_server.send_chat_message(
+                access_level,
+                command.room.clone().unwrap_or_default(),
+                json!(MessagesChanged { 
+                    event: NEW_MESSAGE, 
+                    username: &user, 
+                    message: &command.message.unwrap_or_default(), 
+                    room: &command.room.unwrap_or_default() 
+                }).to_string()
+            ).await
         },
 
         _ => {

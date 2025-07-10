@@ -32,6 +32,7 @@ pub async fn chat_ws(
     
     spawn_local(handler::chat_ws(
         user.username.unwrap_or(format!("anonyymi-{}", user_data.id)),
+        user_data.access_level,
         (**chat_server).clone(),
         session,
         msg_stream,
