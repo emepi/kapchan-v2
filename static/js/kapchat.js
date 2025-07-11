@@ -29,6 +29,7 @@ const connect = () => {
       let message = JSON.parse(ev.data);
 
       switch (message.event) {
+        case 7:
         case 6:
           displayTimeout(message.message);
           break;

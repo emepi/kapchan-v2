@@ -1366,6 +1366,9 @@ body {
   gap: 10px;
   border-left: 1px solid black;
   width: 200px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .chat-input-wrapper {

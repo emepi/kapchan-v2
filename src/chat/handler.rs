@@ -87,6 +87,7 @@ const UNKNOWN_COMMAND: u8 = 0;
 const SEND_MESSAGE: u8 = 1;
 const LIST_ROOMS: u8 = 2;
 const LIST_USERS: u8 = 3;
+const TOO_LONG_MESSAGE_ERROR: u8 = 7;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct InputCommand {
@@ -99,6 +100,12 @@ pub struct InputCommand {
 pub struct OutputCommand {
     event: u8,
     data: Vec<String>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ErrorOutput {
+    event: u8,
+    message: String,
 }
 
 async fn process_text_msg(
@@ -147,6 +154,18 @@ async fn process_text_msg(
 
         SEND_MESSAGE => {
             let msg = command.clone().message.unwrap_or_default().trim().to_owned();
+
+            if msg.len() > 2000 {
+                session
+                .text(json!(ErrorOutput { 
+                    event: TOO_LONG_MESSAGE_ERROR, 
+                    message: "Viestisi on liian pitkä (yli 2000 tavua)!".to_owned(), 
+                }).to_string())
+                .await
+                .unwrap();
+
+                return;
+            }
 
             if msg.starts_with('/') {
                 let mut cmd_args = msg.splitn(3, ' ');
