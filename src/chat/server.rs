@@ -1,5 +1,6 @@
 use std::{collections::HashMap, io};
 
+use chrono::{NaiveDateTime, Utc};
 use rand::Rng;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
@@ -56,17 +57,25 @@ enum Command {
     },
 
     ChatMessage {
+        user: User,
         room: Room,
         access_level: u8,
         msg: Msg,
         res_tx: oneshot::Sender<()>,
     },
+
+    SetTimeOut {
+        user: User,
+        timeout: NaiveDateTime,
+        res_tx: oneshot::Sender<()>,
+    }
 }
 
 #[derive(Debug)]
 pub struct ChatServer {
     sessions: HashMap<ConnId, mpsc::UnboundedSender<Msg>>,
     users: HashMap<ConnId, User>,
+    timouts: HashMap<User, NaiveDateTime>,
     rooms: Vec<ChatRoom>,
     cmd_rx: mpsc::UnboundedReceiver<Command>,
 }
@@ -80,6 +89,7 @@ impl ChatServer {
             Self {
                 sessions: HashMap::new(),
                 users: HashMap::new(),
+                timouts: HashMap::new(),
                 rooms,
                 cmd_rx,
             },
@@ -95,13 +105,22 @@ impl ChatServer {
         }
     }
 
-    async fn send_chat_message(&self, access_level: u8, room: Room, msg: impl Into<Msg>) {
+    async fn send_chat_message(&self, user: User, access_level: u8, room: Room, msg: impl Into<Msg>) {
         let msg = msg.into();
 
-        for rm in self.rooms.iter() {
-            if rm.name.eq(&room) && rm.access_level <= access_level {
-                self.send_message(msg.clone()).await;
-                break;
+        let timeout = match self.timouts.get(&user) {
+            Some(timeout) => timeout,
+            None => &Utc::now().naive_utc(),
+        };
+
+        if timeout > &Utc::now().naive_utc() {
+            //TODO: notify of timeout
+        } else {
+            for rm in self.rooms.iter() {
+                if rm.name.eq(&room) && rm.access_level <= access_level {
+                    self.send_message(msg.clone()).await;
+                    break;
+                }
             }
         }
     }
@@ -147,6 +166,10 @@ impl ChatServer {
         usernames
     }
 
+    fn timeout_user(&mut self, user: User, timeout: NaiveDateTime) {
+        self.timouts.insert(user, timeout);
+    }
+
     pub async fn run(mut self) -> io::Result<()> {
         while let Some(cmd) = self.cmd_rx.recv().await {
             match cmd {
@@ -172,8 +195,13 @@ impl ChatServer {
                     let _ = res_tx.send(());
                 }
 
-                Command::ChatMessage { room, access_level, msg, res_tx } => {
-                    self.send_chat_message(access_level, room, msg).await;
+                Command::ChatMessage { user, room, access_level, msg, res_tx } => {
+                    self.send_chat_message(user, access_level, room, msg).await;
+                    let _ = res_tx.send(());
+                }
+
+                Command::SetTimeOut { user, timeout, res_tx } => {
+                    self.timeout_user(user, timeout);
                     let _ = res_tx.send(());
                 }
             }
@@ -228,11 +256,12 @@ impl ChatServerHandle {
         res_rx.await.unwrap();
     }
 
-    pub async fn send_chat_message(&self, access_level: u8, room: Room, msg: impl Into<Msg>) {
+    pub async fn send_chat_message(&self, user: User, access_level: u8, room: Room, msg: impl Into<Msg>) {
         let (res_tx, res_rx) = oneshot::channel();
 
         self.cmd_tx
             .send(Command::ChatMessage { 
+                user,
                 room, 
                 access_level, 
                 msg: msg.into(), 
@@ -245,5 +274,19 @@ impl ChatServerHandle {
 
     pub fn disconnect(&self, conn: ConnId) {
         self.cmd_tx.send(Command::Disconnect { conn }).unwrap();
+    }
+
+    pub async fn timeout_user(&self, user: User, timeout: NaiveDateTime) {
+        let (res_tx, res_rx) = oneshot::channel();
+
+        self.cmd_tx
+            .send(Command::SetTimeOut { 
+                user, 
+                timeout, 
+                res_tx,
+            })
+            .unwrap();
+
+        res_rx.await.unwrap();
     }
 }

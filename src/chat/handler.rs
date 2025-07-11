@@ -1,10 +1,13 @@
 use std::time::{Duration, Instant};
 
 use actix_ws::AggregatedMessage;
+use chrono::Utc;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::{sync::mpsc, time::interval};
+
+use crate::models::users::AccessLevel;
 
 use super::server::{ChatServerHandle, ConnId, MessagesChanged, User, NEW_MESSAGE};
 
@@ -58,7 +61,7 @@ pub async fn chat_ws(
             }
 
             Some(chat_msg) = conn_rx.recv() => {
-                 session.text(chat_msg).await.unwrap();
+                session.text(chat_msg).await.unwrap();
             }
 
             _ = interval.tick() => {
@@ -85,7 +88,7 @@ const SEND_MESSAGE: u8 = 1;
 const LIST_ROOMS: u8 = 2;
 const LIST_USERS: u8 = 3;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct InputCommand {
     event: u8,
     message: Option<String>,
@@ -142,16 +145,46 @@ async fn process_text_msg(
         },
 
         SEND_MESSAGE => {
-            chat_server.send_chat_message(
-                access_level,
-                command.room.clone().unwrap_or_default(),
-                json!(MessagesChanged { 
-                    event: NEW_MESSAGE, 
-                    username: &user, 
-                    message: &command.message.unwrap_or_default(), 
-                    room: &command.room.unwrap_or_default() 
-                }).to_string()
-            ).await
+            let msg = command.clone().message.unwrap_or_default().trim().to_owned();
+
+            if msg.starts_with('/') {
+                let mut cmd_args = msg.splitn(3, ' ');
+
+                match cmd_args.next().unwrap() {
+                    "/timeout" => match cmd_args.next() {
+                        Some(user) => match cmd_args.next() {
+                            Some(time) => {
+                                let time = match time.parse::<i64>() {
+                                    Ok(time) => {
+                                        if access_level >= AccessLevel::Moderator as u8 {
+                                            let timeout = (Utc::now() + chrono::Duration::minutes(time)).naive_utc();
+
+                                            chat_server.timeout_user(user.to_owned(), timeout).await;
+                                        }
+                                    },
+                                    Err(_) => (),
+                                };
+                            },
+                            None => (),
+                        },
+                        None => (),
+                    },
+
+                    _ => ()
+                }
+            } else {
+                chat_server.send_chat_message(
+                    user.clone(),
+                    access_level,
+                    command.room.clone().unwrap_or_default(),
+                    json!(MessagesChanged { 
+                        event: NEW_MESSAGE, 
+                        username: &user, 
+                        message: &command.message.unwrap_or_default(), 
+                        room: &command.room.unwrap_or_default() 
+                    }).to_string()
+                ).await
+            }
         },
 
         _ => {
