@@ -1339,7 +1339,6 @@ body {
 .chat-rooms {
   display: flex;
   border-bottom: 1px solid black;
-  gap: 5px;
 }
 
 .chat-middle {
@@ -1393,12 +1392,15 @@ body {
   padding: 10px;
   text-align: center;
   color: var(--on-surface);
-  background-color: var(--primary);
+  background-color: var(--surface);
+  border-left: 4px solid var(--primary);
+  cursor: pointer;
 }
 
 .user-block {
   color: var(--on-surface);
   text-wrap: nowrap;
+  text-overflow: ellipsis;
   width: min-content;
 }
 
@@ -1406,7 +1408,8 @@ body {
   color: var(--on-surface);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;  
 }
 
 .chat-input {
@@ -1432,14 +1435,19 @@ body {
 .user-block {
   color: var(--primary);
   font-weight: bold;
+  flex: 0 0 auto;
 }
 
 .chat-error {
   color: red;
 }
 
+.room-block--active {
+  background-color: rgb(48, 45, 45);
+}
+
 @media only screen and (max-width: 768px) {
   .chat-users {
-    width: 100px;
+    display: none;
   }
 }

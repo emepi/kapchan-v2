@@ -151,9 +151,18 @@ const updateChatRooms = (rooms) => {
   rooms.forEach((room) => {
     let roomBlock = document.createElement("div");
     roomBlock.classList.add("room-block");
+    roomBlock.setAttribute("id", room);
     roomBlock.textContent = room;
+
+    if (room == kapchatState.current_room) {
+      roomBlock.classList.add("room-block--active");
+    }
+
     roomBlock.addEventListener("click", e => {
+      let previous_room = document.getElementById(kapchatState.current_room);
+      previous_room.classList.remove("room-block--active");
       kapchatState.current_room = room;
+      roomBlock.classList.add("room-block--active");
       renderRoom(room);
     })
 
