@@ -152,6 +152,10 @@ const updateChatRooms = (rooms) => {
     let roomBlock = document.createElement("div");
     roomBlock.classList.add("room-block");
     roomBlock.textContent = room;
+    roomBlock.addEventListener("click", e => {
+      kapchatState.current_room = room;
+      renderRoom(room);
+    })
 
     container.appendChild(roomBlock);
   })

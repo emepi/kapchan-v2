@@ -1339,6 +1339,7 @@ body {
 .chat-rooms {
   display: flex;
   border-bottom: 1px solid black;
+  gap: 5px;
 }
 
 .chat-middle {
