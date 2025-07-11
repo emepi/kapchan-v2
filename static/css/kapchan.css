@@ -1433,6 +1433,10 @@ body {
   font-weight: bold;
 }
 
+.chat-error {
+  color: red;
+}
+
 @media only screen and (max-width: 768px) {
   .chat-users {
     width: 100px;

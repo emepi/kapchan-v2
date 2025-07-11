@@ -29,6 +29,10 @@ const connect = () => {
       let message = JSON.parse(ev.data);
 
       switch (message.event) {
+        case 6:
+          displayTimeout(message.message);
+          break;
+
         case 5:
           updateChatRooms(message.data);
           break;
@@ -57,6 +61,15 @@ const connect = () => {
       console.log('Disconnected')
       socket = null
     }
+}
+
+const displayTimeout = (msg) => {
+  let container = document.querySelector(".chat-messages");
+  let error = document.createElement("div");
+  error.classList.add("chat-error");
+  error.textContent = msg;
+
+  container.appendChild(error);
 }
 
 const addMessage = (username, message, roomm) => {

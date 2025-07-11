@@ -5,17 +5,24 @@ use rand::Rng;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::models::chat_rooms::ChatRoom;
+use crate::{models::chat_rooms::ChatRoom, services::time::fi_datetime};
 
 
 const USER_JOINED: u8 = 1;
 const USER_LEFT: u8 = 2;
 pub const NEW_MESSAGE: u8 = 3;
+const TIMEOUT: u8 = 6;
 
 #[derive(serde::Serialize)]
 pub struct UsersChanged<'a> {
     pub event: u8,
     pub username: &'a str,
+}
+
+#[derive(serde::Serialize)]
+pub struct Timeout<'a> {
+    pub event: u8,
+    pub message: &'a str,
 }
 
 #[derive(serde::Serialize)]
@@ -57,6 +64,7 @@ enum Command {
     },
 
     ChatMessage {
+        id: ConnId,
         user: User,
         room: Room,
         access_level: u8,
@@ -105,7 +113,7 @@ impl ChatServer {
         }
     }
 
-    async fn send_chat_message(&self, user: User, access_level: u8, room: Room, msg: impl Into<Msg>) {
+    async fn send_chat_message(&self, id: ConnId, user: User, access_level: u8, room: Room, msg: impl Into<Msg>) {
         let msg = msg.into();
 
         let timeout = match self.timouts.get(&user) {
@@ -114,7 +122,13 @@ impl ChatServer {
         };
 
         if timeout > &Utc::now().naive_utc() {
-            //TODO: notify of timeout
+            self.sessions.get(&id).and_then(|conn| {
+                let _ = conn.send(json!(Timeout { 
+                    event: TIMEOUT, 
+                    message: &("Käyttäjälläsi on aikalisä! Voit postata uudelleen ".to_owned() + &fi_datetime(*timeout)), 
+                }).to_string());
+                Some(())
+            });
         } else {
             for rm in self.rooms.iter() {
                 if rm.name.eq(&room) && rm.access_level <= access_level {
@@ -195,8 +209,8 @@ impl ChatServer {
                     let _ = res_tx.send(());
                 }
 
-                Command::ChatMessage { user, room, access_level, msg, res_tx } => {
-                    self.send_chat_message(user, access_level, room, msg).await;
+                Command::ChatMessage { id, user, room, access_level, msg, res_tx } => {
+                    self.send_chat_message(id, user, access_level, room, msg).await;
                     let _ = res_tx.send(());
                 }
 
@@ -256,11 +270,12 @@ impl ChatServerHandle {
         res_rx.await.unwrap();
     }
 
-    pub async fn send_chat_message(&self, user: User, access_level: u8, room: Room, msg: impl Into<Msg>) {
+    pub async fn send_chat_message(&self, id: ConnId, user: User, access_level: u8, room: Room, msg: impl Into<Msg>) {
         let (res_tx, res_rx) = oneshot::channel();
 
         self.cmd_tx
             .send(Command::ChatMessage { 
+                id,
                 user,
                 room, 
                 access_level, 

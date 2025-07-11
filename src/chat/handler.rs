@@ -50,7 +50,7 @@ pub async fn chat_ws(
                     }
 
                     AggregatedMessage::Text(text) => {
-                        process_text_msg(user.clone(), access_level, &chat_server, &mut session, &text)
+                        process_text_msg(conn_id, user.clone(), access_level, &chat_server, &mut session, &text)
                             .await;
                     }
 
@@ -102,6 +102,7 @@ pub struct OutputCommand {
 }
 
 async fn process_text_msg(
+    id: ConnId,
     user: User,
     access_level: u8,
     chat_server: &ChatServerHandle,
@@ -174,6 +175,7 @@ async fn process_text_msg(
                 }
             } else {
                 chat_server.send_chat_message(
+                    id,
                     user.clone(),
                     access_level,
                     command.room.clone().unwrap_or_default(),
