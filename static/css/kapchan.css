@@ -732,9 +732,7 @@ body {
 }
 
 .thread-post-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+
 }
 
 .thread-post-body {
@@ -743,7 +741,8 @@ body {
 }
 
 .thread-post-file {
-  margin-right: 5px;
+  float: left;
+  margin: 0 15px 15px 0; 
 }
 
 .reply {

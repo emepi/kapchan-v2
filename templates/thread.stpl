@@ -97,11 +97,7 @@
           </div>
         </div>
         <% } %>
-        <div class="thread-post-body">
-          <div class="thread-post-message">
-            <p class="post-message msg-lbl"><%= postdata.post.message %></p>
-          </div>
-        </div>
+        <p class="post-message msg-lbl"><%= postdata.post.message %></p>
       </div>
       <div class="thread-post-btm">
         <p class="msg-lbl"><% if postdata.replies.len() > 0 { %>Vastaukset: <% } %><% for reply in postdata.replies { %> >><%= reply %> <% } %></p>
