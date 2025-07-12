@@ -35,10 +35,6 @@ body {
   font-family: Exo2;
 }
 
-.flex {
-  display: flex;
-}
-
 /*------------------------- components/header.stpl ---------------------------*/
 
 .main-header {
@@ -173,7 +169,7 @@ body {
 .content {
   grid-row: 2;
   min-height: 100vh;
-  height: 100vh;
+  height: 100%;
 }
 
 @media only screen and (max-width: 768px) {
@@ -733,10 +729,6 @@ body {
 
 .post-info {
   word-break: break-word;
-}
-
-.thread-post-content {
-
 }
 
 .thread-post-body {
