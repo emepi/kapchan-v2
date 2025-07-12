@@ -95,7 +95,12 @@ pub async fn handle_thread_creation(
 
     match result {
         Ok(_) => HttpResponse::Created().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(err) => match err {
+            diesel::result::Error::NotFound => HttpResponse::Forbidden().json(UserError {
+                error: "Ongelma tiedoston käsittelyssä!".to_owned(),
+            }),
+            _ => HttpResponse::InternalServerError().finish(),
+        },
     }
 }
 

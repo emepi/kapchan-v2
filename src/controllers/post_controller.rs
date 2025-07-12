@@ -127,6 +127,10 @@ pub async fn handle_post_creation(
                     }),
                     _ => return HttpResponse::InternalServerError().finish(),
                 },
+                diesel::result::Error::NotFound => return HttpResponse::Forbidden().json(UserError {
+                    error: "Ongelma tiedoston käsittelyssä!".to_owned(),
+                }),
+
                 _ => return HttpResponse::InternalServerError().finish(),
             }
         },

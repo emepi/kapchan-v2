@@ -48,6 +48,7 @@ pub async fn create_post_by_thread_id(
         None => {
             // Delete post if attachment fails
             let _ = Post::delete_post(&conn_pool, post.id).await;
+            return Err(Error::NotFound); //TODO: better error handling
         },
     }
 

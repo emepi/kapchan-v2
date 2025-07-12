@@ -55,6 +55,7 @@ pub async fn create_thread(
         Some(_) => (),
         None => {
             let _ = Thread::delete_thread(&conn_pool, thread_info.0.id).await;
+            return Err(Error::NotFound); //TODO: better error handling
         },
     }
 
