@@ -11,15 +11,16 @@ pub async fn create_attachment(
     conn_pool: &Pool<AsyncMysqlConnection>,
     post_id: u32,
     attachment: TempFile,
-) -> Option<Attachment> {
+) -> Option<()> {    
     let mime = match &attachment.content_type {
         Some(mime) => mime,
-        None => return None,
+        None => return Some(()),
     };
 
     let file_type = match mime.type_() {
         mime::IMAGE => mime.type_().to_string(),
         //mime::VIDEO => mime.type_().to_string(),
+        mime::APPLICATION => return Some(()), // No attachment
         _ => return None, // unsupported file type
     };
 
@@ -97,7 +98,7 @@ pub async fn create_attachment(
         })
         .insert(conn_pool)
         .await {
-            Ok(attachment) => return Some(attachment),
+            Ok(_) => return Some(()),
             Err(_) => {
                 let _ = handle.join();
 

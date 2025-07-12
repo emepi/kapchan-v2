@@ -43,7 +43,13 @@ pub async fn create_post_by_thread_id(
     };
     
     let _ = Thread::bump_thread(&conn_pool, thread_id).await;
-    let _ = create_attachment(&conn_pool, post.id, attachment).await;
+    match create_attachment(&conn_pool, post.id, attachment).await {
+        Some(_) => (),
+        None => {
+            // Delete post if attachment fails
+            let _ = Post::delete_post(&conn_pool, post.id).await;
+        },
+    }
 
     Ok(())
 }
