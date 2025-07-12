@@ -35,6 +35,10 @@ body {
   font-family: Exo2;
 }
 
+.flex {
+  display: flex;
+}
+
 /*------------------------- components/header.stpl ---------------------------*/
 
 .main-header {

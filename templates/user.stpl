@@ -106,8 +106,8 @@
 
     <% if self.access_level >= 100 { %>
     <div class="helper">
-      <button class="desc login-btn" type="button" onclick="openUserEdit()">muokkaa</button>
-      <button class="desc login-btn" type="button" onclick="openUserBan()">bannaa käyttäjä</button>
+      <button class="desc login-btn" type="button" onclick="toggleContainerById('user-modify', 'flex')">muokkaa</button>
+      <button class="desc login-btn" type="button" onclick="toggleContainerById('user-ban', 'flex')">bannaa käyttäjä</button>
     </div>
     <% } %>
 
@@ -116,7 +116,7 @@
     <div class="board-creation-cont">
       <header class="modal-head">
         <h3>Muokkaa käyttäjää</h3>
-        <svg class="icon hoverable" onClick="closeUserEdit()" viewBox="0 -960 960 960">
+        <svg class="icon hoverable" onClick="toggleContainerById('user-modify', 'none')" viewBox="0 -960 960 960">
           <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
         </svg>
       </header>
@@ -141,7 +141,7 @@
     <div class="board-creation-cont">
       <header class="modal-head">
         <h3>Bannaa käyttäjä</h3>
-        <svg class="icon hoverable" onClick="closeUserBan()" viewBox="0 -960 960 960">
+        <svg class="icon hoverable" onClick="toggleContainerById('user-ban', 'none')" viewBox="0 -960 960 960">
           <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
         </svg>
       </header>

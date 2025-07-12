@@ -20,99 +20,11 @@ const openAdminBoard = (e) => {
   }
 }
 
-const openChatCreation = () => {
-  const bc = document.getElementById("chat-creation");
+const toggleContainerById = (id, display) => {
+  const container = document.getElementById(id);
 
-  if (bc) {
-    bc.style.display = "flex";
-  }
-}
-
-const closeChatCreation = () => {
-  const bc = document.getElementById("chat-creation");
-
-  if (bc) {
-    bc.style.display = "none";
-  }
-}
-
-const openUserBan = () => {
-  const bc = document.getElementById("user-ban");
-
-  if (bc) {
-    bc.style.display = "flex";
-  }
-}
-
-const closeUserBan = () => {
-  const bc = document.getElementById("user-ban");
-
-  if (bc) {
-    bc.style.display = "none";
-  }
-}
-
-const openAdminUserSearch = () => {
-  const bc = document.getElementById("usr-search");
-
-  if (bc) {
-    bc.style.display = "flex";
-  }
-}
-
-const closeAdminUserSearch = () => {
-  const bc = document.getElementById("usr-search");
-
-  if (bc) {
-    bc.style.display = "none";
-  }
-}
-
-const openAdminBoardCreation = () => {
-  const bc = document.getElementById("board-creation");
-
-  if (bc) {
-    bc.style.display = "flex";
-  }
-}
-
-const closeAdminBoardCreation = () => {
-  const bc = document.getElementById("board-creation");
-
-  if (bc) {
-    bc.style.display = "none";
-  }
-}
-
-const openUserEdit = () => {
-  const bc = document.getElementById("user-modify");
-
-  if (bc) {
-    bc.style.display = "flex";
-  }
-}
-
-const closeUserEdit = () => {
-  const bc = document.getElementById("user-modify");
-
-  if (bc) {
-    bc.style.display = "none";
-  }
-}
-
-const openAdminBoardEdit = () => {
-  const bc = document.getElementById("board-edit");
-
-  if (bc) {
-    bc.style.display = "flex";
-  }
-}
-
-const closeAdminBoardEdit = () => {
-  const bc = document.getElementById("board-edit");
-
-  if (bc) {
-    bc.style.display = "none";
+  if (container) {
+    container.style.display = display;
   }
 }
 

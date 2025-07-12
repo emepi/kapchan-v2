@@ -15,7 +15,7 @@
   <div class="admin-board-head">
     <h2>Laudat</h2>
     <% if self.access_level >= 100 { %>
-    <svg class="icon hoverable" viewBox="0 -960 960 960" onClick="openAdminBoardCreation()">
+    <svg class="icon hoverable" viewBox="0 -960 960 960" onClick="toggleContainerById('board-creation', 'flex')">
       <path fill="currentColor" d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/>
     </svg>
     <% } %>
@@ -94,7 +94,7 @@
         </div>
         <% if self.access_level >= 100 { %>
         <div class="helper">
-          <button class="admin-board-info-btn" onClick="openAdminBoardEdit()">muokkaa</button>
+          <button class="admin-board-info-btn" onClick="toggleContainerById('board-edit', 'flex')">muokkaa</button>
           <button class="admin-board-info-btn" onClick="deleteBoard(<%= board.id %>)">poista</button>
         </div>
         <% } %>
@@ -103,7 +103,7 @@
           <div class="admin-board-edit board-creation-cont">
             <header class="modal-head">
               <h3>Muokkaa lautaa</h3>
-              <svg class="icon hoverable" onClick="closeAdminBoardEdit()" viewBox="0 -960 960 960">
+              <svg class="icon hoverable" onClick="toggleContainerById('board-edit', 'none')" viewBox="0 -960 960 960">
                 <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
               </svg>
             </header>
@@ -147,7 +147,7 @@
     <div class="board-creation-cont">
       <header class="modal-head">
         <h3>Luo uusi lauta</h3>
-        <svg class="icon hoverable" onClick="closeAdminBoardCreation()" viewBox="0 -960 960 960">
+        <svg class="icon hoverable" onClick="toggleContainerById('board-creation', 'none')" viewBox="0 -960 960 960">
           <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
         </svg>
       </header>
@@ -187,7 +187,7 @@
   <div class="admin-board-head">
     <h2>Chathuoneet</h2>
     <% if self.access_level >= 100 { %>
-    <svg class="icon hoverable" viewBox="0 -960 960 960" onClick="openChatCreation()">
+    <svg class="icon hoverable" viewBox="0 -960 960 960" onClick="toggleContainerById('chat-creation','flex')">
       <path fill="currentColor" d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/>
     </svg>
     <% } %>
@@ -230,7 +230,7 @@
     <div class="board-creation-cont">
       <header class="modal-head">
         <h3>Luo uusi chathuone</h3>
-        <svg class="icon hoverable" onClick="closeChatCreation()" viewBox="0 -960 960 960">
+        <svg class="icon hoverable" onClick="toggleContainerById('chat-creation', 'none')" viewBox="0 -960 960 960">
           <path fill="currentColor" d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
         </svg>
       </header>
