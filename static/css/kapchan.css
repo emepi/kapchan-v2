@@ -713,6 +713,10 @@ body {
   color: var(--primary);
 }
 
+.post-id {
+  cursor: pointer;
+}
+
 .post-id-column {
   white-space: nowrap;
 }

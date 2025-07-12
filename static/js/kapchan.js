@@ -4,6 +4,14 @@ const kapchanState = {
   timeout: null,
 };
 
+const replyUser = (id) => {
+  const textArea = document.getElementById("post-text-area");
+
+  if (textArea) {
+    textArea.value = textArea.value + ">>" + id;
+    scrollToBottom();
+  }
+}
 
 const openAdminBoard = (e) => {
   let icon = e.querySelector('.dropdown');

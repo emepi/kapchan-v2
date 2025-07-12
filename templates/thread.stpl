@@ -42,7 +42,7 @@
   <% for (i, postdata) in self.thread.posts.into_iter().enumerate() { %>
     <div class="thread-post" id="p<%= postdata.post.id %>">
       <div class="thread-post-info">
-        <p class="post-info"><% if i == 0 { %><b><%=self.thread.thread.title%></b> <% } %><span class="username"> Anonyymi </span> <%= fi_datetime(postdata.post.created_at) %> <span class="post-id-column">No. <span class="post-id"><%= postdata.post.id %></span></span></p>
+        <p class="post-info"><% if i == 0 { %><b><%=self.thread.thread.title%></b> <% } %><span class="username"> Anonyymi </span> <%= fi_datetime(postdata.post.created_at) %> <span class="post-id-column">No. <span class="post-id" onclick="replyUser(<%= postdata.post.id %>)"><%= postdata.post.id %></span></span></p>
         <div class="thread-menu-opt">
           <svg class="icon thread-menu-icon" onClick="showThreadMenu(this)" viewBox="0 -960 960 960">
             <path fill="currentColor" d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"/>
@@ -139,7 +139,7 @@
   <div class="reply">
     <div class="err-container" id="err-container"></div>
     <form class="reply-form" id="posting-form">
-      <textarea name="message" class="reply-text" spellcheck="false" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
+      <textarea name="message" id="post-text-area" class="reply-text" spellcheck="false" oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"'></textarea>
 
       <% if self.current_board.captcha { %>
       <button type="button" class="posting-captcha-btn" onClick="fetchCaptcha()">
