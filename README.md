@@ -79,4 +79,5 @@ cargo build --release
 ```
 cargo run --release
 ```
-Open http://localhost:8080/ to view it in the browser.
+Open http://localhost:8080/ to view it in the browser.<br>
+If you have ran another instance of kapchan before, make sure to delete the old cookies before running a new one. This will cause an internal server error.
