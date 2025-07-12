@@ -1,4 +1,4 @@
-use std::{io::BufReader, thread};
+use std::{fs::remove_file, io::BufReader, thread};
 
 use actix_multipart::form::tempfile::TempFile;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
@@ -40,9 +40,11 @@ pub async fn create_attachment(
 
     let file_path = format!("files/{}", post_id);
     let file_location = format!("{}/{}", &file_path, &file_name);
+    let file_location_clone = file_location.clone();
 
     let thumbnail_path = format!("thumbnails/{}", post_id);
     let thumbnail_location = format!("{}/{}", &thumbnail_path, &file_name);
+    let thumbnail_location_clone = thumbnail_location.clone();
 
     match tokio::fs::create_dir_all(&file_path).await {
         Ok(_) => (),
@@ -71,7 +73,7 @@ pub async fn create_attachment(
         let width = img.width();
         let height = img.height();
     
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             match attachment.file.persist(&file_location) {
                 Ok(_) => (),
                 Err(_) => return None,
@@ -83,7 +85,7 @@ pub async fn create_attachment(
             Some(())
         });
   
-        return AttachmentModel {
+        match (AttachmentModel {
             id: post_id,
             width,
             height,
@@ -92,10 +94,28 @@ pub async fn create_attachment(
             file_type: &file_type,
             file_location: &file_path,
             thumbnail_location: &thumbnail_path,
-        }
+        })
         .insert(conn_pool)
-        .await
-        .ok()
+        .await {
+            Ok(attachment) => return Some(attachment),
+            Err(_) => {
+                let _ = handle.join();
+
+                match remove_file(file_location_clone) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Error while removing file: {:?}", e);
+                    },
+                };
+        
+                match remove_file(thumbnail_location_clone) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Error while removing file: {:?}", e);
+                    },
+                };
+            },
+        }
     }
 
     None
