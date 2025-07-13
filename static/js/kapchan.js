@@ -219,7 +219,7 @@ const hintPost = (element, id) => {
       const container = document.createElement("div");
       container.classList.add("highlight-container");
   
-      container.innerHTML = `<div class="thread-post"><div class="thread-post-info"><p class="post-info"><span class="username">Anonyymi</span><span class="time"></span> <span class="post-id-column">No. <span class="post-id"></span></span></p></div><div class="thread-post-file-info" hidden><p class="file-info"></p></div><div class="thread-post-content"><div class="thread-post-file" hidden></div><div class="thread-post-body"><div class="thread-post-message"><p class="post-message msg-lbl"></p></div></div></div></div>`;
+      container.innerHTML = `<div class="thread-post"><div class="thread-post-info"><p class="post-info"><span class="username">Anonyymi</span><span class="time"></span> <span class="post-id-column">No. <span class="post-id"></span></span></p></div><div class="thread-post-file-info" hidden><p class="file-info"></p></div><div class="thread-post-content"><div class="thread-post-file" hidden></div><p class="post-message soft-render"></p></div></div>`;
   
       container.querySelector(".time").textContent = post.post_date;
       container.querySelector(".post-id").textContent = post.post_id;
@@ -238,7 +238,7 @@ const hintPost = (element, id) => {
       }
 
       element.append(container);
-      renderMessages(container);
+      softRenderMessages(container);
     })
     .catch((error) => {
     });
@@ -463,8 +463,8 @@ const enlargeImage = (container_id, image_id) => {
     }
 }
 
-const renderMessages = (element) => {
-  element.querySelectorAll(".msg-lbl").forEach((msg) => {
+const softRenderMessages = (element) => {
+  element.querySelectorAll(".soft-render").forEach((msg) => {
     let text = msg.textContent;
 
     //Regex strings
@@ -580,35 +580,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     msg.innerHTML = text;
   })
 
-  document.querySelectorAll(".soft-render").forEach((msg) => {
-    let text = msg.textContent;
-
-    //Regex strings
-	let find = [
-    /&/g,
-		/<(.*?)>/g,
-    /^(?=>[^>])>([^\r\n]+)/gm,
-    />>(\d+)/g,
-		/\[spoiler\](.*?)\[\/spoiler\]/g,
-    /(([https?|ftp]+:\/\/)([^\s/?\.#-]+\.?)+(\/[^\s]*)?)/gi,
-	];
-
-	//Regex string replacements
-	let replace = [
-    '&amp;',
-		'&lt;$1&gt;',
-    '<span class="implying">&gt;$1</span>',
-    '<span class="backlink">&gt;&gt;$1</span>',
-		'<span class="spoiler">$1</span>',
-    '<a class="link" href="$1">$1</a>',
-	];
-
-    for (let i =0; i < find.length; i++) {
-	  text = text.replace(find[i], replace[i]);
-	}
-
-    msg.innerHTML = text;
-  })
+  softRenderMessages(document);
   
   if (window.location.href.includes("#p")) {
     let post_id = window.location.href.match(/p(\d+)/g)[0];
