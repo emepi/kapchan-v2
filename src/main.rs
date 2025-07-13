@@ -112,9 +112,9 @@ async fn main() -> std::io::Result<()> {
 
     update_root_user(&mysql_connection_pool, &root_pwd).await.unwrap();
 
+    // Create a chat server.
     let chat_rooms = ChatRoom::list_all(&mysql_connection_pool).await.unwrap();
 
-    // Create a chat server
     let (chat_server, server_tx) = ChatServer::new(chat_rooms);
 
     let chat_server = spawn(chat_server.run());
