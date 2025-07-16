@@ -111,6 +111,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    reports (id) {
+        id -> Unsigned<Integer>,
+        post_id -> Unsigned<Integer>,
+        reason -> Text,
+    }
+}
+
+diesel::table! {
     threads (id) {
         id -> Unsigned<Integer>,
         user_id -> Unsigned<Bigint>,
@@ -144,6 +152,7 @@ diesel::joinable!(attachments -> posts (id));
 diesel::joinable!(bans -> posts (post_id));
 diesel::joinable!(posts -> threads (thread_id));
 diesel::joinable!(posts -> users (user_id));
+diesel::joinable!(reports -> posts (post_id));
 diesel::joinable!(threads -> boards (board_id));
 diesel::joinable!(threads -> users (user_id));
 
@@ -157,6 +166,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     chat_rooms,
     posts,
     replies,
+    reports,
     threads,
     users,
 );
