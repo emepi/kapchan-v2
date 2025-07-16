@@ -58,6 +58,7 @@ mod models {
     pub mod chat_rooms;
     pub mod files;
     pub mod users;
+    pub mod reports;
     pub mod threads;
     pub mod posts;
     pub mod captchas;
