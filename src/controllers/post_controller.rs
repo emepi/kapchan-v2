@@ -7,7 +7,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection};
 use serde::{Deserialize, Serialize};
 
-use crate::{models::{bans::BanModel, boards::Board, error::UserError, posts::Post, threads::Thread, users::{AccessLevel, User}}, services::{authentication::resolve_user, captchas::verify_captcha, files::display_filesize, posts::create_post_by_thread_id, time::fi_datetime}};
+use crate::{models::{bans::BanModel, boards::Board, error::UserError, posts::Post, reports::ReportModel, threads::Thread, users::{AccessLevel, User}}, services::{authentication::resolve_user, captchas::verify_captcha, files::display_filesize, posts::create_post_by_thread_id, time::fi_datetime}};
 
 
 #[derive(Debug, MultipartForm)]
@@ -346,6 +346,38 @@ pub async fn ban_user_by_post_id(
     };
 
     match ban_model.insert(&conn_pool).await {
+        Ok(_) => HttpResponse::Created().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ReportPostInput {
+    pub post_id: u32,
+    pub reason: String,
+}
+
+pub async fn report_post(
+    user: Option<Identity>,
+    conn_pool: web::Data<Pool<AsyncMysqlConnection>>,
+    input: web::Json<ReportPostInput>,
+    req: HttpRequest,
+) -> impl Responder {
+    let user_data = match resolve_user(user, req, &conn_pool).await {
+        Ok(usr_data) => usr_data,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if user_data.banned.is_some() && user_data.access_level != AccessLevel::Root as u8 {
+        return HttpResponse::Forbidden().finish();
+    }
+
+    let report_model = ReportModel {
+        post_id: input.post_id,
+        reason: &input.reason,
+    };
+
+    match report_model.insert(&conn_pool).await {
         Ok(_) => HttpResponse::Created().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

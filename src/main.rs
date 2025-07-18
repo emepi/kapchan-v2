@@ -252,6 +252,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(post_controller::delete_post))
             )
             .service(
+                web::resource("/report-post")
+                    .route(web::post().to(post_controller::report_post))
+            )
+            .service(
                 web::resource("/ban-user-by-post/{id}")
                     .route(web::post().to(post_controller::ban_user_by_post_id))
             )

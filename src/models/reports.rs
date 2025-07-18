@@ -33,3 +33,33 @@ pub struct ReportModel<'a> {
     pub post_id: u32,
     pub reason: &'a str,
 }
+
+impl ReportModel<'_> {
+    pub async fn insert(
+        &self, 
+        conn_pool: &Pool<AsyncMysqlConnection>,
+    ) -> Result<Report, Error> {
+        match conn_pool.get().await {
+            Ok(mut conn) => {
+                conn.transaction::<_, Error, _>(|conn| async move {
+                    let _ = diesel::insert_into(reports::table)
+                    .values(self)
+                    .execute(conn)
+                    .await?;
+                
+                    let report = reports::table
+                    .find(last_insert_id())
+                    .first::<Report>(conn)
+                    .await?;
+            
+                    Ok(report)
+                }.scope_boxed())
+                .await
+            },
+
+            Err(_) => Err(Error::BrokenTransactionManager),
+        }
+    }
+}
+
+sql_function!(fn last_insert_id() -> Unsigned<Integer>);
